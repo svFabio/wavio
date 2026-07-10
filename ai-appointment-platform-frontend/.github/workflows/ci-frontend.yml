@@ -1,0 +1,31 @@
+name: CI Frontend (React + Vite)
+
+# Se ejecuta en CUALQUIER push a CUALQUIER rama y en Pull Requests
+on: [push, pull_request]
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Nuevo paso: Verificar calidad de código (ESLint)
+      - name: Linting (Calidad de código)
+        run: npm run lint
+
+      # Intentamos hacer el build de producción para ver si React explota
+      - name: Test Build
+        env:
+          VITE_API_URL: "http://check-dummy-url"
+        run: npm run build

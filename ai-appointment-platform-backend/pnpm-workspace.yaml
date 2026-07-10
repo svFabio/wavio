@@ -1,0 +1,6 @@
+allowBuilds:
+  '@prisma/client': false
+  '@prisma/engines': false
+  '@whiskeysockets/baileys': false
+  prisma: false
+  protobufjs: false
