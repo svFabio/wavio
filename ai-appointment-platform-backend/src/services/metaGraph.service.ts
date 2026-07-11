@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const enviarMensaje = async (negocioId: number, numero: string, mensaje: string) => {
     const negocio = await prisma.negocio.findUnique({ where: { id: negocioId } });

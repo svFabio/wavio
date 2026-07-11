@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { enviarMensaje } from '../services/metaGraph.service';
 import { evaluarIntencion, procesarMensajeConIA, detectarIntencionSimple, ContextoConversacion } from '../services/aiService';
 // TODO: Import the specific appointment logic functions once refactored, for now we will just log and reply.
-
-const prisma = new PrismaClient();
 
 // Token de verificación configurado en el panel de Meta (App Dashboard)
 const WEBHOOK_VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'mi_token_secreto_wavio';

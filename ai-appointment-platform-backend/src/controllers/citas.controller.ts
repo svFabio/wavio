@@ -1,8 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { enviarMensaje } from '../services/metaGraph.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 // Horarios definidos (mismos que la configuración del negocio)
 const HORARIOS_DEFINIDOS = ["13:00", "14:00", "15:00", "16:00", "17:00"];
