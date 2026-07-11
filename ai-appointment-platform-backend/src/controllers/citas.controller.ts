@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { enviarMensaje } from '../services/whatsappClient';
+import { enviarMensaje } from '../services/metaGraph.service';
 
 const prisma = new PrismaClient();
 
-// Horarios definidos (mismos que whatsappClient)
+// Horarios definidos (mismos que la configuración del negocio)
 const HORARIOS_DEFINIDOS = ["13:00", "14:00", "15:00", "16:00", "17:00"];
 
 // Obtener Citas pendientes de validación del negocio autenticado
@@ -70,7 +70,7 @@ export const validarCita = async (req: Request, res: Response) => {
           orderBy: { timestamp: 'desc' },
           select: { remoteJid: true }
         });
-        const jid = ultimoMsgEntrante?.remoteJid || `${citaActualizada.clienteTelefono}@s.whatsapp.net`;
+        const jid = ultimoMsgEntrante?.remoteJid || citaActualizada.clienteTelefono;
         await enviarMensaje(negocioId, jid, mensaje);
       }
     } catch (msgError) {
@@ -192,6 +192,9 @@ export const crearCitaAdmin = async (req: Request, res: Response) => {
     if (!clienteNombre || !clienteTelefono || !fecha || !horario) {
       return res.status(400).json({ error: 'Todos los campos son requeridos: clienteNombre, clienteTelefono, fecha, horario' });
     }
+    if (typeof clienteNombre !== 'string' || typeof clienteTelefono !== 'string' || typeof fecha !== 'string' || typeof horario !== 'string') {
+      return res.status(400).json({ error: 'Formato inválido. Se esperan textos.' });
+    }
     if (clienteNombre.trim().length < 3) {
       return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres.' });
     }
@@ -241,6 +244,7 @@ export const reprogramarCita = async (req: Request, res: Response) => {
 
   try {
     if (!fecha || !horario) return res.status(400).json({ error: 'Fecha y horario son requeridos' });
+    if (typeof fecha !== 'string' || typeof horario !== 'string') return res.status(400).json({ error: 'Formato de fecha u horario inválido.' });
     if (!HORARIOS_DEFINIDOS.includes(horario)) return res.status(400).json({ error: `Horario inválido. Disponibles: ${HORARIOS_DEFINIDOS.join(', ')}` });
 
     const [year, month, day] = fecha.split('-').map(Number);

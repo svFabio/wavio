@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { enviarMensaje, resolverTelefonoReal } from '../services/whatsappClient';
+import { enviarMensaje, resolverTelefonoReal } from '../services/metaGraph.service';
 
 const prisma = new PrismaClient();
 
@@ -76,15 +76,27 @@ export const sendMensaje = async (req: Request, res: Response) => {
         const jid = req.params.jid as string;
         const { texto } = req.body;
 
-        if (!texto || !texto.trim()) {
-            return res.status(400).json({ error: 'Texto requerido' });
+        if (!texto || typeof texto !== 'string' || !texto.trim()) {
+            return res.status(400).json({ error: 'Texto requerido y debe ser texto válido' });
         }
 
-        const enviado = await enviarMensaje(negocioId, jid, texto.trim());
+        const resultado = await enviarMensaje(negocioId, jid, texto.trim());
 
-        if (!enviado) {
-            return res.status(503).json({ error: 'WhatsApp no conectado' });
+        if (!resultado.success) {
+            return res.status(503).json({ error: resultado.error || 'WhatsApp no conectado' });
         }
+
+        // Guardar el mensaje saliente en la BD
+        await prisma.mensajeChat.create({
+            data: {
+                remoteJid: jid,
+                contenido: texto.trim(),
+                direccion: 'SALIENTE',
+                waMessageId: resultado.waMessageId || null,
+                estadoEntrega: 'enviado',
+                negocioId
+            }
+        });
 
         res.json({ success: true });
     } catch (error) {

@@ -42,6 +42,11 @@ export const updateConfiguracion = async (req: Request, res: Response) => {
         if (porcentajeAdelanto !== undefined && (typeof porcentajeAdelanto !== 'number' || porcentajeAdelanto < 1 || porcentajeAdelanto > 100)) {
             return res.status(400).json({ error: 'porcentajeAdelanto debe ser un numero entre 1 y 100' });
         }
+        if (horarios !== undefined) {
+            if (typeof horarios !== 'object' || horarios === null || Array.isArray(horarios)) {
+                return res.status(400).json({ error: 'horarios debe ser un mapa JSON válido' });
+            }
+        }
 
         const updateData: Partial<{ trigger: string; mensajeBienvenida: string; mensajeConfirmacion: string; servicios: ServicioItem[]; horarios: HorariosMap; cobrarAdelanto: boolean; porcentajeAdelanto: number }> = {};
         if (trigger !== undefined) updateData.trigger = trigger.trim();
