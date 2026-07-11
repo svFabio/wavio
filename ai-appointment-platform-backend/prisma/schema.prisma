@@ -59,7 +59,7 @@ model Usuario {
   creadoEn  DateTime @default(now())
 
   negocioId Int
-  negocio   Negocio @relation(fields: [negocioId], references: [id])
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 }
 
 // ─── SESIÓN BAILEYS (por negocio) ────────────────────────────────────────────
@@ -73,7 +73,7 @@ model SesionChat {
   ultimoMensaje DateTime @default(now())
 
   negocioId Int
-  negocio   Negocio @relation(fields: [negocioId], references: [id])
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 
   @@index([negocioId, ultimoMensaje])
 }
@@ -99,7 +99,7 @@ model Cita {
   creadoEn        DateTime @default(now())
 
   negocioId Int
-  negocio   Negocio @relation(fields: [negocioId], references: [id])
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 
   @@index([negocioId, fecha])
 }
@@ -115,7 +115,7 @@ model MensajeChat {
   timestamp     DateTime         @default(now())
 
   negocioId Int
-  negocio   Negocio @relation(fields: [negocioId], references: [id])
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 
   @@index([negocioId, remoteJid, timestamp])
 }
@@ -133,5 +133,5 @@ model Configuracion {
   porcentajeAdelanto  Int     @default(50)
 
   negocioId Int     @unique
-  negocio   Negocio @relation(fields: [negocioId], references: [id])
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 }
