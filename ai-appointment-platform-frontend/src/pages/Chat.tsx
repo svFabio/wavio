@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../services/api';
-import { io } from 'socket.io-client';
+import { socket } from '../services/socket';
 import type { MensajeChat, Conversacion } from '../types';
 import {
     Send,
@@ -37,10 +37,7 @@ const Chat = () => {
     }, [cargarConversaciones]);
 
     useEffect(() => {
-        const urlBase = import.meta.env.VITE_API_URL.replace('/api', '');
-        const socket = io(urlBase);
-
-        socket.on('nuevo-mensaje', (msg: MensajeChat) => {
+        const handleNuevoMensaje = (msg: MensajeChat) => {
             setMensajes(prev => {
                 if (prev.length > 0 && prev[0]?.remoteJid === msg.remoteJid) {
                     return [...prev, msg];
@@ -66,15 +63,20 @@ const Chat = () => {
                     }, ...prev];
                 }
             });
-        });
+        };
 
-        // Eliminar conversación en tiempo real cuando otro cliente la borra
-        socket.on('conversacion-eliminada', ({ remoteJid }: { remoteJid: string }) => {
+        const handleConversacionEliminada = ({ remoteJid }: { remoteJid: string }) => {
             setConversaciones(prev => prev.filter(c => c.remoteJid !== remoteJid));
             setSelectedJid(prev => prev === remoteJid ? null : prev);
-        });
+        };
 
-        return () => { socket.disconnect(); };
+        socket.on('nuevo-mensaje', handleNuevoMensaje);
+        socket.on('conversacion-eliminada', handleConversacionEliminada);
+
+        return () => { 
+            socket.off('nuevo-mensaje', handleNuevoMensaje); 
+            socket.off('conversacion-eliminada', handleConversacionEliminada);
+        };
     }, []);
 
     useEffect(() => {

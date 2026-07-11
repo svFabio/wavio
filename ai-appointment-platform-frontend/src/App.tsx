@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { io } from 'socket.io-client';
+import { socket } from './services/socket';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,14 +27,9 @@ function App() {
   const { notifications, addNotification, dismissNotification } = useNotifications();
 
   useEffect(() => {
-    const urlBase = import.meta.env.VITE_API_URL.replace('/api', '');
-    const socket = io(urlBase, {
-      transports: ['websocket', 'polling'],
-      reconnection: true
-    });
-
     interface NuevaCitaPayload { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string; }
-    socket.on('nueva-cita', (data: NuevaCitaPayload) => {
+    
+    const handleNuevaCita = (data: NuevaCitaPayload) => {
       const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
       addNotification({
         message: `Nueva cita de ${data.clienteNombre}`,
@@ -43,9 +38,13 @@ function App() {
         horario: data.horario
       });
       playNotificationSound();
-    });
+    };
 
-    return () => { socket.disconnect(); };
+    socket.on('nueva-cita', handleNuevaCita);
+
+    return () => { 
+      socket.off('nueva-cita', handleNuevaCita); 
+    };
   }, [addNotification]);
 
   return (
