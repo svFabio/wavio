@@ -44,9 +44,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 
 // CORS — en produccion leer origenes desde CORS_ORIGINS (coma-separados)
-const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-    : [];
+
 
 app.use(cors({
     origin: (origin, callback) => {
