@@ -14,6 +14,11 @@ enum Rol {
   STAFF
 }
 
+enum DireccionMensaje {
+  ENTRANTE
+  SALIENTE
+}
+
 enum Plan {
   FREE
   PRO
@@ -21,12 +26,20 @@ enum Plan {
 
 // ─── TENANT (el negocio que se registra) ─────────────────────────────────────
 model Negocio {
-  id        Int      @id @default(autoincrement())
-  googleId  String   @unique // ID de Google del dueño que se registró
-  email     String   @unique
-  nombre    String   @default("Mi Negocio")
-  plan      Plan     @default(FREE)
-  creadoEn  DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  googleId        String   @unique // ID de Google del dueño que se registró
+  email           String   @unique
+  nombre          String   @default("Mi Negocio")
+  plan            Plan     @default(FREE)
+  
+  // ─── META CLOUD API FIELDS ───
+  waAccessToken   String?
+  waPhoneNumberId String?  @unique
+  waWabaId        String?
+  waAppId         String?
+  isWaConnected   Boolean  @default(false)
+
+  creadoEn        DateTime @default(now())
 
   usuarios      Usuario[]
   citas         Cita[]
@@ -50,11 +63,7 @@ model Usuario {
 }
 
 // ─── SESIÓN BAILEYS (por negocio) ────────────────────────────────────────────
-model BaileysSession {
-  id    String @id
-  creds String @db.Text
-  keys  String @db.Text
-}
+// Eliminado: Ya no usamos Baileys. Las credenciales de Meta se guardan en el modelo Negocio.
 
 // ─── SESIÓN DE CHAT (por negocio) ────────────────────────────────────────────
 model SesionChat {
@@ -97,11 +106,13 @@ model Cita {
 
 // ─── HISTORIAL DE MENSAJES ───────────────────────────────────────────────────
 model MensajeChat {
-  id        Int      @id @default(autoincrement())
-  remoteJid String
-  contenido String
-  direccion String   // ENTRANTE | SALIENTE
-  timestamp DateTime @default(now())
+  id            Int              @id @default(autoincrement())
+  waMessageId   String?          @unique // ID único del mensaje en Meta (wamid)
+  remoteJid     String
+  contenido     String
+  direccion     DireccionMensaje // ENTRANTE | SALIENTE
+  estadoEntrega String           @default("enviado") // enviado, entregado, leido, fallido
+  timestamp     DateTime         @default(now())
 
   negocioId Int
   negocio   Negocio @relation(fields: [negocioId], references: [id])

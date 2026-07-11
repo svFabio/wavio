@@ -6,25 +6,18 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import citasRoutes from './routes/citas.route';
 import authRoutes from './routes/auth.route';
-import statisticsRoutes from './routes/statistics.route';
-import usersRoutes from './routes/users.route';
-import chatRoutes from './routes/chat.route';
+import citasRoutes from './routes/citas.route';
 import configuracionRoutes from './routes/configuracion.route';
-import {
-    iniciarWhatsAppNegocio,
-    getEstadoWhatsApp,
-    desvincularWhatsApp,
-    reiniciarWhatsApp,
-    getBotsActivos,
-    solicitarCodigoPairing
-} from './services/whatsappClient';
+import whatsappRoutes from './routes/whatsapp.route';
+import chatRoutes from './routes/chat.route';
+import webhookRoutes from './routes/webhook.route';
+import usersRoutes from './routes/users.route';
+import statisticsRoutes from './routes/statistics.route';
+import negocioRoutes from './routes/negocio.route';
 import { iniciarCronJobs } from './services/cleanupService';
 import { iniciarRecordatorios } from './services/reminderService';
 import { iniciarSurvey } from './services/surveyService';
-import { verificarToken } from './middleware/auth.middleware';
-import { tenantMiddleware } from './middleware/tenant.middleware';
 
 dotenv.config();
 
@@ -76,48 +69,19 @@ app.use((req, res, next) => {
 app.get('/', (_req, res) => res.send('Backend funcionando 🚀'));
 app.get('/ping', (_req, res) => res.send('pong'));
 
-// ─── Rutas WhatsApp (requieren auth + tenant scope) ─────────────────────────
-// Devuelve el estado del bot del negocio autenticado
-app.get('/api/status-whatsapp', verificarToken, tenantMiddleware, (req, res) => {
-    const estado = getEstadoWhatsApp(req.negocioId!);
-    res.json({ ...estado, botsActivos: getBotsActivos() });
-});
+// ─── Rutas Meta Cloud API Webhook ─────────────────────────────────────────────
+app.use('/api/webhooks/whatsapp', webhookRoutes);
 
-// Inicia el bot del negocio autenticado
-app.post('/api/start-whatsapp', verificarToken, tenantMiddleware, async (req, res) => {
-    const resultado = await iniciarWhatsAppNegocio(req.negocioId!, io);
-    if (resultado.error) return res.status(429).json({ error: resultado.error });
-    res.json({ message: 'Bot iniciando. Espera el QR.' });
-});
 
-// Desvincula el bot del negocio autenticado
-app.post('/api/logout', verificarToken, tenantMiddleware, async (req, res) => {
-    const resultado = await desvincularWhatsApp(req.negocioId!);
-    res.json(resultado);
-});
-
-// Reinicia el bot del negocio autenticado
-app.post('/api/restart-whatsapp', verificarToken, tenantMiddleware, async (req, res) => {
-    const resultado = await reiniciarWhatsApp(req.negocioId!, io);
-    res.json(resultado);
-});
-
-// Solicitar codigo de emparejamiento (alternativa al QR)
-app.post('/api/pairing-code', verificarToken, tenantMiddleware, async (req, res) => {
-    const { telefono } = req.body;
-    if (!telefono) return res.status(400).json({ error: 'El numero de telefono es requerido' });
-    const resultado = await solicitarCodigoPairing(req.negocioId!, telefono, io);
-    if (resultado.error) return res.status(400).json({ error: resultado.error });
-    res.json({ codigo: resultado.codigo });
-});
-
-// Rutas de negocio
-app.use('/api/citas', citasRoutes);
+// Rutas principales
 app.use('/api/auth', authRoutes);
+app.use('/api/citas', citasRoutes);
 app.use('/api/configuracion', configuracionRoutes);
-app.use('/api/statistics', statisticsRoutes);
-app.use('/api/users', usersRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/statistics', statisticsRoutes);
+app.use('/api/negocio', negocioRoutes);
 
 io.on('connection', (socket) => {
     console.log('⚡ Cliente conectado al Socket:', socket.id);

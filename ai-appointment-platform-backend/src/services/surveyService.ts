@@ -1,7 +1,7 @@
 
 import cron from 'node-cron';
 // import { PrismaClient } from '@prisma/client';
-// import { enviarMensaje } from './whatsappClient';
+// import { enviarMensaje } from './metaGraph.service';
 
 // const prisma = new PrismaClient();
 
