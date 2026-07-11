@@ -163,8 +163,18 @@ export const getHorariosDisponibles = async (req: Request, res: Response) => {
       select: { horario: true }
     });
 
+    const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const diaNombre = diasSemana[inicio.getDay()];
+
+    let config = await prisma.configuracion.findUnique({ where: { negocioId } });
+    if (!config) {
+      config = await prisma.configuracion.create({ data: { negocioId } });
+    }
+    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
+    const horariosPermitidos = (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
+
     const horasOcupadas = ocupadas.map(c => c.horario);
-    let disponibles = HORARIOS_DEFINIDOS.filter(h => !horasOcupadas.includes(h));
+    let disponibles = horariosPermitidos.filter(h => !horasOcupadas.includes(h));
 
     const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/La_Paz" }));
     const esHoy = ahora.getFullYear() === year && ahora.getMonth() === (month - 1) && ahora.getDate() === day;
@@ -178,10 +188,10 @@ export const getHorariosDisponibles = async (req: Request, res: Response) => {
       });
     }
 
-    res.json({ horarios: disponibles, fecha });
+    res.json(disponibles);
   } catch (error) {
-    console.error("Error obteniendo horarios:", error);
-    res.status(500).json({ error: 'Error al obtener horarios disponibles' });
+    console.error("Error en getHorariosDisponibles:", error);
+    res.status(500).json({ error: 'Error al obtener horarios' });
   }
 };
 
@@ -204,25 +214,39 @@ export const crearCitaAdmin = async (req: Request, res: Response) => {
     if (telefonoLimpio.length < 8) {
       return res.status(400).json({ error: 'El teléfono debe tener al menos 8 dígitos numéricos.' });
     }
-    if (!HORARIOS_DEFINIDOS.includes(horario)) {
-      return res.status(400).json({ error: `Horario inválido. Horarios disponibles: ${HORARIOS_DEFINIDOS.join(', ')}` });
-    }
 
     const [year, month, day] = fecha.split('-').map(Number);
     const fechaCita = new Date(year, month - 1, day);
+
+    const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const diaNombre = diasSemana[fechaCita.getDay()];
+
+    let config = await prisma.configuracion.findUnique({ where: { negocioId } });
+    if (!config) {
+      config = await prisma.configuracion.create({ data: { negocioId } });
+    }
+    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
+    const horariosPermitidos = (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
+
+    if (!horariosPermitidos.includes(horario)) {
+      return res.status(400).json({ error: `Horario inválido para el día ${diaNombre}. Horarios disponibles: ${horariosPermitidos.join(', ')}` });
+    }
+
     const [horas, minutos] = horario.split(':').map(Number);
     fechaCita.setHours(horas, minutos, 0, 0);
 
-    const citaExistente = await prisma.cita.findFirst({
-      where: { negocioId, fecha: fechaCita, horario, estado: { not: 'CANCELADA' } }
-    });
+    const nuevaCita = await prisma.$transaction(async (tx) => {
+      const citaExistente = await tx.cita.findFirst({
+        where: { negocioId, fecha: fechaCita, horario, estado: { not: 'CANCELADA' } }
+      });
 
-    if (citaExistente) {
-      return res.status(409).json({ error: 'Este horario ya está ocupado. Por favor selecciona otro.' });
-    }
+      if (citaExistente) {
+        throw new Error('HORARIO_OCUPADO');
+      }
 
-    const nuevaCita = await prisma.cita.create({
-      data: { negocioId, clienteNombre, clienteTelefono, fecha: fechaCita, horario, monto: 50, estado: 'CONFIRMADA', origen: 'presencial' }
+      return await tx.cita.create({
+        data: { negocioId, clienteNombre, clienteTelefono, fecha: fechaCita, horario, monto: 50, estado: 'CONFIRMADA', origen: 'presencial' }
+      });
     });
 
     const io = req.app.get('io');
@@ -233,6 +257,9 @@ export const crearCitaAdmin = async (req: Request, res: Response) => {
 
     res.status(201).json(nuevaCita);
   } catch (error) {
+    if (error instanceof Error && error.message === 'HORARIO_OCUPADO') {
+      return res.status(409).json({ error: 'Este horario ya está ocupado. Por favor selecciona otro.' });
+    }
     console.error("Error creando cita admin:", error);
     res.status(500).json({ error: 'Error al crear la cita' });
   }
@@ -247,24 +274,42 @@ export const reprogramarCita = async (req: Request, res: Response) => {
   try {
     if (!fecha || !horario) return res.status(400).json({ error: 'Fecha y horario son requeridos' });
     if (typeof fecha !== 'string' || typeof horario !== 'string') return res.status(400).json({ error: 'Formato de fecha u horario inválido.' });
-    if (!HORARIOS_DEFINIDOS.includes(horario)) return res.status(400).json({ error: `Horario inválido. Disponibles: ${HORARIOS_DEFINIDOS.join(', ')}` });
 
     const [year, month, day] = fecha.split('-').map(Number);
     const nuevaFecha = new Date(year, month - 1, day);
+
+    const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const diaNombre = diasSemana[nuevaFecha.getDay()];
+
+    let config = await prisma.configuracion.findUnique({ where: { negocioId } });
+    if (!config) {
+      config = await prisma.configuracion.create({ data: { negocioId } });
+    }
+    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
+    const horariosPermitidos = (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
+
+    if (!horariosPermitidos.includes(horario)) {
+      return res.status(400).json({ error: `Horario inválido para el día ${diaNombre}. Disponibles: ${horariosPermitidos.join(', ')}` });
+    }
+
     const [horas, minutos] = horario.split(':').map(Number);
     nuevaFecha.setHours(horas, minutos, 0, 0);
 
     const citaActual = await prisma.cita.findUnique({ where: { id: parseInt(id as string), negocioId } });
     if (!citaActual) return res.status(404).json({ error: 'Cita no encontrada' });
 
-    const ocupado = await prisma.cita.findFirst({
-      where: { negocioId, fecha: nuevaFecha, horario, estado: { not: 'CANCELADA' }, NOT: { id: parseInt(id as string) } }
-    });
-    if (ocupado) return res.status(409).json({ error: 'Ese horario ya está ocupado.' });
+    const citaActualizada = await prisma.$transaction(async (tx) => {
+      const ocupado = await tx.cita.findFirst({
+        where: { negocioId, fecha: nuevaFecha, horario, estado: { not: 'CANCELADA' }, NOT: { id: parseInt(id as string) } }
+      });
+      if (ocupado) {
+        throw new Error('HORARIO_OCUPADO');
+      }
 
-    const citaActualizada = await prisma.cita.update({
-      where: { id: parseInt(id as string) },
-      data: { fecha: nuevaFecha, horario }
+      return await tx.cita.update({
+        where: { id: parseInt(id as string) },
+        data: { fecha: nuevaFecha, horario }
+      });
     });
 
     const io = req.app.get('io');
@@ -272,6 +317,9 @@ export const reprogramarCita = async (req: Request, res: Response) => {
 
     res.json(citaActualizada);
   } catch (error) {
+    if (error instanceof Error && error.message === 'HORARIO_OCUPADO') {
+      return res.status(409).json({ error: 'Ese horario ya está ocupado.' });
+    }
     console.error("Error reprogramando cita:", error);
     res.status(500).json({ error: 'Error al reprogramar la cita' });
   }
