@@ -1,274 +1,222 @@
-import { useEffect, useState } from 'react';
-import QRCode from 'react-qr-code';
-import { io } from 'socket.io-client';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Loader2, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
 
-type MetodoVinculacion = 'qr' | 'codigo';
-
-interface WhatsappStatus {
-  conectado: boolean;
-  qr: string | null;
-  activo: boolean;
+declare global {
+  interface Window {
+    FB: any;
+    fbAsyncInit: () => void;
+  }
 }
 
-const AdminWhatsapp = () => {
-  const [status, setStatus] = useState<WhatsappStatus>({ conectado: false, qr: null, activo: false });
-  const [loading, setLoading] = useState(true);
-  const [procesando, setProcesando] = useState(false);
-  const [metodo, setMetodo] = useState<MetodoVinculacion>('qr');
-  const [telefono, setTelefono] = useState('');
-  const [codigoPairing, setCodigoPairing] = useState<string | null>(null);
-  const [errorPairing, setErrorPairing] = useState<string | null>(null);
+export const AdminWhatsapp: React.FC = () => {
   const { negocio } = useAuth();
+  const [status, setStatus] = useState<{
+    conectado: boolean;
+    phoneNumberId?: string;
+    wabaId?: string;
+  }>({ conectado: false });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const fetchStatus = async () => {
-    try {
-      const data = await api.statusWhatsapp();
-      if (data) setStatus(data);
-    } catch {
-      // silencioso
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleIniciar = async () => {
-    setProcesando(true);
-    setLoading(true);
-    try {
-      const res = await api.iniciarBot();
-      if (res?.error) alert(res.error);
-      else await fetchStatus();
-    } catch {
-      alert('Error al iniciar el bot');
-    } finally {
-      setProcesando(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    if (!confirm('Desvincular el bot de WhatsApp?')) return;
-    setProcesando(true);
-    try {
-      await api.logoutBot();
-      setStatus({ conectado: false, qr: null, activo: false });
-      setCodigoPairing(null);
-    } catch {
-      alert('Error al desconectar');
-    } finally {
-      setProcesando(false);
-    }
-  };
-
-  const handleRestart = async () => {
-    setLoading(true);
-    setCodigoPairing(null);
-    try {
-      await api.reiniciarBot();
-    } catch {
-      alert('Error al reiniciar el bot');
-      setLoading(false);
-    }
-  };
-
-  const handleSolicitarCodigo = async () => {
-    if (!telefono.trim()) return;
-    setErrorPairing(null);
-    setCodigoPairing(null);
-    setProcesando(true);
-    try {
-      const res = await api.solicitarCodigoPairing(telefono.trim());
-      setCodigoPairing(res.codigo);
-    } catch (err: any) {
-      setErrorPairing(err.message || 'Error al solicitar el codigo');
-    } finally {
-      setProcesando(false);
-    }
-  };
+  // Estados temporales para desarrollo (hasta configurar el App ID de Facebook)
+  const [devToken, setDevToken] = useState('');
+  const [devPhoneId, setDevPhoneId] = useState('');
+  const [devWabaId, setDevWabaId] = useState('');
 
   useEffect(() => {
     fetchStatus();
-    const urlBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
-    const socket = io(urlBase, { transports: ['websocket', 'polling'] });
+    
+    // Cargar SDK de Facebook dinámicamente
+    if (document.getElementById('facebook-jssdk')) return;
+    window.fbAsyncInit = function () {
+      window.FB.init({
+        appId: import.meta.env.VITE_META_APP_ID || 'TU_META_APP_ID', // Reemplazar con variable de entorno
+        cookie: true,
+        xfbml: true,
+        version: 'v19.0'
+      });
+    };
+    const js = document.createElement('script');
+    js.id = 'facebook-jssdk';
+    js.src = 'https://connect.facebook.net/es_LA/sdk.js';
+    document.body.appendChild(js);
+  }, [negocio]);
 
-    const eventName = negocio?.id ? `whatsapp-status-${negocio.id}` : 'whatsapp-status';
-    socket.on(eventName, (data: WhatsappStatus) => {
-      setStatus(data);
+  const fetchStatus = async () => {
+    try {
+      const res = await api.statusWhatsapp();
+      if (res) {
+        setStatus({
+          conectado: res.conectado,
+          phoneNumberId: res.phoneNumberId,
+          wabaId: res.wabaId
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching status', err);
+    } finally {
       setLoading(false);
-      if (data.conectado) setCodigoPairing(null);
-    });
+    }
+  };
 
-    const intervalo = setInterval(fetchStatus, 6000);
-    return () => { socket.disconnect(); clearInterval(intervalo); };
-  }, [negocio?.id]);
+  const launchFacebookLogin = () => {
+    if (!window.FB) {
+      setError('El SDK de Facebook no se ha cargado. Verifica tu conexión o deshabilita adblockers.');
+      return;
+    }
 
-  // --- Estado: cargando ---
+    // No ponemos setLoading(true) aquí porque si FB bloquea el login (por ser HTTP local), el callback nunca se dispara y se queda cargando infinito.
+    setError('');
+    
+    window.FB.login(
+      (response: any) => {
+        setLoading(true);
+        if (response.authResponse) {
+          const accessToken = response.authResponse.accessToken;
+          setError('Autenticación exitosa. Sin embargo, para completar el Embedded Signup en producción, se requiere configurar el Facebook Login for Business en el panel de Meta.');
+        } else {
+          setError('El usuario canceló el inicio de sesión o no lo autorizó por completo.');
+        }
+        setLoading(false);
+      },
+      {
+        config_id: import.meta.env.VITE_META_CONFIG_ID || 'TU_CONFIG_ID', // Requerido para Embedded Signup
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: {
+          setup: {},
+          featureType: '',
+          sessionInfoVersion: '2'
+        }
+      }
+    );
+  };
+
+  const handleSaveDevCredentials = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.guardarCredencialesWhatsApp(devToken, devPhoneId, devWabaId);
+      if (res.error) throw new Error(res.error);
+      await fetchStatus();
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar credenciales');
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('¿Estás seguro de que deseas desvincular la cuenta de WhatsApp Oficial?')) return;
+    
+    setLoading(true);
+    try {
+      await api.desvincularWhatsApp();
+      await fetchStatus();
+    } catch (err) {
+      setError('Error al desvincular');
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-        <p className="text-gray-500 text-sm">Cargando estado...</p>
+      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl shadow-sm border border-[var(--border)]">
+        <Loader2 className="w-10 h-10 animate-spin text-[var(--primary)] mb-4" />
+        <p className="text-[var(--text-secondary)]">Cargando estado de Meta WhatsApp...</p>
       </div>
     );
   }
 
-  // --- Estado: conectado ---
-  if (status.conectado) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 p-8">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-3xl font-bold">
-          ✓
-        </div>
-        <h3 className="text-lg font-bold text-gray-800">Bot operativo</h3>
-        <p className="text-sm text-gray-500 text-center max-w-sm">
-          El sistema esta escuchando mensajes de WhatsApp correctamente.
-        </p>
-        <button
-          onClick={handleLogout}
-          disabled={procesando}
-          className="mt-2 px-6 py-2.5 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 disabled:opacity-50 transition-colors"
-        >
-          {procesando ? 'Desconectando...' : 'Desvincular WhatsApp'}
-        </button>
-      </div>
-    );
-  }
-
-  // --- Estado: no conectado ---
   return (
-    <div className="flex flex-col items-center p-6 sm:p-8 gap-6 max-w-md mx-auto">
-      <div>
-        <h2 className="text-xl font-bold text-gray-800 text-center">Vincular WhatsApp</h2>
-        <p className="text-sm text-gray-500 text-center mt-1">
-          Elige como conectar tu numero al bot
-        </p>
+    <div className="bg-white rounded-xl shadow-sm border border-[var(--border)] p-6 md:p-8 max-w-2xl mx-auto">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-green-100 rounded-full text-green-600">
+          <MessageSquare className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">WhatsApp Oficial (Meta)</h2>
+          <p className="text-sm text-[var(--text-secondary)]">Gestiona tu conexión con WhatsApp Cloud API</p>
+        </div>
       </div>
 
-      {/* Selector de metodo */}
-      <div className="w-full flex bg-gray-100 p-1 rounded-xl">
-        {(['qr', 'codigo'] as MetodoVinculacion[]).map(m => (
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {status.conectado ? (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <div>
+              <p className="font-medium text-green-900">Conectado a Meta Oficial</p>
+              <p className="text-sm text-green-700">Phone Number ID: {status.phoneNumberId}</p>
+            </div>
+          </div>
           <button
-            key={m}
-            onClick={() => { setMetodo(m); setCodigoPairing(null); setErrorPairing(null); }}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${metodo === m
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
-              }`}
+            onClick={handleDisconnect}
+            className="w-full px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           >
-            {m === 'qr' ? 'Codigo QR' : 'Codigo de texto'}
+            Desvincular WhatsApp Oficial
           </button>
-        ))}
-      </div>
-
-      {/* Contenido segun metodo */}
-      {metodo === 'qr' ? (
-        <div className="w-full flex flex-col items-center gap-4">
-          {status.qr ? (
-            <>
-              <p className="text-sm text-gray-600 text-center">
-                Abre WhatsApp en tu celular, ve a <strong>Dispositivos vinculados</strong> y escanea:
-              </p>
-              <div className="p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
-                <QRCode value={status.qr} size={200} />
-              </div>
-              <p className="text-xs text-gray-400 text-center">
-                El QR se actualiza automaticamente. No lo compartas.
-              </p>
-            </>
-          ) : status.activo ? (
-            <div className="flex flex-col items-center gap-3 py-6">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-              <p className="text-sm text-gray-600">Generando codigo QR...</p>
-              <p className="text-xs text-gray-400 text-center">Si tarda mas de 10 segundos, reinicia.</p>
-              <button
-                onClick={handleRestart}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors"
-              >
-                Reiniciar bot
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm text-gray-500">El bot no esta iniciado.</p>
-              <button
-                onClick={handleIniciar}
-                disabled={procesando}
-                className="px-6 py-3 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              >
-                {procesando ? 'Iniciando...' : 'Iniciar bot'}
-              </button>
-            </div>
-          )}
         </div>
       ) : (
-        /* METODO CODIGO DE TEXTO */
-        <div className="w-full flex flex-col gap-4">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-700 leading-relaxed">
-            <strong>Como funciona:</strong>
-            <ol className="mt-2 space-y-1 list-decimal list-inside text-blue-600">
-              <li>Ingresa tu numero con codigo de pais</li>
-              <li>Copia el codigo generado</li>
-              <li>En WhatsApp: Dispositivos vinculados - Vincular con numero</li>
-              <li>Ingresa el codigo</li>
-            </ol>
+        <div className="space-y-6">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="font-semibold text-blue-900 mb-2">Conexión Segura Oficial</h3>
+            <p className="text-sm text-blue-800">
+              Ahora usamos la API Oficial de Meta. Esto garantiza que tu número no será baneado y es 100% legal.
+              <br/><br/>
+              <b>Nota para desarrollo:</b> Facebook Login requiere <code>https://</code>. Si estás en localhost sin HTTPS, el botón no funcionará. Usa el modo manual abajo.
+            </p>
           </div>
 
-          {codigoPairing ? (
-            <div className="flex flex-col items-center gap-3">
-              <p className="text-sm text-gray-600 text-center font-medium">
-                Codigo generado. Ingresalo en WhatsApp:
-              </p>
-              <div className="px-8 py-5 bg-gray-900 rounded-2xl text-center">
-                <span className="text-3xl font-mono font-bold tracking-[0.3em] text-white">
-                  {codigoPairing}
-                </span>
-              </div>
-              <p className="text-xs text-gray-400 text-center">
-                El codigo expira en algunos minutos. Si falla, solicita uno nuevo.
-              </p>
+          <button
+            onClick={launchFacebookLogin}
+            className="w-full px-4 py-3 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#166FE5] transition-colors flex justify-center items-center gap-2 shadow-sm"
+          >
+            Conectar con Facebook
+          </button>
+
+          <div className="mt-8 pt-6 border-t border-[var(--border)]">
+            <h4 className="text-sm font-semibold text-gray-500 mb-4 uppercase tracking-wider">Modo Desarrollo / Manual</h4>
+            <p className="text-xs text-gray-400 mb-4">Si el Embedded Signup de Meta aún no está configurado, puedes ingresar los tokens manualmente desde el panel de Meta for Developers.</p>
+            
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Access Token Permanente"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                value={devToken}
+                onChange={(e) => setDevToken(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Phone Number ID"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                value={devPhoneId}
+                onChange={(e) => setDevPhoneId(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="WABA ID (Business Account ID)"
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                value={devWabaId}
+                onChange={(e) => setDevWabaId(e.target.value)}
+              />
               <button
-                onClick={() => { setCodigoPairing(null); setTelefono(''); }}
-                className="text-xs text-indigo-600 underline"
+                onClick={handleSaveDevCredentials}
+                disabled={!devToken || !devPhoneId || !devWabaId}
+                className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg font-medium hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Solicitar nuevo codigo
+                Guardar Credenciales Manuales
               </button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {errorPairing && (
-                <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-600">
-                  {errorPairing}
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  Numero de telefono (con codigo de pais)
-                </label>
-                <input
-                  type="tel"
-                  value={telefono}
-                  onChange={e => setTelefono(e.target.value)}
-                  placeholder="Ej: 5491155443322"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all"
-                />
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Sin + ni espacios. Argentina: 54 + area + numero
-                </p>
-              </div>
-              <button
-                onClick={handleSolicitarCodigo}
-                disabled={procesando || !telefono.trim()}
-                className="w-full py-3 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {procesando
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
-                  : 'Obtener codigo'
-                }
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>

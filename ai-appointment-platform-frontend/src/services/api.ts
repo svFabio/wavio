@@ -288,56 +288,34 @@ export const api = {
     }
   },
 
-  // --- WHATSAPP (multi-tenant) ---
+  // --- WHATSAPP META CLOUD API ---
   statusWhatsapp: async () => {
     try {
-      const response = await fetch(`${API_URL.replace('/api', '')}/api/status-whatsapp`, { headers: getHeaders() });
+      const response = await fetch(`${API_URL}/whatsapp/status`, { headers: getHeaders() });
       if (!response.ok) return null;
       return await response.json();
     } catch { return null; }
   },
 
-  iniciarBot: async () => {
+  guardarCredencialesWhatsApp: async (waAccessToken: string, waPhoneNumberId: string, waWabaId: string) => {
     try {
-      const response = await fetch(`${API_URL.replace('/api', '')}/api/start-whatsapp`, {
-        method: 'POST',
-        headers: getHeaders()
-      });
-      return await response.json();
-    } catch (e) { return { error: 'Error de conexión' }; }
-  },
-
-  logoutBot: async () => {
-    try {
-      const response = await fetch(`${API_URL.replace('/api', '')}/api/logout`, {
-        method: 'POST',
-        headers: getHeaders()
-      });
-      return await response.json();
-    } catch (e) { return { error: 'Error de conexión' }; }
-  },
-
-  reiniciarBot: async () => {
-    try {
-      const response = await fetch(`${API_URL.replace('/api', '')}/api/restart-whatsapp`, {
-        method: 'POST',
-        headers: getHeaders()
-      });
-      return await response.json();
-    } catch (e) { return { error: 'Error de conexion' }; }
-  },
-
-  solicitarCodigoPairing: async (telefono: string) => {
-    try {
-      const response = await fetch(`${API_URL.replace('/api', '')}/api/pairing-code`, {
+      const response = await fetch(`${API_URL}/whatsapp/save-credentials`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ telefono })
+        body: JSON.stringify({ waAccessToken, waPhoneNumberId, waWabaId })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Error al solicitar el codigo');
-      return data as { codigo: string };
-    } catch (e: unknown) { throw e; }
+      return await response.json();
+    } catch (e) { return { error: 'Error de conexión' }; }
+  },
+
+  desvincularWhatsApp: async () => {
+    try {
+      const response = await fetch(`${API_URL}/whatsapp/disconnect`, {
+        method: 'POST',
+        headers: getHeaders()
+      });
+      return await response.json();
+    } catch (e) { return { error: 'Error de conexión' }; }
   },
 
   // --- CONFIGURACION BOT ---
