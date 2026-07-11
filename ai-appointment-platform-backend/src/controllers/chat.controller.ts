@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { enviarMensaje, resolverTelefonoReal } from '../services/metaGraph.service';
 
 // 1. Obtener lista de conversaciones del negocio autenticado
 interface ConversacionRaw {

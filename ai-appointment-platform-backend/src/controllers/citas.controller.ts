@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { enviarMensaje } from '../services/metaGraph.service';
 
 // Horarios definidos (mismos que la configuración del negocio)
 const HORARIOS_DEFINIDOS = ["13:00", "14:00", "15:00", "16:00", "17:00"];
@@ -25,7 +26,11 @@ export const validarCita = async (req: Request, res: Response) => {
   const negocioId = req.negocioId!;
 
   try {
-    const nuevoEstado = (accion === 'CONFIRMAR' || accion === 'APROBAR') ? 'CONFIRMADA' : 'CANCELADA';
+  const ACCIONES_VALIDAS = ['CONFIRMAR', 'APROBAR', 'CANCELAR', 'RECHAZAR'];
+  if (!accion || !ACCIONES_VALIDAS.includes(accion)) {
+    return res.status(400).json({ error: `accion inválida. Valores permitidos: ${ACCIONES_VALIDAS.join(', ')}` });
+  }
+  const nuevoEstado = (accion === 'CONFIRMAR' || accion === 'APROBAR') ? 'CONFIRMADA' : 'CANCELADA';
     const dataUpdate = nuevoEstado === 'CONFIRMADA'
       ? { estado: nuevoEstado }
       : { estado: nuevoEstado, comprobanteUrl: null };

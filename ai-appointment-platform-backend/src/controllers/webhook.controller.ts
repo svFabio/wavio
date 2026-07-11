@@ -41,7 +41,9 @@ export const handleWebhook = async (req: Request, res: Response) => {
         const body = req.body;
 
         if (body.object === 'whatsapp_business_account') {
+            if (!Array.isArray(body.entry) || body.entry.length === 0) return;
             for (const entry of body.entry) {
+                if (!Array.isArray(entry.changes)) continue;
                 for (const change of entry.changes) {
                     const value = change.value;
 

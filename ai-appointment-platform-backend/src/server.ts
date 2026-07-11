@@ -27,8 +27,16 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 const httpServer = createServer(app);
+const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+    : [];
+
 const io = new Server(httpServer, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+    cors: {
+        origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
 });
 
 app.use(helmet());

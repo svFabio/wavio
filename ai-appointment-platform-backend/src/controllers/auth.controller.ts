@@ -5,9 +5,8 @@ import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
 import { JWT_EXPIRES_IN } from '../config';
 
-
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('[Auth] JWT_SECRET environment variable is required');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
