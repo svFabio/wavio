@@ -222,6 +222,90 @@ No Redux, no Zustand unless a measurable performance problem requires it and is 
 
 ---
 
+## Frontend Quality Rules (GGA enforces these on every commit)
+
+### Design Tokens — No Hardcoded Values
+
+**BLOCK the commit if any staged `.tsx` or `.css` file contains:**
+
+- A hardcoded hex color outside of `tailwind.config.cjs`:
+  ```tsx
+  // VIOLATION
+  style={{ color: '#3b82f6' }}
+  className="text-[#3b82f6]"
+  border: '1px solid #e5e7eb'
+  ```
+- A hardcoded pixel value for spacing, font-size, or border-radius outside of Tailwind utilities:
+  ```tsx
+  // VIOLATION
+  style={{ marginTop: '24px', fontSize: '14px' }}
+  ```
+- A hardcoded z-index number anywhere outside of `tailwind.config.cjs`:
+  ```tsx
+  // VIOLATION
+  style={{ zIndex: 9999 }}
+  className="z-[9999]"
+  ```
+
+**Correct pattern — use Tailwind design tokens:**
+```tsx
+// Use semantic Tailwind classes
+className="text-blue-500 mt-6 text-sm z-modal"
+
+// If a value is not in Tailwind defaults, add it to tailwind.config.cjs
+// extend.zIndex: { modal: '100', overlay: '200' }
+```
+
+### Component Reuse — No Copy-Paste UI
+
+**BLOCK the commit if any staged file:**
+
+- Contains a JSX block of 5+ lines that is structurally identical or near-identical to an existing component already in `shared/components/` or the same feature's `components/` folder.
+- Defines a button, input, badge, card, modal, or spinner inline in a page or container when a shared component for that pattern already exists.
+- Duplicates loading state UI (spinners, skeletons) — these belong in `shared/components/`.
+- Duplicates error state UI — use the shared `ErrorFallback` component.
+
+**The rule**: if a UI pattern appears in 2+ places, it must be a component. If a component is domain-agnostic, it belongs in `shared/components/`.
+
+### React Anti-Patterns
+
+**BLOCK the commit if any staged `.tsx` file:**
+
+- Uses `useEffect` to fetch data or sync server state:
+  ```tsx
+  // VIOLATION — use React Query instead
+  useEffect(() => {
+    fetch('/api/citas').then(r => r.json()).then(setCitas);
+  }, []);
+  ```
+- Uses array index as React `key` in a list that can be reordered or filtered:
+  ```tsx
+  // VIOLATION
+  {items.map((item, index) => <Card key={index} />)}
+  // CORRECT
+  {items.map((item) => <Card key={item.id} />)}
+  ```
+- Has a `useEffect` with a missing or incomplete dependency array (all referenced variables must be listed).
+- Uses `any` type in props or state — use explicit types or `unknown` with a type guard.
+- Renders raw user-provided strings with `dangerouslySetInnerHTML` without sanitization.
+- Passes more than 4 props through intermediate components without context or composition (prop drilling signal).
+
+**WARN if:**
+
+- A component file exceeds 150 lines — it likely needs to be split into container + presentational.
+- A `useState` manages more than 3 related fields — consider `useReducer` or a dedicated hook.
+- A component renders conditional UI for 3+ roles or states inline — extract to named sub-components.
+
+### Inline Styles
+
+**BLOCK the commit if any staged `.tsx` file uses `style={{}}` for anything that can be expressed as a Tailwind class.**
+
+The only acceptable uses of `style={{}}` are:
+- Dynamic values that cannot be expressed statically (e.g., `style={{ width: `${progress}%` }}`).
+- CSS custom property injection (e.g., `style={{ '--color': value }}`).
+
+---
+
 ## Error Handling
 
 ### Backend
