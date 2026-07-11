@@ -5,7 +5,10 @@ import { evaluarIntencion, procesarMensajeConIA, detectarIntencionSimple, Contex
 // TODO: Import the specific appointment logic functions once refactored, for now we will just log and reply.
 
 // Token de verificación configurado en el panel de Meta (App Dashboard)
-const WEBHOOK_VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'mi_token_secreto_wavio';
+const WEBHOOK_VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN;
+if (!WEBHOOK_VERIFY_TOKEN) {
+    throw new Error('[Webhook] META_WEBHOOK_VERIFY_TOKEN environment variable is required');
+}
 
 /**
  * GET /api/webhooks/whatsapp
