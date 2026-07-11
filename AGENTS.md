@@ -18,6 +18,91 @@ Two deployable units:
 
 ---
 
+## Security — Hard Rules (GGA enforces these on every commit)
+
+These rules are not guidelines. GGA runs this file against every staged diff before a commit is allowed.
+A violation in any of these rules MUST cause a review failure.
+
+### Secrets and Credentials
+
+**BLOCK the commit if any staged file contains:**
+
+- An API key, token, or secret assigned to a variable or constant:
+  ```typescript
+  // VIOLATION — any of these patterns
+  const API_KEY = "sk-abc123...";
+  const token = "eyJhbGci...";
+  const secret = "whsec_...";
+  GEMINI_API_KEY = "AIzaSy...";
+  META_WHATSAPP_TOKEN = "EAABs...";
+  ```
+- A connection string with credentials embedded:
+  ```typescript
+  // VIOLATION
+  const db = "postgresql://user:password@host/db";
+  DATABASE_URL = "postgres://...";
+  ```
+- A JWT secret or signing key hardcoded:
+  ```typescript
+  // VIOLATION
+  jwt.sign(payload, "my-super-secret");
+  jwt.verify(token, "hardcoded-secret");
+  ```
+- A private key or certificate content inline (PEM blocks, `-----BEGIN ...-----`).
+- Any Google, AWS, Stripe, Cloudinary, or Meta credential pattern hardcoded.
+
+**The correct pattern — always read from environment:**
+```typescript
+// Backend: read from config/env.ts only
+import { env } from '../config/env';
+jwt.sign(payload, env.JWT_SECRET);
+
+// Frontend: read from import.meta.env only
+const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+```
+
+### Logging and Output
+
+**BLOCK the commit if any staged file:**
+
+- Logs a token, password, JWT, or API key with `console.log`, `pino`, or any logger:
+  ```typescript
+  // VIOLATION
+  console.log('token:', token);
+  logger.info({ jwt, user });
+  ```
+- Passes auth headers or full request objects to a logger without sanitization.
+- Returns a raw error object (which may contain stack traces or internal paths) directly in an HTTP response to the client.
+
+**Correct pattern:**
+```typescript
+// Log only safe fields
+logger.info({ userId: user.id, action: 'login' });
+
+// Sanitize errors before returning
+res.status(500).json({ error: 'Internal server error', code: 'INTERNAL' });
+```
+
+### Environment Files
+
+**BLOCK the commit if:**
+
+- A `.env` file is staged (`.env`, `.env.local`, `.env.production`, etc.).
+- A file named `*.pem`, `*.key`, `*.p12`, `*.pfx` is staged.
+- A `serviceAccountKey.json` or similar credential file is staged.
+
+`.env.example` files are allowed and encouraged — they must contain only placeholder values, never real credentials.
+
+### What GGA Should Flag as WARNING (not block, but annotate):
+
+- `process.env.SOME_VAR` called outside `config/env.ts` — direct env access bypasses centralized validation.
+- `localStorage.getItem('token')` or `localStorage.setItem('token', ...)` outside `lib/auth.ts`.
+- Raw `fetch()` calls in React components (should go through `lib/apiClient.ts`).
+- Prisma imported outside `repositories/` directory.
+- `req.app.get('io')` used instead of the `lib/socket.ts` singleton.
+
+---
+
 ## Architecture
 
 > Full detail in [`docs/architecture.md`](./docs/architecture.md). This section is the contract summary.
