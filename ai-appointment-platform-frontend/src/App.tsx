@@ -18,7 +18,7 @@ import Users from './pages/Users';
 import Chat from './pages/Chat';
 import ConfiguracionBot from './pages/ConfiguracionBot';
 import { NotificationToast } from './components/NotificationToast';
-import { useNotifications } from './hooks/useNotifications';
+import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
