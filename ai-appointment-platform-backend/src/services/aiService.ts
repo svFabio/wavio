@@ -172,7 +172,8 @@ Analiza el siguiente mensaje del usuario y extrae información estructurada en f
     "nombre": "nombre si existe"
   },
   "sentimiento": "positivo" | "neutral" | "negativo",
-  "confianza": 0.0 a 1.0
+  "confianza": 0.0 a 1.0,
+  "respuestaSugerida": "Una respuesta corta, amigable y natural en español de Bolivia para el usuario basado en su mensaje y el contexto actual."
 }
 `;
 

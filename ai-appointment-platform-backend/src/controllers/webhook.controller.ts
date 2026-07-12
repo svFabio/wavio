@@ -1,13 +1,14 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { enviarMensaje } from '../services/metaGraph.service';
 import { evaluarIntencion, procesarMensajeConIA, detectarIntencionSimple, ContextoConversacion } from '../services/aiService';
 // TODO: Import the specific appointment logic functions once refactored, for now we will just log and reply.
 
-const prisma = new PrismaClient();
-
 // Token de verificación configurado en el panel de Meta (App Dashboard)
-const WEBHOOK_VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'mi_token_secreto_wavio';
+const WEBHOOK_VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN;
+if (!WEBHOOK_VERIFY_TOKEN) {
+    throw new Error('[Webhook] META_WEBHOOK_VERIFY_TOKEN environment variable is required');
+}
 
 /**
  * GET /api/webhooks/whatsapp
@@ -43,7 +44,9 @@ export const handleWebhook = async (req: Request, res: Response) => {
         const body = req.body;
 
         if (body.object === 'whatsapp_business_account') {
+            if (!Array.isArray(body.entry) || body.entry.length === 0) return;
             for (const entry of body.entry) {
+                if (!Array.isArray(entry.changes)) continue;
                 for (const change of entry.changes) {
                     const value = change.value;
 

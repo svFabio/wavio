@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 
 interface Usuario {
@@ -33,12 +33,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
+    const logout = useCallback(() => {
+        localStorage.removeItem('token');
+        setToken(null);
+        setUsuario(null);
+        setNegocio(null);
+    }, []);
+
+    const login = useCallback((newToken: string, newUser: Usuario, newNegocio: Negocio) => {
+        localStorage.setItem('token', newToken);
+        setToken(newToken);
+        setUsuario(newUser);
+        setNegocio(newNegocio);
+    }, []);
+
     useEffect(() => {
+        let isMounted = true;
         const initAuth = async () => {
             const storedToken = localStorage.getItem('token');
             if (storedToken) {
                 try {
                     const data = await api.me(storedToken);
+                    if (!isMounted) return;
                     if (data) {
                         setUsuario({ id: data.id, nombre: data.nombre, email: data.email, rol: data.rol });
                         setNegocio(data.negocio || null);
@@ -47,35 +63,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         logout();
                     }
                 } catch {
-                    logout();
+                    if (isMounted) logout();
                 }
             }
-            setLoading(false);
+            if (isMounted) setLoading(false);
         };
         initAuth();
-    }, []);
+        return () => { isMounted = false; };
+    }, [logout]);
 
-    const login = (newToken: string, newUser: Usuario, newNegocio: Negocio) => {
-        localStorage.setItem('token', newToken);
-        setToken(newToken);
-        setUsuario(newUser);
-        setNegocio(newNegocio);
-    };
+    const isAdmin = useCallback(() => usuario?.rol === 'ADMIN', [usuario]);
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setToken(null);
-        setUsuario(null);
-        setNegocio(null);
-    };
+    const value = useMemo(() => ({
+        usuario, negocio, token, loading,
+        login, logout,
+        isAuthenticated: !!usuario,
+        isAdmin,
+    }), [usuario, negocio, token, loading, login, logout, isAdmin]);
 
     return (
-        <AuthContext.Provider value={{
-            usuario, negocio, token, loading,
-            login, logout,
-            isAuthenticated: !!usuario,
-            isAdmin: () => usuario?.rol === 'ADMIN'
-        }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

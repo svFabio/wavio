@@ -5,7 +5,7 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { io } from 'socket.io-client';
+import { socket } from '../services/socket';
 import {
   ChevronLeft,
   ChevronRight,
@@ -755,12 +755,11 @@ const Calendario = () => {
   };
 
   useEffect(() => {
-    const urlBase = import.meta.env.VITE_API_URL.replace('/api', '');
-    const socket = io(urlBase);
-    socket.on('cambio-citas', () => {
+    const handleCambio = () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
-    });
-    return () => { socket.disconnect(); };
+    };
+    socket.on('cambio-citas', handleCambio);
+    return () => { socket.off('cambio-citas', handleCambio); };
   }, [queryClient]);
 
   const eventos = useMemo((): EventoCalendario[] => {

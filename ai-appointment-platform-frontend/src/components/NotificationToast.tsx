@@ -16,12 +16,14 @@ export const NotificationToast = ({ id, clienteNombre, fecha, horario, onDismiss
 
     useEffect(() => {
         // Animación de entrada
-        setTimeout(() => setIsVisible(true), 10);
+        const t = setTimeout(() => setIsVisible(true), 10);
+        return () => clearTimeout(t);
     }, []);
 
     const handleClose = () => {
         setIsVisible(false);
-        setTimeout(() => onDismiss(id), 300); // Esperar animación
+        const t = setTimeout(() => onDismiss(id), 300); // Esperar animación
+        return () => clearTimeout(t);
     };
 
     // Swipe para móvil
