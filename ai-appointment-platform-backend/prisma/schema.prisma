@@ -54,9 +54,10 @@ model Usuario {
   nombre    String
   email     String   @unique
   password  String   @default("") // vacío para usuarios de Google; usado solo en dev seed
-  googleId  String?  // ID de Google del usuario (opcional)
-  rol       Rol      @default(STAFF)
-  creadoEn  DateTime @default(now())
+  googleId    String?  // ID de Google del usuario (opcional)
+  fotoPerfil  String?  // URL de la foto en Cloudinary u otro
+  rol         Rol      @default(STAFF)
+  creadoEn    DateTime @default(now())
 
   negocioId Int
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
