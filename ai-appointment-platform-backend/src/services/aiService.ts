@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import dotenv from 'dotenv';
+import { env } from '../config/env';
+import pino from 'pino';
 
-dotenv.config();
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const logger = pino();
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 // Usamos 'gemini-flash-latest' (alias estable de tu lista)
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
@@ -57,7 +57,7 @@ export const evaluarIntencion = async (mensaje: string): Promise<string> => {
         const response = result.response.text().trim().toUpperCase();
         return response;
     } catch (error) {
-        console.error('Error evaluando intención:', error);
+        logger.error({ error }, 'Error evaluando intención');
         return 'OTRO';
     }
 };
@@ -81,6 +81,15 @@ export const procesarMensajeConIA = async (
     mensaje: string,
     contexto: ContextoConversacion
 ): Promise<ResultadoIA> => {
+    if (!mensaje || mensaje.length > 1000) {
+        return {
+            intencion: 'OTRO',
+            entidades: {},
+            sentimiento: 'neutral',
+            confianza: 0,
+            respuestaSugerida: 'Tu mensaje es demasiado largo. Por favor, envíalo en un texto más corto.'
+        };
+    }
     try {
         const prompt = construirPrompt(mensaje, contexto);
 
@@ -101,12 +110,12 @@ export const procesarMensajeConIA = async (
         const textoLimpio = texto.substring(inicio, fin + 1);
         const resultado = JSON.parse(textoLimpio);
 
-        console.log('✨ Gemini respondió con éxito:', resultado.intencion); // PRUEBA DE VIDA 🧠
+        logger.info({ intencion: resultado.intencion }, '✨ Gemini respondió con éxito');
 
         return resultado as ResultadoIA;
     } catch (error) {
         // LOG COMPLETO: Para saber exactamente por qué falla (404, 429, etc)
-        console.error('❌ ERROR IA:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        logger.error({ error }, '❌ ERROR IA');
 
         // FALLBACK MANUAL: Si la IA falla, usamos simple lógica de palabras clave
         const intencion = detectarIntencionSimple(mensaje);
@@ -207,7 +216,7 @@ Responde SOLO con el texto del mensaje, sin comillas ni formato adicional.
         const result = await model.generateContent(prompt);
         return result.response.text().trim();
     } catch (error) {
-        console.error('Error generando respuesta:', error);
+        logger.error({ error }, 'Error generando respuesta');
         return 'Disculpa, ¿podrías repetir eso?';
     }
 };

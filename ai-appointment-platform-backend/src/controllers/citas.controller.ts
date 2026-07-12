@@ -1,400 +1,72 @@
-import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import { enviarMensaje } from '../services/metaGraph.service';
+import { Request, Response, NextFunction } from 'express';
+import { citasService } from '../services/citas.service';
 
-// Horarios definidos (mismos que la configuración del negocio)
-const HORARIOS_DEFINIDOS = ["13:00", "14:00", "15:00", "16:00", "17:00"];
-
-// Obtener Citas pendientes de validación del negocio autenticado
-export const getPendientes = async (req: Request, res: Response) => {
-  const negocioId = req.negocioId!;
+export const getPendientes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const citas = await prisma.cita.findMany({
-      where: { negocioId, estado: 'VALIDACION_PENDIENTE' },
-      orderBy: { creadoEn: 'desc' }
-    });
-    res.json(citas);
-  } catch {
-    res.status(500).json({ error: 'Error obteniendo citas' });
-  }
+    const result = await citasService.getPendientes(req.negocioId!);
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Validar o Rechazar la cita
-export const validarCita = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { accion } = req.body;
-  const negocioId = req.negocioId!;
-
+export const validarCita = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-  const ACCIONES_VALIDAS = ['CONFIRMAR', 'APROBAR', 'CANCELAR', 'RECHAZAR'];
-  if (!accion || !ACCIONES_VALIDAS.includes(accion)) {
-    return res.status(400).json({ error: `accion inválida. Valores permitidos: ${ACCIONES_VALIDAS.join(', ')}` });
-  }
-  const nuevoEstado = (accion === 'CONFIRMAR' || accion === 'APROBAR') ? 'CONFIRMADA' : 'CANCELADA';
-    const dataUpdate = nuevoEstado === 'CONFIRMADA'
-      ? { estado: nuevoEstado }
-      : { estado: nuevoEstado, comprobanteUrl: null };
-
-    const citaActualizada = await prisma.cita.update({
-      where: { id: parseInt(id as string), negocioId },
-      data: dataUpdate
-    });
-
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('cambio-citas');
-    }
-
-    // Notificación WhatsApp al cliente
-    try {
-      let mensaje = '';
-      if (nuevoEstado === 'CONFIRMADA') {
-        const fechaFormateada = new Date(citaActualizada.fecha).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-        mensaje =
-          `¡Hola ${citaActualizada.clienteNombre || 'Cliente'}! 👋\n\n` +
-          `✅ *Tu pago ha sido verificado y tu cita está CONFIRMADA.* 🎉\n\n` +
-          `📋 *Detalles de tu cita:*\n` +
-          `📅 Fecha: ${fechaFormateada}\n` +
-          `⏰ Hora: ${citaActualizada.horario}\n` +
-          `💆‍♀️ Servicio: ${citaActualizada.servicio || 'Spa'}\n\n` +
-          `✨ ¡Te esperamos! Cualquier consulta, escríbenos.`;
-      } else if (nuevoEstado === 'CANCELADA') {
-        mensaje = `Hola ${citaActualizada.clienteNombre || 'Cliente'}. 😔\n\n❌ Tu cita ha sido cancelada.\n\nSi crees que es un error o deseas reagendar, por favor contáctanos.`;
-      }
-
-      if (mensaje) {
-        const ultimoMsgEntrante = await prisma.mensajeChat.findFirst({
-          where: {
-            negocioId,
-            remoteJid: { contains: citaActualizada.clienteTelefono },
-            direccion: 'ENTRANTE'
-          },
-          orderBy: { timestamp: 'desc' },
-          select: { remoteJid: true }
-        });
-        const jid = ultimoMsgEntrante?.remoteJid || citaActualizada.clienteTelefono;
-        await enviarMensaje(negocioId, jid, mensaje);
-      }
-    } catch (msgError) {
-      console.error('[Validar] ❌ Error enviando notificación:', msgError);
-    }
-
-    res.json(citaActualizada);
-  } catch (error) {
-    console.error("Error validando cita:", error);
-    res.status(500).json({ error: 'No se pudo procesar la validación' });
-  }
+    const result = await citasService.validarCita(parseInt(String(req.params.id)), req.negocioId!, req.body.accion);
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Agenda para el Calendario (con rango de fechas)
-export const getAgenda = async (req: Request, res: Response) => {
-  const negocioId = req.negocioId!;
+export const getAgenda = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { desde, hasta } = req.query;
-    const fechaDesde = desde
-      ? new Date(desde as string)
-      : new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    const fechaHasta = hasta
-      ? new Date(hasta as string)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    const citas = await prisma.cita.findMany({
-      where: {
-        negocioId,
-        fecha: { gte: fechaDesde, lte: fechaHasta },
-        estado: { not: 'CANCELADA' }
-      },
-      orderBy: { fecha: 'asc' }
-    });
-
-    res.json(citas);
-  } catch {
-    res.status(500).json({ error: 'Error al cargar la agenda' });
-  }
+    const result = await citasService.getAgenda(req.negocioId!, req.query.desde as string, req.query.hasta as string);
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Resumen para el Home
-export const getResumen = async (req: Request, res: Response) => {
-  const negocioId = req.negocioId!;
+export const getResumen = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const inicioHoy = new Date(); inicioHoy.setHours(0, 0, 0, 0);
-    const finHoy = new Date(); finHoy.setHours(23, 59, 59, 999);
-
-    const citasHoy = await prisma.cita.count({
-      where: { negocioId, fecha: { gte: inicioHoy, lte: finHoy }, estado: 'CONFIRMADA' }
-    });
-
-    const pendientes = await prisma.cita.count({
-      where: { negocioId, estado: 'VALIDACION_PENDIENTE' }
-    });
-
-    const proximasCitas = await prisma.cita.findMany({
-      where: { negocioId, fecha: { gte: inicioHoy, lte: finHoy }, estado: { not: 'CANCELADA' } },
-      orderBy: { horario: 'asc' },
-      take: 5
-    });
-
-    const totalFuturas = await prisma.cita.count({
-      where: { negocioId, fecha: { gte: new Date() }, estado: { not: 'CANCELADA' } }
-    });
-
-    res.json({ citasHoy, pendientes, proximasCitas, totalFuturas });
-  } catch (error) {
-    console.error("Error en resumen:", error);
-    res.status(500).json({ error: 'Error al obtener resumen' });
-  }
+    const result = await citasService.getResumen(req.negocioId!);
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Obtener horarios disponibles para una fecha
-export const getHorariosDisponibles = async (req: Request, res: Response) => {
-  const negocioId = req.negocioId!;
+export const getHorariosDisponibles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { fecha } = req.query;
-    if (!fecha) return res.status(400).json({ error: 'Fecha requerida' });
-
-    const [year, month, day] = (fecha as string).split('-').map(Number);
-    const inicio = new Date(year, month - 1, day);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(inicio);
-    fin.setHours(23, 59, 59, 999);
-
-    const ocupadas = await prisma.cita.findMany({
-      where: { negocioId, fecha: { gte: inicio, lte: fin }, estado: { notIn: ['CANCELADA'] } },
-      select: { horario: true }
-    });
-
-    const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-    const diaNombre = diasSemana[inicio.getDay()];
-
-    let config = await prisma.configuracion.findUnique({ where: { negocioId } });
-    if (!config) {
-      config = await prisma.configuracion.create({ data: { negocioId } });
-    }
-    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
-    const horariosPermitidos = (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
-
-    const horasOcupadas = ocupadas.map(c => c.horario);
-    let disponibles = horariosPermitidos.filter(h => !horasOcupadas.includes(h));
-
-    const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/La_Paz" }));
-    const esHoy = ahora.getFullYear() === year && ahora.getMonth() === (month - 1) && ahora.getDate() === day;
-
-    if (esHoy) {
-      const horaActual = ahora.getHours();
-      const minutoActual = ahora.getMinutes();
-      disponibles = disponibles.filter(horario => {
-        const [hora, minuto] = horario.split(':').map(Number);
-        return hora > horaActual || (hora === horaActual && minuto > minutoActual);
-      });
-    }
-
-    res.json(disponibles);
-  } catch (error) {
-    console.error("Error en getHorariosDisponibles:", error);
-    res.status(500).json({ error: 'Error al obtener horarios' });
-  }
+    const result = await citasService.getHorariosDisponibles(req.negocioId!, req.query.fecha as string);
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Crear cita desde panel Admin (presencial)
-export const crearCitaAdmin = async (req: Request, res: Response) => {
-  const negocioId = req.negocioId!;
+export const crearCitaAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { clienteNombre, clienteTelefono, fecha, horario } = req.body;
-
-    if (!clienteNombre || !clienteTelefono || !fecha || !horario) {
-      return res.status(400).json({ error: 'Todos los campos son requeridos: clienteNombre, clienteTelefono, fecha, horario' });
-    }
-    if (typeof clienteNombre !== 'string' || typeof clienteTelefono !== 'string' || typeof fecha !== 'string' || typeof horario !== 'string') {
-      return res.status(400).json({ error: 'Formato inválido. Se esperan textos.' });
-    }
-    if (clienteNombre.trim().length < 3) {
-      return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres.' });
-    }
-    const telefonoLimpio = clienteTelefono.replace(/\D/g, '');
-    if (telefonoLimpio.length < 8) {
-      return res.status(400).json({ error: 'El teléfono debe tener al menos 8 dígitos numéricos.' });
-    }
-
-    const [year, month, day] = fecha.split('-').map(Number);
-    const fechaCita = new Date(year, month - 1, day);
-
-    const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-    const diaNombre = diasSemana[fechaCita.getDay()];
-
-    let config = await prisma.configuracion.findUnique({ where: { negocioId } });
-    if (!config) {
-      config = await prisma.configuracion.create({ data: { negocioId } });
-    }
-    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
-    const horariosPermitidos = (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
-
-    if (!horariosPermitidos.includes(horario)) {
-      return res.status(400).json({ error: `Horario inválido para el día ${diaNombre}. Horarios disponibles: ${horariosPermitidos.join(', ')}` });
-    }
-
-    const [horas, minutos] = horario.split(':').map(Number);
-    fechaCita.setHours(horas, minutos, 0, 0);
-
-    const nuevaCita = await prisma.$transaction(async (tx) => {
-      const citaExistente = await tx.cita.findFirst({
-        where: { negocioId, fecha: fechaCita, horario, estado: { not: 'CANCELADA' } }
-      });
-
-      if (citaExistente) {
-        throw new Error('HORARIO_OCUPADO');
-      }
-
-      return await tx.cita.create({
-        data: { negocioId, clienteNombre, clienteTelefono, fecha: fechaCita, horario, monto: 50, estado: 'CONFIRMADA', origen: 'presencial' }
-      });
-    });
-
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('cambio-citas');
-      io.emit('nueva-cita', { id: nuevaCita.id, clienteNombre: nuevaCita.clienteNombre, clienteTelefono: nuevaCita.clienteTelefono, fecha: nuevaCita.fecha, horario: nuevaCita.horario });
-    }
-
-    res.status(201).json(nuevaCita);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'HORARIO_OCUPADO') {
-      return res.status(409).json({ error: 'Este horario ya está ocupado. Por favor selecciona otro.' });
-    }
-    console.error("Error creando cita admin:", error);
-    res.status(500).json({ error: 'Error al crear la cita' });
-  }
+    const result = await citasService.crearCitaAdmin(req.negocioId!, req.body);
+    res.status(201).json(result);
+  } catch (error) { next(error); }
 };
 
-// Reprogramar Cita
-export const reprogramarCita = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { fecha, horario } = req.body;
-  const negocioId = req.negocioId!;
-
+export const reprogramarCita = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!fecha || !horario) return res.status(400).json({ error: 'Fecha y horario son requeridos' });
-    if (typeof fecha !== 'string' || typeof horario !== 'string') return res.status(400).json({ error: 'Formato de fecha u horario inválido.' });
-
-    const [year, month, day] = fecha.split('-').map(Number);
-    const nuevaFecha = new Date(year, month - 1, day);
-
-    const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-    const diaNombre = diasSemana[nuevaFecha.getDay()];
-
-    let config = await prisma.configuracion.findUnique({ where: { negocioId } });
-    if (!config) {
-      config = await prisma.configuracion.create({ data: { negocioId } });
-    }
-    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
-    const horariosPermitidos = (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
-
-    if (!horariosPermitidos.includes(horario)) {
-      return res.status(400).json({ error: `Horario inválido para el día ${diaNombre}. Disponibles: ${horariosPermitidos.join(', ')}` });
-    }
-
-    const [horas, minutos] = horario.split(':').map(Number);
-    nuevaFecha.setHours(horas, minutos, 0, 0);
-
-    const citaActual = await prisma.cita.findUnique({ where: { id: parseInt(id as string), negocioId } });
-    if (!citaActual) return res.status(404).json({ error: 'Cita no encontrada' });
-
-    const citaActualizada = await prisma.$transaction(async (tx) => {
-      const ocupado = await tx.cita.findFirst({
-        where: { negocioId, fecha: nuevaFecha, horario, estado: { not: 'CANCELADA' }, NOT: { id: parseInt(id as string) } }
-      });
-      if (ocupado) {
-        throw new Error('HORARIO_OCUPADO');
-      }
-
-      return await tx.cita.update({
-        where: { id: parseInt(id as string) },
-        data: { fecha: nuevaFecha, horario }
-      });
-    });
-
-    const io = req.app.get('io');
-    if (io) io.emit('cambio-citas');
-
-    res.json(citaActualizada);
-  } catch (error) {
-    if (error instanceof Error && error.message === 'HORARIO_OCUPADO') {
-      return res.status(409).json({ error: 'Ese horario ya está ocupado.' });
-    }
-    console.error("Error reprogramando cita:", error);
-    res.status(500).json({ error: 'Error al reprogramar la cita' });
-  }
+    const result = await citasService.reprogramarCita(parseInt(String(req.params.id)), req.negocioId!, req.body.fecha, req.body.horario);
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Marcar como NO ASISTIO
-export const marcarNoAsistio = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const negocioId = req.negocioId!;
-
+export const marcarNoAsistio = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const cita = await prisma.cita.findUnique({ where: { id: parseInt(id as string), negocioId } });
-    if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
-
-    const ahora = new Date();
-    const [year, month, day] = new Date(cita.fecha).toISOString().split('T')[0].split('-').map(Number);
-    const fechaExacta = new Date(year, month - 1, day);
-    const [horas, minutos] = cita.horario.split(':').map(Number);
-    fechaExacta.setHours(horas, minutos, 0, 0);
-
-    if (fechaExacta > ahora) return res.status(400).json({ error: 'Solo se pueden marcar como "No Asistió" citas pasadas.' });
-
-    const citaActualizada = await prisma.cita.update({
-      where: { id: parseInt(id as string) },
-      data: { estado: 'NO_ASISTIO' }
-    });
-
-    const io = req.app.get('io');
-    if (io) io.emit('cambio-citas');
-
-    res.json(citaActualizada);
-  } catch (error) {
-    console.error("Error marcando no asistió:", error);
-    res.status(500).json({ error: 'Error al actualizar la cita' });
-  }
+    const result = await citasService.cambiarEstado(parseInt(String(req.params.id)), req.negocioId!, 'NO_ASISTIO');
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Marcar como ASISTIO
-export const marcarAsistio = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const negocioId = req.negocioId!;
-
+export const marcarAsistio = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const cita = await prisma.cita.findUnique({ where: { id: parseInt(id as string), negocioId } });
-    if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
-
-    const citaActualizada = await prisma.cita.update({
-      where: { id: parseInt(id as string) },
-      data: { estado: 'CONFIRMADA' }
-    });
-
-    const io = req.app.get('io');
-    if (io) io.emit('cambio-citas');
-
-    res.json(citaActualizada);
-  } catch (error) {
-    console.error("Error marcando como asistió:", error);
-    res.status(500).json({ error: 'Error al actualizar la cita' });
-  }
+    const result = await citasService.cambiarEstado(parseInt(String(req.params.id)), req.negocioId!, 'CONFIRMADA');
+    res.json(result);
+  } catch (error) { next(error); }
 };
 
-// Actualizar descripción de cita
-export const actualizarDescripcion = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { descripcion } = req.body;
-  const negocioId = req.negocioId!;
-
+export const actualizarDescripcion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const citaActualizada = await prisma.cita.update({
-      where: { id: parseInt(id as string), negocioId },
-      data: { descripcion: descripcion || null }
-    });
-    res.json(citaActualizada);
-  } catch (error) {
-    console.error('Error actualizando descripción:', error);
-    res.status(500).json({ error: 'Error al actualizar descripción' });
-  }
+    const result = await citasService.actualizarDescripcion(parseInt(String(req.params.id)), req.negocioId!, req.body.descripcion);
+    res.json(result);
+  } catch (error) { next(error); }
 };

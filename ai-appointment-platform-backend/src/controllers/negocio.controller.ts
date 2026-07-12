@@ -1,23 +1,19 @@
-import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
+import { Request, Response, NextFunction } from 'express';
+import * as negocioService from '../services/negocio.service';
+import pino from 'pino';
 
-export const configurarNegocio = async (req: Request, res: Response) => {
+const logger = pino();
+
+export const configurarNegocio = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const negocioId = req.negocioId!;
         const { nombre } = req.body;
 
-        if (!nombre || typeof nombre !== 'string' || nombre.trim().length < 2) {
-            return res.status(400).json({ error: 'El nombre del negocio es inválido' });
-        }
-
-        const negocio = await prisma.negocio.update({
-            where: { id: negocioId },
-            data: { nombre: nombre.trim() }
-        });
+        const negocio = await negocioService.configurarNegocio(negocioId, nombre);
 
         res.json({ success: true, negocio });
     } catch (error) {
-        console.error('[Negocio] Error configurando negocio:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        logger.error({ err: error }, '[Negocio] Error configurando negocio');
+        next(error);
     }
 };
