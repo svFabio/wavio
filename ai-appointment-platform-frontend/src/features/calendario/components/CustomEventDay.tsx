@@ -1,4 +1,4 @@
-import { EventoCalendario } from '../types';
+import type { EventoCalendario } from '../types';
 
 export const CustomEventDay = ({ event }: { event: EventoCalendario }) => {
   const { title, resource } = event;

@@ -1,4 +1,4 @@
-import { EventoCalendario } from '../types';
+import type { EventoCalendario } from '../types';
 
 export const CustomEventMonth = ({ event }: { event: EventoCalendario }) => {
   const count = event.resource?.count || 1;

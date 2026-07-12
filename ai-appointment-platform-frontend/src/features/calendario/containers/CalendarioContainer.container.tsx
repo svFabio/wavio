@@ -9,7 +9,7 @@ import { useActualizarDescripcion } from '../api/useActualizarDescripcionMutatio
 import { useCrearCita } from '../api/useCrearCitaMutation';
 import { useReprogramarCita } from '../api/useReprogramarCitaMutation';
 import { useMarcarAsistencia } from '../api/useMarcarAsistenciaMutation';
-import { EventoCalendario } from '../types';
+import type { EventoCalendario } from '../types';
 import { CalendarioView } from '../components/CalendarioView';
 
 export const CalendarioContainer = () => {

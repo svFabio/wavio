@@ -3,7 +3,7 @@ import type { View } from 'react-big-calendar';
 import { dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { EventoCalendario } from '../types';
+import type { EventoCalendario } from '../types';
 import { ModalDetalle } from './ModalDetalle';
 import { ModalNuevaCita } from './ModalNuevaCita';
 import { ModalReprogramar } from './ModalReprogramar';

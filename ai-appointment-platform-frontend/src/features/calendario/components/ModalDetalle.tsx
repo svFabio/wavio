@@ -16,7 +16,7 @@ import {
   Save,
   Loader2
 } from 'lucide-react';
-import { EventoCalendario } from '../types';
+import type { EventoCalendario } from '../types';
 
 interface ModalDetalleProps {
   event: EventoCalendario | null;
@@ -66,7 +66,7 @@ export const ModalDetalle = ({
         setError('No se pudo guardar la descripcion.');
       }
     } catch (err) {
-      setError('Error de conexion al guardar.');
+      setError(err instanceof Error ? err.message : 'Error de conexion al guardar.');
     } finally {
       setGuardando(false);
     }

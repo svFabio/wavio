@@ -9,7 +9,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { EventoCalendario } from '../types';
+import type { EventoCalendario } from '../types';
 
 interface ModalReprogramarProps {
   isOpen: boolean;
