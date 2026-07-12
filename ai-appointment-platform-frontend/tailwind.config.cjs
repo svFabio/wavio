@@ -4,6 +4,7 @@ module.exports = {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -52,6 +53,27 @@ module.exports = {
         border: {
           DEFAULT: 'var(--color-border)',
           light: 'var(--color-border-light)',
+        },
+        'gradient-warm': {
+          from: 'var(--gradient-warm-from)',
+          to: 'var(--gradient-warm-to)',
+        },
+        'gradient-cool': {
+          from: 'var(--gradient-cool-from)',
+          to: 'var(--gradient-cool-to)',
+        },
+        'gradient-purple': {
+          from: 'var(--gradient-purple-from)',
+          to: 'var(--gradient-purple-to)',
+        },
+        'gradient-dark': {
+          from: 'var(--gradient-dark-from)',
+          via: 'var(--gradient-dark-via)',
+          to: 'var(--gradient-dark-to)',
+        },
+        'surface-dark': {
+          glass: 'var(--surface-dark-glass)',
+          input: 'var(--surface-dark-input)',
         },
       },
       borderRadius: {

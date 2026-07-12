@@ -19,6 +19,8 @@
   --color-primary-dark: #4338ca;
   /* Indigo oscuro — hover de botones */
   --color-primary-glow: rgba(99, 102, 241, 0.25);
+  --color-warning-glow: rgba(245, 158, 11, 0.3);
+  --color-success-glow: rgba(16, 185, 129, 0.3);
   /* Sombra/glow de primary */
 
   --color-secondary: #8b5cf6;
@@ -78,6 +80,72 @@
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
   --shadow-glow: 0 0 20px var(--color-primary-glow);
+
+  /* --- Gradientes (stat cards, onboarding) --- */
+  --gradient-warm-from: #f59e0b;
+  --gradient-warm-to: #f97316;
+  --gradient-cool-from: #10b981;
+  --gradient-cool-to: #14b8a6;
+  --gradient-purple-from: #8b5cf6;
+  --gradient-purple-to: #a855f7;
+  --gradient-dark-from: #0f172a;
+  --gradient-dark-via: #1e293b;
+  --gradient-dark-to: #0f172a;
+
+  /* --- Superficies oscuras (onboarding, login) --- */
+  --surface-dark-glass: rgba(30, 41, 59, 0.6);
+  --surface-dark-input: rgba(15, 23, 42, 0.5);
+}
+
+/* ============================================
+   DARK MODE TOKENS
+   ============================================ */
+.dark {
+  /* --- Colores principales --- */
+  --color-primary: #818cf8;
+  --color-primary-light: #312e81;
+  --color-primary-dark: #a5b4fc;
+  --color-primary-glow: rgba(129, 140, 248, 0.3);
+  --color-warning-glow: rgba(251, 191, 36, 0.3);
+  --color-success-glow: rgba(52, 211, 153, 0.3);
+
+  --color-secondary: #a78bfa;
+  --color-secondary-light: #2e1065;
+
+  /* --- Sidebar --- */
+  --color-sidebar-bg: #0f172a;
+  --color-sidebar-hover: #1e293b;
+  --color-sidebar-active: var(--color-primary);
+  --color-sidebar-text: #64748b;
+  --color-sidebar-text-active: #ffffff;
+
+  /* --- Superficies --- */
+  --color-surface: #1e293b;
+  --color-surface-alt: #0f172a;
+  --color-surface-elevated: #334155;
+
+  /* --- Semánticos --- */
+  --color-success: #34d399;
+  --color-success-light: #064e3b;
+  --color-warning: #fbbf24;
+  --color-warning-light: #78350f;
+  --color-danger: #f87171;
+  --color-danger-light: #7f1d1d;
+  --color-info: #60a5fa;
+  --color-info-light: #1e3a5f;
+
+  /* --- Texto --- */
+  --color-text: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* --- Bordes --- */
+  --color-border: #334155;
+  --color-border-light: #1e293b;
+
+  /* --- Sombras --- */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
 }
 
 /* ============================================

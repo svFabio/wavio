@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { X, LayoutDashboard, Calendar, CheckSquare, Smartphone, BarChart3, Users, LogOut, MessageCircle, Settings } from 'lucide-react';
+import { X, LayoutDashboard, Calendar, CheckSquare, Smartphone, BarChart3, Users, LogOut, MessageCircle, Settings, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { ProfileModal } from './ProfileModal';
 
 interface SidebarProps {
@@ -12,6 +13,7 @@ interface SidebarProps {
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
   const { isAdmin, logout, negocio, usuario } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -120,6 +122,13 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </nav>
 
         <div className="p-3 border-t border-border bg-surface-elevated/50">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-3 px-3 py-2 w-full text-left rounded-lg text-txt-secondary hover:bg-surface-elevated transition-all duration-150 mb-2"
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            <span className="text-sm font-medium">{theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}</span>
+          </button>
           <button
             onClick={() => {
               logout();

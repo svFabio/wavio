@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { getSocket } from './services/socket';
+import { useCallback } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
+import { useSocketEvent } from './shared/hooks/useSocketEvent';
 import Dashboard from './pages/Dashboard';
 import Pagos from './pages/Pagos';
 import Calendario from './pages/Calendario';
@@ -27,101 +28,94 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 function App() {
   const { notifications, addNotification, dismissNotification } = useNotifications();
 
-  useEffect(() => {
-    interface NuevaCitaPayload { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string; }
-
-    const handleNuevaCita = (data: NuevaCitaPayload) => {
-      const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
-      addNotification({
-        message: `Nueva cita de ${data.clienteNombre}`,
-        clienteNombre: data.clienteNombre,
-        fecha: fechaFormateada,
-        horario: data.horario
-      });
-      playNotificationSound();
-    };
-
-    const s = getSocket();
-    s.on('nueva-cita', handleNuevaCita);
-
-    return () => {
-      s.off('nueva-cita', handleNuevaCita);
-    };
+  const handleNuevaCita = useCallback((data: { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string }) => {
+    const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
+    addNotification({
+      message: `Nueva cita de ${data.clienteNombre}`,
+      clienteNombre: data.clienteNombre,
+      fecha: fechaFormateada,
+      horario: data.horario
+    });
+    playNotificationSound();
   }, [addNotification]);
+
+  useSocketEvent('nueva-cita', handleNuevaCita);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <div className="App min-h-[100dvh] bg-surface-alt">
-          <div className="fixed md:bottom-4 md:right-4 top-4 left-0 right-0 md:left-auto md:top-auto md:w-auto w-full z-toast pointer-events-none flex flex-col items-center md:items-end px-4 md:px-0 gap-2">
-            <div className="pointer-events-auto w-full max-w-sm">
-              {notifications.map((notif) => (
-                <NotificationToast
-                  key={notif.id}
-                  id={notif.id}
-                  clienteNombre={notif.clienteNombre}
-                  fecha={notif.fecha}
-                  horario={notif.horario}
-                  onDismiss={dismissNotification}
-                />
-              ))}
-            </div>
-          </div>
-
-          <ErrorBoundary>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            } />
-
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Home />} />
-              <Route path="calendario" element={<Calendario />} />
-              <Route path="pagos" element={<Pagos />} />
-              <Route path="chat" element={<Chat />} />
-              <Route path="vincular" element={<Vincular />} />
-
-              <Route path="statistics" element={
-                <ProtectedRoute requiredRole="ADMIN">
-                  <Statistics />
-                </ProtectedRoute>
-              } />
-              <Route path="users" element={
-                <ProtectedRoute requiredRole="ADMIN">
-                  <Users />
-                </ProtectedRoute>
-              } />
-              <Route path="configuracion-bot" element={
-                <ProtectedRoute requiredRole="ADMIN">
-                  <ConfiguracionBot />
-                </ProtectedRoute>
-              } />
-            </Route>
-
-            <Route path="*" element={
-              <div className="flex items-center justify-center min-h-screen bg-surface-alt">
-                <div className="text-center">
-                  <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
-                  <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
-                  <a href="/dashboard" className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors">
-                    Volver al Dashboard
-                  </a>
-                </div>
+      <ThemeProvider>
+        <AuthProvider>
+          <div className="App min-h-[100dvh] bg-surface-alt">
+            <div className="fixed md:bottom-4 md:right-4 top-4 left-0 right-0 md:left-auto md:top-auto md:w-auto w-full z-toast pointer-events-none flex flex-col items-center md:items-end px-4 md:px-0 gap-2">
+              <div className="pointer-events-auto w-full max-w-sm">
+                {notifications.map((notif) => (
+                  <NotificationToast
+                    key={notif.id}
+                    id={notif.id}
+                    clienteNombre={notif.clienteNombre}
+                    fecha={notif.fecha}
+                    horario={notif.horario}
+                    onDismiss={dismissNotification}
+                  />
+                ))}
               </div>
-            } />
-          </Routes>
-          </ErrorBoundary>
-        </div>
-      </AuthProvider>
+            </div>
+
+            <ErrorBoundary>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/onboarding" element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Home />} />
+                <Route path="calendario" element={<Calendario />} />
+                <Route path="pagos" element={<Pagos />} />
+                <Route path="chat" element={<Chat />} />
+                <Route path="vincular" element={<Vincular />} />
+
+                <Route path="statistics" element={
+                  <ProtectedRoute requiredRole="ADMIN">
+                    <Statistics />
+                  </ProtectedRoute>
+                } />
+                <Route path="users" element={
+                  <ProtectedRoute requiredRole="ADMIN">
+                    <Users />
+                  </ProtectedRoute>
+                } />
+                <Route path="configuracion-bot" element={
+                  <ProtectedRoute requiredRole="ADMIN">
+                    <ConfiguracionBot />
+                  </ProtectedRoute>
+                } />
+              </Route>
+
+              <Route path="*" element={
+                <div className="flex items-center justify-center min-h-screen bg-surface-alt">
+                  <div className="text-center">
+                    <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
+                    <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
+                    <a href="/dashboard" className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors">
+                      Volver al Dashboard
+                    </a>
+                  </div>
+                </div>
+              } />
+            </Routes>
+            </ErrorBoundary>
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
     </GoogleOAuthProvider>
   );
 }
