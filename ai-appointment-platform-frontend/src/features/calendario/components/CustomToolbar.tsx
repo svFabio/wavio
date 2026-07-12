@@ -1,4 +1,4 @@
-import { View } from 'react-big-calendar';
+import type { View } from 'react-big-calendar';
 import { ChevronLeft, ChevronRight, LayoutGrid, Clock, Plus } from 'lucide-react';
 
 interface CustomToolbarProps {
