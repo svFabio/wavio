@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
 import { Calendar, Clock, CheckCircle2, TrendingUp, ArrowRight, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,16 +22,11 @@ interface ResumenData {
   totalFuturas: number;
 }
 
-const Dashboard = () => {
-  const [data, setData] = useState<ResumenData | null>(null);
-
-  useEffect(() => {
-    api.obtenerResumen()
-      .then(resumen => {
-        if (resumen) setData(resumen);
-      })
-      .catch(console.error);
-  }, []);
+const Home = () => {
+  const { data, isLoading: loading } = useQuery<ResumenData | null>({
+    queryKey: ['citas', 'resumen'],
+    queryFn: () => api.obtenerResumen(),
+  });
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -40,8 +35,7 @@ const Dashboard = () => {
     return 'Buenas noches';
   };
 
-  // Skeleton loading state
-  if (!data) return (
+  if (loading || !data) return (
     <div className="space-y-6">
       <div className="skeleton h-24 w-full rounded-theme-lg" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -84,7 +78,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-txt flex items-center gap-2">
-              {getGreeting()} <span className="text-2xl"></span>
+              {getGreeting()} <span className="text-2xl" aria-hidden="true" />
             </h1>
             <p className="text-sm text-txt-muted mt-1">
               {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
@@ -181,51 +175,49 @@ const Dashboard = () => {
                 ))
               )}
             </tbody>
-          </table >
-        </div >
+          </table>
+        </div>
 
         {/* Mobile Cards */}
-        < div className="md:hidden divide-y divide-border-light" >
-          {
-            data.proximasCitas.length === 0 ? (
-              <div className="px-4 py-10 text-center text-txt-muted">
-                <CheckCircle2 className="w-10 h-10 mx-auto text-success/40 mb-2" />
-                <p className="font-medium">No hay citas programadas para hoy</p>
-              </div>
-            ) : (
-              data.proximasCitas.map((cita) => (
-                <div key={cita.id} className="p-4 hover:bg-surface-alt/50 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-mono font-semibold text-txt text-sm">{cita.horario}</p>
-                      {cita.clienteNombre ? (
-                        <p className="text-sm text-txt-secondary capitalize mt-0.5">{cita.clienteNombre}</p>
-                      ) : (
-                        <p className="text-sm text-txt-muted font-mono mt-0.5">
-                          {cita.clienteTelefono.length > 15
-                            ? cita.clienteTelefono.substring(0, 8) + '...'
-                            : cita.clienteTelefono}
-                        </p>
-                      )}
-                      <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium bg-purple-50 text-purple-700 rounded border border-purple-100">
-                        {cita.servicio || 'Spa'}
-                      </span>
-                    </div>
-                    <span className={`badge ${cita.estado === 'CONFIRMADA' ? 'badge-success' :
-                      cita.estado === 'VALIDACION_PENDIENTE' ? 'badge-warning' :
-                        'badge-info'
-                      }`}>
-                      {cita.estado}
+        <div className="md:hidden divide-y divide-border-light">
+          {data.proximasCitas.length === 0 ? (
+            <div className="px-4 py-10 text-center text-txt-muted">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-success/40 mb-2" />
+              <p className="font-medium">No hay citas programadas para hoy</p>
+            </div>
+          ) : (
+            data.proximasCitas.map((cita) => (
+              <div key={cita.id} className="p-4 hover:bg-surface-alt/50 transition-colors">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-mono font-semibold text-txt text-sm">{cita.horario}</p>
+                    {cita.clienteNombre ? (
+                      <p className="text-sm text-txt-secondary capitalize mt-0.5">{cita.clienteNombre}</p>
+                    ) : (
+                      <p className="text-sm text-txt-muted font-mono mt-0.5">
+                        {cita.clienteTelefono.length > 15
+                          ? cita.clienteTelefono.substring(0, 8) + '...'
+                          : cita.clienteTelefono}
+                      </p>
+                    )}
+                    <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium bg-secondary-light/30 text-secondary rounded border border-secondary/20">
+                      {cita.servicio || 'Spa'}
                     </span>
                   </div>
+                  <span className={`badge ${cita.estado === 'CONFIRMADA' ? 'badge-success' :
+                    cita.estado === 'VALIDACION_PENDIENTE' ? 'badge-warning' :
+                      'badge-info'
+                    }`}>
+                    {cita.estado}
+                  </span>
                 </div>
-              ))
-            )
-          }
-        </div >
-      </div >
-    </div >
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
-export default Dashboard;
+export default Home;

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
-import { socket } from '../services/socket';
+import { getSocket } from '../lib/socket';
 import type { MensajeChat, Conversacion } from '../types';
 import {
     Send,
@@ -20,21 +21,23 @@ const Chat = () => {
     const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
     const [selectedJid, setSelectedJid] = useState<string | null>(null);
     const [nuevoMensaje, setNuevoMensaje] = useState('');
-    const [loading, setLoading] = useState(true);
     const [loadingMensajes, setLoadingMensajes] = useState(false);
     const [enviando, setEnviando] = useState(false);
     const [busqueda, setBusqueda] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const cargarConversaciones = useCallback(async () => {
-        const data = await api.obtenerConversaciones();
-        setConversaciones(data);
-        setLoading(false);
-    }, []);
+    const conversacionesQuery = useQuery({
+        queryKey: ['conversaciones'],
+        queryFn: () => api.obtenerConversaciones(),
+    });
+
+    const loading = conversacionesQuery.isLoading;
 
     useEffect(() => {
-        cargarConversaciones();
-    }, [cargarConversaciones]);
+        if (conversacionesQuery.data) {
+            setConversaciones(conversacionesQuery.data);
+        }
+    }, [conversacionesQuery.data]);
 
     useEffect(() => {
         const handleNuevoMensaje = (msg: MensajeChat) => {
@@ -70,12 +73,13 @@ const Chat = () => {
             setSelectedJid(prev => prev === remoteJid ? null : prev);
         };
 
-        socket.on('nuevo-mensaje', handleNuevoMensaje);
-        socket.on('conversacion-eliminada', handleConversacionEliminada);
+        const s = getSocket();
+        s.on('nuevo-mensaje', handleNuevoMensaje);
+        s.on('conversacion-eliminada', handleConversacionEliminada);
 
-        return () => { 
-            socket.off('nuevo-mensaje', handleNuevoMensaje); 
-            socket.off('conversacion-eliminada', handleConversacionEliminada);
+        return () => {
+            s.off('nuevo-mensaje', handleNuevoMensaje);
+            s.off('conversacion-eliminada', handleConversacionEliminada);
         };
     }, []);
 
@@ -102,7 +106,7 @@ const Chat = () => {
     };
 
     const handleDeleteConversacion = async (e: React.MouseEvent, jid: string) => {
-        e.stopPropagation(); // no abrir el chat
+        e.stopPropagation();
         if (!confirm('¿Eliminar esta conversación y todos sus mensajes de la base de datos?')) return;
         const result = await api.eliminarConversacion(jid);
         if (result.success) {
@@ -128,20 +132,23 @@ const Chat = () => {
     );
 
     return (
-        <div className="h-[calc(100dvh-80px)] flex bg-surface rounded-2xl shadow-xl border border-border overflow-hidden">
+        <div className="h-[calc(100dvh-80px)] flex bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
             {/* Panel Izquierdo */}
-            <div className={`${selectedJid ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 border-r border-border bg-surface`}>
-                <div className="p-4 border-b border-border gradient-primary text-white">
-                    <h2 className="font-bold text-lg flex items-center gap-2">
-                        <MessageCircle className="w-5 h-5" /> Chats de WhatsApp
-                    </h2>
-                    <div className="mt-3 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+            <div className={`${selectedJid ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 border-r border-border bg-surface`}>
+                <div className="px-4 py-4 border-b border-border bg-surface">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="w-7 h-7 bg-primary-light rounded-lg flex items-center justify-center">
+                            <MessageCircle className="w-4 h-4 text-primary" />
+                        </div>
+                        <h2 className="font-semibold text-txt text-sm">Chats de WhatsApp</h2>
+                    </div>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-txt-muted" />
                         <input
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-white/20 border border-white/20 rounded-lg text-white placeholder-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
-                            placeholder="Buscar por nombre o número..."
+                            className="input-modern pl-9"
+                            placeholder="Buscar por nombre o numero..."
                         />
                     </div>
                 </div>
@@ -163,20 +170,25 @@ const Chat = () => {
                     ) : conversacionesFiltradas.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-txt-muted gap-2">
                             <WifiOff className="w-8 h-8 opacity-50" />
-                            <p className="text-sm">No hay conversaciones aún</p>
+                            <p className="text-sm">No hay conversaciones aun</p>
                         </div>
                     ) : (
                         conversacionesFiltradas.map(conv => (
                             <button
                                 key={conv.remoteJid}
                                 onClick={() => abrirConversacion(conv.remoteJid)}
-                                className={`w-full p-4 flex items-start gap-3 hover:bg-surface-elevated transition-colors border-b border-border-light text-left group ${selectedJid === conv.remoteJid ? 'bg-primary-light/10 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
+                                className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-surface-alt transition-colors border-b border-border-light text-left group
+                                    ${selectedJid === conv.remoteJid
+                                        ? 'bg-primary-light border-l-2 border-l-primary'
+                                        : 'border-l-2 border-l-transparent'
+                                    }`}
                             >
-                                <div className="w-12 h-12 rounded-full gradient-primary-subtle flex items-center justify-center text-primary font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-sm shrink-0">
                                     {(conv.clienteNombre ?? formatJid(conv.remoteJid)).slice(0, 2).toUpperCase()}
                                 </div>
+
                                 <div className="flex-1 min-w-0">
-                                    <span className="font-semibold text-txt text-sm truncate block">
+                                    <span className="font-medium text-txt text-sm truncate block">
                                         {conv.clienteNombre ?? formatJid(conv.remoteJid)}
                                     </span>
                                     <div className="flex items-center gap-1 mt-0.5">
@@ -184,20 +196,17 @@ const Chat = () => {
                                         <span className="text-[10px] text-txt-muted font-mono truncate">{conv.telefonoReal || formatJid(conv.remoteJid)}</span>
                                     </div>
                                     <p className="text-xs text-txt-secondary mt-1 truncate">
-                                        {conv.ultimaDireccion === 'SALIENTE' && <span className="text-primary font-bold">✓✓ </span>}
+                                        {conv.ultimaDireccion === 'SALIENTE' && <span className="text-primary font-bold">{'\u2713\u2713 '} </span>}
                                         {conv.ultimoContenido}
                                     </p>
-                                    <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-surface-elevated text-txt-muted rounded-full">
-                                        {conv.totalMensajes} msgs
-                                    </span>
                                 </div>
-                                {/* Columna derecha: fecha arriba, trash abajo */}
+
                                 <div className="flex flex-col items-end gap-2 shrink-0">
                                     <span className="text-[10px] text-txt-muted">{formatDate(conv.ultimoMensaje)}</span>
                                     <button
                                         onClick={(e) => handleDeleteConversacion(e, conv.remoteJid)}
                                         title="Eliminar conversación"
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg text-danger/60 hover:text-danger hover:bg-danger-light"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
@@ -208,19 +217,22 @@ const Chat = () => {
                 </div>
             </div>
 
-            {/* Panel Derecho */}
+            {/* Panel Derecho — Mensajes */}
             <div className={`${selectedJid ? 'flex' : 'hidden md:flex'} flex-col flex-1 bg-surface-alt relative`}>
                 {selectedJid ? (
                     <>
-                        <div className="p-4 border-b border-border bg-white shadow-sm flex items-center gap-3 z-10">
-                            <button onClick={() => setSelectedJid(null)} className="md:hidden p-1.5 hover:bg-surface-elevated rounded-full text-txt-secondary">
+                        <div className="px-4 py-3 border-b border-border bg-surface flex items-center gap-3">
+                            <button
+                                onClick={() => setSelectedJid(null)}
+                                className="md:hidden p-1.5 hover:bg-surface-elevated rounded-full text-txt-muted transition-colors"
+                            >
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
-                            <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-white font-bold shadow-md">
+                            <div className="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-sm shadow-sm">
                                 {conversaciones.find(c => c.remoteJid === selectedJid)?.clienteNombre?.slice(0, 2).toUpperCase() ?? formatJid(selectedJid).slice(-2)}
                             </div>
                             <div className="flex-1">
-                                <p className="text-txt font-bold text-sm">
+                                <p className="text-txt font-semibold text-sm">
                                     {conversaciones.find(c => c.remoteJid === selectedJid)?.clienteNombre ?? formatJid(selectedJid)}
                                 </p>
                                 <p className="text-txt-muted text-xs flex items-center gap-1">
@@ -230,8 +242,10 @@ const Chat = () => {
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3"
-                            style={{ backgroundImage: `radial-gradient(var(--color-border-light) 1px, transparent 1px)`, backgroundSize: '20px 20px' }}>
+                        <div
+                            className="flex-1 overflow-y-auto p-4 space-y-3"
+                            style={{ backgroundImage: 'radial-gradient(var(--color-border) 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+                        >
                             {loadingMensajes ? (
                                 <div className="space-y-4 p-2">
                                     {[...Array(5)].map((_, i) => (
@@ -243,14 +257,16 @@ const Chat = () => {
                             ) : (
                                 mensajes.map(msg => (
                                     <div key={msg.id} className={`flex ${msg.direccion === 'SALIENTE' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[75%] px-4 py-3 rounded-2xl shadow-sm text-sm ${msg.direccion === 'SALIENTE'
-                                            ? 'bg-primary text-white rounded-tr-sm'
-                                            : 'bg-white text-txt rounded-tl-sm border border-border'
-                                            }`}>
+                                        <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm text-sm
+                                            ${msg.direccion === 'SALIENTE'
+                                                ? 'bg-primary text-white rounded-tr-sm'
+                                                : 'bg-surface text-txt rounded-tl-sm border border-border'
+                                            }`}
+                                        >
                                             <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.contenido}</p>
-                                            <div className={`flex items-center gap-1 mt-1 ${msg.direccion === 'SALIENTE' ? 'justify-end text-white/80' : 'text-txt-muted'}`}>
+                                            <div className={`flex items-center gap-1 mt-1 ${msg.direccion === 'SALIENTE' ? 'justify-end text-white/70' : 'text-txt-muted'}`}>
                                                 <span className="text-[10px]">{formatTimestamp(msg.timestamp)}</span>
-                                                {msg.direccion === 'SALIENTE' && <span className="text-xs">✓✓</span>}
+                                                {msg.direccion === 'SALIENTE' && <span className="text-xs">{'\u2713\u2713'}</span>}
                                             </div>
                                         </div>
                                     </div>
@@ -259,13 +275,13 @@ const Chat = () => {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        <div className="p-4 bg-white border-t border-border">
+                        <div className="px-4 py-3 bg-surface border-t border-border">
                             <div className="flex items-end gap-2 relative">
                                 <textarea
                                     value={nuevoMensaje}
                                     onChange={(e) => setNuevoMensaje(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    className="input-modern rounded-2xl pr-12 resize-none max-h-32 py-3"
+                                    className="flex-1 input-modern pl-4 pr-12 py-3 resize-none max-h-32"
                                     rows={1}
                                     placeholder="Escribe un mensaje..."
                                     disabled={enviando}
@@ -273,21 +289,21 @@ const Chat = () => {
                                 <button
                                     onClick={enviarMensaje}
                                     disabled={!nuevoMensaje.trim() || enviando}
-                                    className="absolute right-2 bottom-2 p-2 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all disabled:opacity-50 disabled:scale-95 shadow-lg shadow-primary/20"
+                                    className="absolute right-2 bottom-2 p-2 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all disabled:opacity-40 disabled:scale-95 shadow-md"
                                 >
-                                    {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                    {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-txt-muted gap-4 opacity-50">
-                        <div className="w-24 h-24 rounded-full bg-surface-elevated flex items-center justify-center">
-                            <MessageCircle className="w-12 h-12 text-txt-muted" />
+                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-txt-muted">
+                        <div className="w-16 h-16 rounded-2xl bg-surface-elevated flex items-center justify-center">
+                            <MessageCircle className="w-8 h-8 text-txt-muted/50" />
                         </div>
                         <div className="text-center">
-                            <h3 className="text-lg font-bold text-txt">Selecciona una conversación</h3>
-                            <p className="text-sm">Los mensajes de WhatsApp aparecerán aquí</p>
+                            <h3 className="text-sm font-semibold text-txt">Selecciona una conversación</h3>
+                            <p className="text-xs text-txt-muted mt-1">Los mensajes de WhatsApp aparecerán aquí</p>
                         </div>
                     </div>
                 )}

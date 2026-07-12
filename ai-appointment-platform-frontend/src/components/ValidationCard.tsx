@@ -1,4 +1,4 @@
-import type { Cita } from '../types'; // Asegúrate de que esta ruta sea correcta
+import type { Cita } from '../types';
 import { Check, X } from 'lucide-react';
 
 interface Props {
@@ -6,19 +6,16 @@ interface Props {
   onAction: (id: string, action: 'APROBAR' | 'RECHAZAR') => void;
 }
 
-// IMPORTANTE: Usamos "export const" para que coincida con el import { ValidationCard }
 export const ValidationCard = ({ cita, onAction }: Props) => {
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6 transition-all hover:shadow-xl">
-
-      {/* Encabezado de la tarjeta */}
-      <div className="bg-gray-50 p-4 border-b border-gray-200">
+    <div className="bg-surface rounded-xl shadow-lg border border-border overflow-hidden mb-6 transition-all hover:shadow-xl">
+      <div className="bg-surface-elevated p-4 border-b border-border">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div>
-            <h3 className="font-bold text-gray-800 text-lg md:text-xl">{cita.clienteNombre}</h3>
-            <p className="text-sm text-gray-600 font-medium mt-1">Teléfono: {cita.clienteTelefono}</p>
+            <h3 className="font-bold text-txt text-lg md:text-xl">{cita.clienteNombre}</h3>
+            <p className="text-sm text-txt-secondary font-medium mt-1">Telefono: {cita.clienteTelefono}</p>
           </div>
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+          <span className="badge badge-warning">
             {cita.estado}
           </span>
         </div>
@@ -26,41 +23,38 @@ export const ValidationCard = ({ cita, onAction }: Props) => {
 
       <div className="p-4 sm:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Columna Izquierda: Información y Botones */}
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fecha Solicitada</p>
+              <p className="text-xs font-bold text-txt-muted uppercase tracking-wider mb-2">Fecha Solicitada</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm md:text-base">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-gray-600 font-medium">Fecha:</span>
-                  <span className="ml-2 font-semibold">{cita.fecha}</span>
+                <div className="bg-surface-elevated p-3 rounded-lg">
+                  <span className="text-txt-secondary font-medium">Fecha:</span>
+                  <span className="ml-2 font-semibold text-txt">{cita.fecha}</span>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <span className="text-gray-600 font-medium">Hora:</span>
-                  <span className="ml-2 font-semibold">{cita.horario}</span>
+                <div className="bg-surface-elevated p-3 rounded-lg">
+                  <span className="text-txt-secondary font-medium">Hora:</span>
+                  <span className="ml-2 font-semibold text-txt">{cita.horario}</span>
                 </div>
               </div>
             </div>
 
-            {/* Botones - responsive */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => onAction(cita.id, 'RECHAZAR')}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-red-100 text-red-600 font-bold hover:bg-red-50 hover:border-red-200 transition-colors active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-danger/20 text-danger font-bold hover:bg-danger-light hover:border-danger/40 transition-colors active:scale-95"
               >
                 <X size={18} /> Rechazar
               </button>
               <button
                 onClick={() => onAction(cita.id, 'APROBAR')}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 shadow-lg shadow-green-200 transition-all active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-success text-white font-bold hover:opacity-90 shadow-lg transition-all active:scale-95"
               >
                 <Check size={18} /> Validar
               </button>
             </div>
           </div>
 
-          {/* Columna Derecha: Imagen del Comprobante */}
-          <div className="bg-gray-100 rounded-lg flex items-center justify-center min-h-[200px] border-2 border-dashed border-gray-300 relative overflow-hidden group">
+          <div className="bg-surface-elevated rounded-lg flex items-center justify-center min-h-[200px] border-2 border-dashed border-border relative overflow-hidden group">
             {cita.comprobanteUrl ? (
               <a
                 href={cita.comprobanteUrl}
@@ -82,9 +76,8 @@ export const ValidationCard = ({ cita, onAction }: Props) => {
               </a>
             ) : (
               <div className="text-center p-6">
-                <div className="text-4xl mb-2">📄</div>
-                <p className="text-gray-500 text-sm font-medium">Sin imagen cargada</p>
-                <p className="text-gray-400 text-xs mt-1">(El usuario no subió comprobante)</p>
+                <p className="text-txt-muted text-sm font-medium">Sin imagen cargada</p>
+                <p className="text-txt-muted text-xs mt-1">(El usuario no subio comprobante)</p>
               </div>
             )}
           </div>

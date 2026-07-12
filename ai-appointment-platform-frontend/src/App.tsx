@@ -1,9 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { socket } from './services/socket';
+import { getSocket } from './services/socket';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import Pagos from './pages/Pagos';
 import Calendario from './pages/Calendario';
@@ -28,7 +29,7 @@ function App() {
 
   useEffect(() => {
     interface NuevaCitaPayload { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string; }
-    
+
     const handleNuevaCita = (data: NuevaCitaPayload) => {
       const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
       addNotification({
@@ -40,19 +41,19 @@ function App() {
       playNotificationSound();
     };
 
-    socket.on('nueva-cita', handleNuevaCita);
+    const s = getSocket();
+    s.on('nueva-cita', handleNuevaCita);
 
-    return () => { 
-      socket.off('nueva-cita', handleNuevaCita); 
+    return () => {
+      s.off('nueva-cita', handleNuevaCita);
     };
   }, [addNotification]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>
-        <div className="App min-h-[100dvh] bg-slate-50">
-          {/* Toast de notificaciones */}
-          <div className="fixed md:bottom-4 md:right-4 top-4 left-0 right-0 md:left-auto md:top-auto md:w-auto w-full z-[9999] pointer-events-none flex flex-col items-center md:items-end px-4 md:px-0 gap-2">
+        <div className="App min-h-[100dvh] bg-surface-alt">
+          <div className="fixed md:bottom-4 md:right-4 top-4 left-0 right-0 md:left-auto md:top-auto md:w-auto w-full z-toast pointer-events-none flex flex-col items-center md:items-end px-4 md:px-0 gap-2">
             <div className="pointer-events-auto w-full max-w-sm">
               {notifications.map((notif) => (
                 <NotificationToast
@@ -67,8 +68,8 @@ function App() {
             </div>
           </div>
 
+          <ErrorBoundary>
           <Routes>
-            {/* Rutas públicas */}
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={
               <ProtectedRoute>
@@ -76,10 +77,8 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Ruta raíz */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-            {/* Dashboard protegido */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
@@ -91,7 +90,6 @@ function App() {
               <Route path="chat" element={<Chat />} />
               <Route path="vincular" element={<Vincular />} />
 
-              {/* Solo ADMIN */}
               <Route path="statistics" element={
                 <ProtectedRoute requiredRole="ADMIN">
                   <Statistics />
@@ -109,19 +107,19 @@ function App() {
               } />
             </Route>
 
-            {/* 404 */}
             <Route path="*" element={
-              <div className="flex items-center justify-center min-h-screen bg-gray-50">
+              <div className="flex items-center justify-center min-h-screen bg-surface-alt">
                 <div className="text-center">
-                  <h1 className="text-4xl font-bold text-gray-800 mb-2">404</h1>
-                  <p className="text-gray-600 mb-4">Página no encontrada</p>
-                  <a href="/dashboard" className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors">
+                  <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
+                  <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
+                  <a href="/dashboard" className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors">
                     Volver al Dashboard
                   </a>
                 </div>
               </div>
             } />
           </Routes>
+          </ErrorBoundary>
         </div>
       </AuthProvider>
     </GoogleOAuthProvider>

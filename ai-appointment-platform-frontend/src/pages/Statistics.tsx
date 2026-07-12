@@ -1,23 +1,10 @@
-import { useEffect, useState } from 'react';
 import {
     BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../services/api';
 import { TrendingUp, Users, Clock, DollarSign, Globe, MapPin } from 'lucide-react';
-
-interface OverviewData {
-    citasMes: number;
-    ingresosMes: number;
-    topClientes: Array<{ nombre: string; telefono: string; totalCitas: number }>;
-    horariosPopulares: Array<{ horario: string; totalReservas: number }>;
-    citasVirtuales: number;
-    citasPresenciales: number;
-    ratingPromedio?: number;
-}
-
-interface RevenueData {
-    revenue: Array<{ mes: string; total: number }>;
-}
 
 const MONTH_NAMES: Record<string, string> = {
     '01': 'Ene', '02': 'Feb', '03': 'Mar', '04': 'Abr', '05': 'May', '06': 'Jun',
@@ -25,35 +12,19 @@ const MONTH_NAMES: Record<string, string> = {
 };
 
 const Statistics = () => {
-    const [overview, setOverview] = useState<OverviewData | null>(null);
-    const [revenue, setRevenue] = useState<RevenueData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const overviewQuery = useQuery({
+        queryKey: ['statistics', 'overview'],
+        queryFn: () => api.getStatisticsOverview(),
+    });
 
-    useEffect(() => {
-        fetchStatistics();
-    }, []);
+    const revenueQuery = useQuery({
+        queryKey: ['statistics', 'revenue'],
+        queryFn: () => api.getStatisticsRevenue(6),
+    });
 
-    const fetchStatistics = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const headers = { 'Authorization': `Bearer ${token}` };
-
-            const [overviewRes, revenueRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_API_URL}/statistics/overview`, { headers }),
-                fetch(`${import.meta.env.VITE_API_URL}/statistics/revenue?months=6`, { headers })
-            ]);
-
-            const overviewData = await overviewRes.json();
-            const revenueData = await revenueRes.json();
-
-            setOverview(overviewData);
-            setRevenue(revenueData);
-        } catch (error) {
-            console.error('Error fetching statistics:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const loading = overviewQuery.isLoading || revenueQuery.isLoading;
+    const overview = overviewQuery.data ?? null;
+    const revenue = revenueQuery.data ?? null;
 
     if (loading) {
         return (
@@ -71,22 +42,20 @@ const Statistics = () => {
         );
     }
 
-    // Format revenue months
     const revenueFormatted = (revenue?.revenue || []).map(item => ({
         ...item,
         mesLabel: MONTH_NAMES[item.mes.split('-')[1]] || item.mes
     }));
 
-    // Pie data for virtual vs presencial
     const origenData = [
         { name: 'Virtual', value: overview?.citasVirtuales || 0 },
         { name: 'Presencial', value: overview?.citasPresenciales || 0 }
     ];
     const totalOrigen = origenData.reduce((s, d) => s + d.value, 0);
-    const ORIGEN_COLORS = ['#6366f1', '#f59e0b'];
+    const ORIGEN_COLORS = ['var(--color-primary)', 'var(--color-warning)'];
 
-    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#6366f1';
-    const successColor = getComputedStyle(document.documentElement).getPropertyValue('--color-success').trim() || '#10b981';
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim();
+    const successColor = getComputedStyle(document.documentElement).getPropertyValue('--color-success').trim();
 
     const statCards = [
         { label: 'Citas Este Mes', value: overview?.citasMes || 0, icon: TrendingUp, gradient: 'from-primary to-secondary' },
@@ -103,19 +72,17 @@ const Statistics = () => {
         fontSize: 13,
     };
 
-    // Medal styling for top clients
     const getMedal = (index: number) => {
-        if (index === 0) return '🥇';
-        if (index === 1) return '🥈';
-        if (index === 2) return '🥉';
+        if (index === 0) return '\u{1F947}';
+        if (index === 1) return '\u{1F948}';
+        if (index === 2) return '\u{1F949}';
         return `${index + 1}.`;
     };
 
     return (
         <div className="space-y-6 p-4 md:p-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-txt">Estadísticas</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-txt">Estadisticas</h1>
 
-            {/* Stat Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((stat, i) => (
                     <div key={i} className="stat-card">
@@ -132,12 +99,10 @@ const Statistics = () => {
                 ))}
             </div>
 
-            {/* Revenue Chart + Virtual/Presencial Pie — side by side */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Revenue Chart (2/3 width) */}
                 <div className="card-modern p-5 md:p-6 lg:col-span-2">
                     <h2 className="text-lg font-bold text-txt mb-4 flex items-center gap-2">
-                        <DollarSign className="w-5 h-5 text-emerald-500" />
+                        <DollarSign className="w-5 h-5 text-success" />
                         Ingresos por Mes
                     </h2>
                     <ResponsiveContainer width="100%" height={280}>
@@ -165,7 +130,6 @@ const Statistics = () => {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Virtual vs Presencial Pie (1/3 width) */}
                 <div className="card-modern p-5 md:p-6">
                     <h2 className="text-lg font-bold text-txt mb-2 flex items-center gap-2">
                         <Globe className="w-5 h-5 text-primary" />
@@ -198,7 +162,6 @@ const Statistics = () => {
                                     <Tooltip contentStyle={tooltipStyle} />
                                 </PieChart>
                             </ResponsiveContainer>
-                            {/* Legend */}
                             <div className="flex justify-center gap-6 mt-2">
                                 {origenData.map((entry, i) => (
                                     <div key={i} className="flex items-center gap-2">
@@ -215,13 +178,11 @@ const Statistics = () => {
                 </div>
             </div>
 
-            {/* Horarios + Clientes Frecuentes — side by side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Popular Hours Chart */}
                 <div className="card-modern p-5 md:p-6">
                     <h2 className="text-lg font-bold text-txt mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-amber-500" />
-                        Horarios Más Reservados
+                        <Clock className="w-5 h-5 text-warning" />
+                        Horarios Mas Reservados
                     </h2>
                     <ResponsiveContainer width="100%" height={260}>
                         <BarChart data={overview?.horariosPopulares || []} barCategoryGap="20%">
@@ -238,15 +199,14 @@ const Statistics = () => {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Top Clients — card style instead of table */}
                 <div className="card-modern p-5 md:p-6">
                     <h2 className="text-lg font-bold text-txt mb-4 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-violet-500" />
-                        Clientes Más Frecuentes
+                        <Users className="w-5 h-5 text-secondary" />
+                        Clientes Mas Frecuentes
                     </h2>
                     <div className="space-y-3">
                         {(overview?.topClientes || []).length === 0 ? (
-                            <p className="text-txt-muted text-sm text-center py-8">Sin datos aún</p>
+                            <p className="text-txt-muted text-sm text-center py-8">Sin datos aun</p>
                         ) : (
                             overview?.topClientes.map((cliente, index) => (
                                 <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-surface-elevated/50 hover:bg-surface-alt/50 transition-colors">

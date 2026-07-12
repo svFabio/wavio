@@ -21,14 +21,12 @@ export const useValidarPago = () => {
 
     return useMutation({
         mutationFn: ({ id, accion }: { id: string; accion: 'APROBAR' | 'RECHAZAR' }) =>
-            api.validarPago(id, accion),
-        onSuccess: (success) => {
-            if (success) {
-                toast.success('Acción realizada con éxito');
-                queryClient.invalidateQueries({ queryKey: ['citas'] });
-            } else {
-                toast.error('Error al realizar la acción');
-            }
+            api.validarPago(id, accion).then(success => {
+                if (!success) throw new Error('Error al realizar la acción');
+            }),
+        onSuccess: () => {
+            toast.success('Acción realizada con éxito');
+            queryClient.invalidateQueries({ queryKey: ['citas'] });
         },
         onError: () => {
             toast.error('Error de conexión');

@@ -7,6 +7,8 @@ import { api } from '../services/api';
 
 type Tab = 'login' | 'register';
 
+interface LoginResponse { token: string; usuario: Parameters<ReturnType<typeof useAuth>['login']>[1]; negocio: Parameters<ReturnType<typeof useAuth>['login']>[2]; esNuevo?: boolean; }
+
 export default function Login() {
     const [tab, setTab] = useState<Tab>('login');
     const [email, setEmail] = useState('');
@@ -20,7 +22,6 @@ export default function Login() {
     const location = useLocation();
     const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/dashboard';
 
-    interface LoginResponse { token: string; usuario: Parameters<typeof login>[1]; negocio: Parameters<typeof login>[2]; esNuevo?: boolean; }
     const handleSuccess = (data: LoginResponse) => {
         login(data.token, data.usuario, data.negocio);
         navigate(data.esNuevo ? '/onboarding' : from, { replace: true });
@@ -42,95 +43,66 @@ export default function Login() {
         }
     };
 
-    // useGoogleLogin con flow implicit da access_token
-    // Lo enviamos al backend para completar el login
     const googleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             setError(null);
             setLoading(true);
             try {
-                // Obtenemos el perfil del usuario con el access_token
-                const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                });
-                const userInfo = await userInfoRes.json();
-
-                // Enviamos el access_token al backend (necesitamos actualizar el endpoint)
-                const resp = await fetch(`${import.meta.env.VITE_API_URL}/auth/google`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        googleToken: tokenResponse.access_token,
-                        userInfo   // sub, name, email, picture
-                    })
-                });
-                const data = await resp.json();
-                if (!resp.ok) throw new Error(data.error || 'Error al autenticar con Google');
+                const data = await api.loginConGoogle(tokenResponse.access_token);
                 handleSuccess(data);
             } catch (err: unknown) {
-                setError((err as Error).message || 'Error al iniciar sesión con Google');
+                setError((err as Error).message || 'Error al iniciar sesion con Google');
             } finally {
                 setLoading(false);
             }
         },
-        onError: () => setError('Error al conectar con Google. Inténtalo de nuevo.'),
+        onError: () => setError('Error al conectar con Google. Intentalo de nuevo.'),
     });
 
     const switchTab = (t: Tab) => { setTab(t); setError(null); setEmail(''); setPassword(''); };
 
-    const inputClass = "w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all duration-200";
-
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
-
+        <div className="min-h-screen w-full flex items-center justify-center bg-surface-alt p-4">
             <div className="w-full max-w-sm">
-
-                {/* Logo */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600 text-white text-xl mb-4 shadow-lg shadow-indigo-200">
-                        💬
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white text-xl mb-4 shadow-lg">
+                        {'\uD83D\uDCAC'}
                     </div>
-                    <h1 className="text-gray-900 text-2xl font-bold tracking-tight">CitasWA</h1>
-                    <p className="text-gray-400 text-sm mt-1">
+                    <h1 className="text-txt text-2xl font-bold tracking-tight">CitasWA</h1>
+                    <p className="text-txt-muted text-sm mt-1">
                         {tab === 'login' ? 'Bienvenido de vuelta' : 'Crea tu cuenta gratis'}
                     </p>
                 </div>
 
-                {/* Card */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-
-                    {/* Tabs */}
-                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                <div className="bg-surface rounded-2xl shadow-sm border border-border p-6 space-y-5">
+                    <div className="flex bg-surface-elevated p-1 rounded-xl">
                         {(['login', 'register'] as Tab[]).map(t => (
                             <button
                                 key={t}
                                 onClick={() => switchTab(t)}
                                 className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${tab === t
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-400 hover:text-gray-600'
+                                    ? 'bg-surface text-txt shadow-sm border border-border'
+                                    : 'text-txt-muted hover:text-txt'
                                     }`}
                             >
-                                {t === 'login' ? 'Iniciar sesión' : 'Registrarse'}
+                                {t === 'login' ? 'Iniciar sesion' : 'Registrarse'}
                             </button>
                         ))}
                     </div>
 
-                    {/* Error */}
                     {error && (
-                        <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3 text-red-600 text-xs">
+                        <div className="flex items-start gap-2 bg-danger-light border border-danger/20 rounded-xl p-3 text-danger text-xs">
                             <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                             {error}
                         </div>
                     )}
 
-                    {/* Google button */}
                     <button
                         type="button"
                         onClick={() => googleLogin()}
                         disabled={loading}
-                        className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-xl py-3 text-sm font-medium text-gray-700 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center justify-center gap-3 bg-surface border border-border hover:border-txt-muted hover:bg-surface-elevated rounded-xl py-3 text-sm font-medium text-txt transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {/* Google SVG logo */}
                         <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
                             <path d="M47.532 24.552c0-1.636-.147-3.2-.404-4.704H24.48v9.02h12.956c-.568 2.952-2.24 5.42-4.74 7.08v5.908h7.664c4.484-4.136 7.172-10.228 7.172-17.304z" fill="#4285F4" />
                             <path d="M24.48 48c6.48 0 11.916-2.148 15.876-5.844l-7.664-5.908c-2.148 1.44-4.892 2.292-8.212 2.292-6.312 0-11.664-4.264-13.572-9.996H2.956v6.096C6.9 42.9 15.12 48 24.48 48z" fill="#34A853" />
@@ -140,14 +112,12 @@ export default function Login() {
                         Continuar con Google
                     </button>
 
-                    {/* Divider */}
                     <div className="flex items-center gap-3">
-                        <hr className="flex-1 border-gray-100" />
-                        <span className="text-xs text-gray-300">o con email</span>
-                        <hr className="flex-1 border-gray-100" />
+                        <hr className="flex-1 border-border" />
+                        <span className="text-xs text-txt-muted">o con email</span>
+                        <hr className="flex-1 border-border" />
                     </div>
 
-                    {/* Form */}
                     <form onSubmit={handleEmailSubmit} className="space-y-3">
                         <input
                             type="email"
@@ -156,7 +126,7 @@ export default function Login() {
                             placeholder="correo@ejemplo.com"
                             required
                             autoComplete="email"
-                            className={inputClass}
+                            className="input-modern"
                         />
 
                         <div className="relative">
@@ -164,15 +134,15 @@ export default function Login() {
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
-                                placeholder="Contraseña"
+                                placeholder="Contrasena"
                                 required
                                 autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-                                className={`${inputClass} pr-10`}
+                                className="input-modern pr-10"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(s => !s)}
-                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-txt-muted hover:text-txt transition-colors"
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -181,24 +151,24 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 shadow-md shadow-indigo-100 hover:-translate-y-px active:translate-y-0"
+                            className="w-full btn-primary py-3 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading
                                 ? <><Loader2 className="w-4 h-4 animate-spin" />Cargando...</>
-                                : tab === 'login' ? 'Iniciar sesión' : 'Crear cuenta'
+                                : tab === 'login' ? 'Iniciar sesion' : 'Crear cuenta'
                             }
                         </button>
                     </form>
 
                     {tab === 'register' && (
-                        <p className="text-center text-xs text-gray-400">
-                            Luego podrás ponerle nombre a tu negocio ✨
+                        <p className="text-center text-xs text-txt-muted">
+                            Luego podras ponerle nombre a tu negocio
                         </p>
                     )}
                 </div>
 
-                <p className="text-center text-xs text-gray-300 mt-6">
-                    © {new Date().getFullYear()} CitasWA
+                <p className="text-center text-xs text-txt-muted mt-6">
+                    {'\u00A9'} {new Date().getFullYear()} CitasWA
                 </p>
             </div>
         </div>

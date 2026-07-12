@@ -65,6 +65,12 @@ module.exports = {
         'card-hover': 'var(--shadow-card-hover)',
         'glow': 'var(--shadow-glow)',
       },
+      zIndex: {
+        'sidebar': '40',
+        'modal': '50',
+        'overlay': '60',
+        'toast': '9999',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },

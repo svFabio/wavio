@@ -1,120 +1,88 @@
-// src/services/api.ts
 import type { Cita } from '../types';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-const getHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-};
+import { apiClient, ApiError } from '../lib/apiClient';
 
 export const api = {
   // --- AUTENTICACIÓN ---
   loginConGoogle: async (googleToken: string) => {
-    const response = await fetch(`${API_URL}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ googleToken })
-    });
-    if (!response.ok) throw new Error('Error al autenticar con Google');
-    return await response.json();
+    return apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
+      '/auth/google',
+      { googleToken }
+    );
   },
 
   register: async (email: string, password: string) => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Error al registrarse');
-    return data;
+    try {
+      return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
+        '/auth/register',
+        { email, password }
+      );
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new Error('Error al registrarse');
+    }
   },
 
   login: async (email: string, password: string) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Credenciales incorrectas');
-    return data;
+    try {
+      return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
+        '/auth/login',
+        { email, password }
+      );
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new Error('Credenciales incorrectas');
+    }
   },
 
   me: async (token: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) return null;
-      return await response.json(); // incluye { id, nombre, email, rol, negocio }
+      return await apiClient.get<{
+        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+      }>('/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
     } catch {
       return null;
     }
   },
 
-  // Obtener citas (opcional filtro por fecha)
+  updateAvatar: async (base64Image: string) => {
+    return apiClient.put<{ url: string }>('/auth/me/avatar', { image: base64Image });
+  },
+
+  deleteAvatar: async () => {
+    return apiClient.delete<{ success: boolean }>('/auth/me/avatar');
+  },
+
+  updateNombre: async (nombre: string) => {
+    return apiClient.patch<{ nombre: string }>('/auth/me/nombre', { nombre });
+  },
+
+  // --- CITAS ---
   obtenerCitas: async (fecha?: string): Promise<Cita[]> => {
-    try {
-      const url = fecha
-        ? `${API_URL}/citas?fecha=${fecha}`
-        : `${API_URL}/citas`;
-
-      const response = await fetch(url, { headers: getHeaders() });
-      if (!response.ok) {
-        if (response.status === 401) throw new Error('No autorizado');
-        throw new Error('Error al obtener citas');
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
+    const url = fecha ? `/citas?fecha=${encodeURIComponent(fecha)}` : '/citas';
+    return apiClient.get<Cita[]>(url);
   },
 
-  // Obtener solo las que necesitan validación de pago
   obtenerPendientes: async (): Promise<Cita[]> => {
-    try {
-      const response = await fetch(`${API_URL}/citas/pendientes`, { headers: getHeaders() });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (error) {
-      return [];
-    }
+    return apiClient.get<Cita[]>('/citas/pendientes');
   },
 
-  // Validar o Rechazar un pago
   validarPago: async (id: string, accion: 'APROBAR' | 'RECHAZAR'): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_URL}/citas/${id}/validar`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ accion })
-      });
-      return response.ok;
-    } catch (error) {
+      await apiClient.post(`/citas/${id}/validar`, { accion });
+      return true;
+    } catch {
       return false;
     }
   },
 
-  // Obtener horarios disponibles (público o privado si se requiere)
   obtenerHorariosDisponibles: async (fecha: string): Promise<string[]> => {
-    try {
-      const response = await fetch(`${API_URL}/citas/horarios-disponibles?fecha=${fecha}`, { headers: getHeaders() });
-      if (!response.ok) throw new Error('Error al obtener horarios');
-      const data = await response.json();
-      return data.horarios || [];
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
+    const data = await apiClient.get<{ horarios?: string[] }>(
+      `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`
+    );
+    return data.horarios || [];
   },
 
-  // Crear cita desde panel admin
   crearCitaAdmin: async (datos: {
     clienteNombre: string;
     clienteTelefono: string;
@@ -122,167 +90,86 @@ export const api = {
     horario: string;
   }): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(`${API_URL}/citas/admin`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(datos)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Error al crear la cita' };
-      }
-
+      await apiClient.post('/citas/admin', datos);
       return { success: true };
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  // Obtener resumen del dashboard
   obtenerResumen: async () => {
-    try {
-      const response = await fetch(`${API_URL}/citas/resumen`, { headers: getHeaders() });
-      if (!response.ok) {
-        if (response.status === 401) throw new Error('No autorizado');
-        throw new Error('Error al obtener resumen');
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
+    return apiClient.get<{
+      totalHoy: number;
+      pendientes: number;
+      completadas: number;
+      ingresos: number;
+    }>('/citas/resumen');
   },
 
-  // Reprogramar cita
   reprogramarCita: async (id: string, fecha: string, horario: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(`${API_URL}/citas/${id}/reprogramar`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify({ fecha, horario })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Error al reprogramar la cita' };
-      }
-
+      await apiClient.put(`/citas/${id}/reprogramar`, { fecha, horario });
       return { success: true };
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
       return { success: false, error: 'Error de conexión' };
     }
   },
 
   marcarNoAsistio: async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(`${API_URL}/citas/${id}/no-asistio`, {
-        method: 'PUT',
-        headers: getHeaders()
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Error al marcar como no asistió' };
-      }
-
+      await apiClient.put(`/citas/${id}/no-asistio`);
       return { success: true };
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
       return { success: false, error: 'Error de conexión' };
     }
   },
 
   marcarAsistio: async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(`${API_URL}/citas/${id}/asistio`, {
-        method: 'PUT',
-        headers: getHeaders()
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Error al marcar como asistió' };
-      }
-
+      await apiClient.put(`/citas/${id}/asistio`);
       return { success: true };
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  // --- DESCRIPCIÓN ---
   actualizarDescripcion: async (id: string, descripcion: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(`${API_URL}/citas/${id}/descripcion`, {
-        method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify({ descripcion })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Error al actualizar descripción' };
-      }
-
+      await apiClient.put(`/citas/${id}/descripcion`, { descripcion });
       return { success: true };
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
       return { success: false, error: 'Error de conexión' };
     }
   },
 
   // --- CHAT ---
   obtenerConversaciones: async () => {
-    try {
-      const response = await fetch(`${API_URL}/chat/conversaciones`, { headers: getHeaders() });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch {
-      return [];
-    }
+    return apiClient.get<import('../types').Conversacion[]>('/chat/conversaciones');
   },
 
   obtenerMensajes: async (jid: string) => {
-    try {
-      const response = await fetch(`${API_URL}/chat/mensajes/${encodeURIComponent(jid)}`, { headers: getHeaders() });
-      if (!response.ok) return [];
-      return await response.json();
-    } catch {
-      return [];
-    }
+    return apiClient.get<import('../types').MensajeChat[]>(`/chat/mensajes/${encodeURIComponent(jid)}`);
   },
 
   enviarMensajeChat: async (jid: string, texto: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch(`${API_URL}/chat/enviar/${encodeURIComponent(jid)}`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ texto })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error || 'Error al enviar mensaje' };
-      }
-
+      await apiClient.post(`/chat/enviar/${encodeURIComponent(jid)}`, { texto });
       return { success: true };
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
       return { success: false, error: 'Error de conexión' };
     }
   },
 
   eliminarConversacion: async (jid: string): Promise<{ success: boolean }> => {
     try {
-      const response = await fetch(`${API_URL}/chat/conversacion/${encodeURIComponent(jid)}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-      });
-      return response.ok ? { success: true } : { success: false };
+      await apiClient.delete(`/chat/conversacion/${encodeURIComponent(jid)}`);
+      return { success: true };
     } catch {
       return { success: false };
     }
@@ -290,39 +177,23 @@ export const api = {
 
   // --- WHATSAPP META CLOUD API ---
   statusWhatsapp: async () => {
-    try {
-      const response = await fetch(`${API_URL}/whatsapp/status`, { headers: getHeaders() });
-      if (!response.ok) return null;
-      return await response.json();
-    } catch { return null; }
+    return apiClient.get<{ connected: boolean; phone?: string } | null>('/whatsapp/status');
   },
 
   guardarCredencialesWhatsApp: async (waAccessToken: string, waPhoneNumberId: string, waWabaId: string) => {
-    try {
-      const response = await fetch(`${API_URL}/whatsapp/save-credentials`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ waAccessToken, waPhoneNumberId, waWabaId })
-      });
-      return await response.json();
-    } catch (e) { return { error: 'Error de conexión' }; }
+    return apiClient.post<{ success?: boolean; error?: string }>(
+      '/whatsapp/save-credentials',
+      { waAccessToken, waPhoneNumberId, waWabaId }
+    );
   },
 
   desvincularWhatsApp: async () => {
-    try {
-      const response = await fetch(`${API_URL}/whatsapp/disconnect`, {
-        method: 'POST',
-        headers: getHeaders()
-      });
-      return await response.json();
-    } catch (e) { return { error: 'Error de conexión' }; }
+    return apiClient.post<{ success?: boolean; error?: string }>('/whatsapp/disconnect');
   },
 
   // --- CONFIGURACION BOT ---
   getConfiguracion: async () => {
-    const res = await fetch(`${API_URL}/configuracion`, { headers: getHeaders() });
-    if (!res.ok) throw new Error('Error obteniendo configuracion');
-    return res.json() as Promise<{
+    return apiClient.get<{
       id: number;
       trigger: string;
       mensajeBienvenida: string;
@@ -331,7 +202,7 @@ export const api = {
       horarios: Record<string, string[]>;
       cobrarAdelanto: boolean;
       porcentajeAdelanto: number;
-    }>;
+    }>('/configuracion');
   },
 
   updateConfiguracion: async (data: {
@@ -343,15 +214,53 @@ export const api = {
     cobrarAdelanto?: boolean;
     porcentajeAdelanto?: number;
   }) => {
-    const res = await fetch(`${API_URL}/configuracion`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Error guardando configuracion');
-    }
-    return res.json();
+    return apiClient.patch('/configuracion', data);
+  },
+
+  // --- STATISTICS ---
+  getStatisticsOverview: async () => {
+    return apiClient.get<{
+      citasMes: number;
+      ingresosMes: number;
+      topClientes: Array<{ nombre: string; telefono: string; totalCitas: number }>;
+      horariosPopulares: Array<{ horario: string; totalReservas: number }>;
+      citasVirtuales: number;
+      citasPresenciales: number;
+      ratingPromedio?: number;
+    }>('/statistics/overview');
+  },
+
+  getStatisticsRevenue: async (months: number = 6) => {
+    return apiClient.get<{ revenue: Array<{ mes: string; total: number }> }>(
+      `/statistics/revenue?months=${months}`
+    );
+  },
+
+  // --- USERS ---
+  getUsers: async () => {
+    return apiClient.get<Array<{
+      id: number;
+      nombre: string;
+      email: string;
+      rol: 'ADMIN' | 'STAFF';
+      creadoEn: string;
+    }>>('/users');
+  },
+
+  createUser: async (data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' }) => {
+    return apiClient.post('/users', data);
+  },
+
+  updateUser: async (id: number, data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' }) => {
+    return apiClient.put(`/users/${id}`, data);
+  },
+
+  deleteUser: async (id: number) => {
+    return apiClient.delete(`/users/${id}`);
+  },
+
+  // --- NEGOCIO ---
+  configurarNegocio: async (nombre: string) => {
+    return apiClient.patch('/negocio/configurar', { nombre });
   },
 };

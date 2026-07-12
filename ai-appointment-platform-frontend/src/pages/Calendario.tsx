@@ -5,7 +5,7 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { socket } from '../services/socket';
+import { getSocket } from '../lib/socket';
 import {
   ChevronLeft,
   ChevronRight,
@@ -231,7 +231,7 @@ const ModalDetalle = ({
             )}
             <button
               onClick={onClose}
-              className="btn-secondary w-full flex-1 bg-white hover:bg-slate-50"
+              className="btn-secondary w-full flex-1 bg-surface hover:bg-surface-alt"
             >
               Cerrar
             </button>
@@ -288,6 +288,16 @@ const ModalNuevaCita = ({
   const [loadingHorarios, setLoadingHorarios] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const cargarHorarios = async (fecha: string) => {
+    setLoadingHorarios(true);
+    const horarios = await api.obtenerHorariosDisponibles(fecha);
+    setHorariosDisponibles(horarios);
+    setLoadingHorarios(false);
+    if (!horarios.includes(formData.horario)) {
+      setFormData(prev => ({ ...prev, horario: '' }));
+    }
+  };
+
   useEffect(() => {
     if (isOpen && formData.fecha) {
       cargarHorarios(formData.fecha);
@@ -303,16 +313,6 @@ const ModalNuevaCita = ({
       }));
     }
   }, [isOpen, fechaInicial]);
-
-  const cargarHorarios = async (fecha: string) => {
-    setLoadingHorarios(true);
-    const horarios = await api.obtenerHorariosDisponibles(fecha);
-    setHorariosDisponibles(horarios);
-    setLoadingHorarios(false);
-    if (!horarios.includes(formData.horario)) {
-      setFormData(prev => ({ ...prev, horario: '' }));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -491,12 +491,6 @@ const ModalReprogramar = ({
   const [loadingHorarios, setLoadingHorarios] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      cargarHorarios(fecha);
-    }
-  }, [isOpen, fecha]);
-
   const cargarHorarios = async (fechaSel: string) => {
     setLoadingHorarios(true);
     const horarios = await api.obtenerHorariosDisponibles(fechaSel);
@@ -506,6 +500,12 @@ const ModalReprogramar = ({
       setHorario('');
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      cargarHorarios(fecha);
+    }
+  }, [isOpen, fecha]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -758,6 +758,7 @@ const Calendario = () => {
     const handleCambio = () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     };
+    const socket = getSocket();
     socket.on('cambio-citas', handleCambio);
     return () => { socket.off('cambio-citas', handleCambio); };
   }, [queryClient]);
@@ -895,7 +896,7 @@ const Calendario = () => {
           isOpen={modalNuevaCita.isOpen}
           onClose={() => setModalNuevaCita({ isOpen: false })}
           fechaInicial={modalNuevaCita.fecha}
-          onSuccess={() => { }}
+          onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['citas'] }); }}
         />
       )}
 
@@ -927,7 +928,7 @@ const Calendario = () => {
           isOpen={modalReprogramar.isOpen}
           onClose={() => setModalReprogramar({ isOpen: false })}
           cita={modalReprogramar.cita}
-          onSuccess={() => { }}
+          onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['citas'] }); }}
         />
       )}
     </div>
