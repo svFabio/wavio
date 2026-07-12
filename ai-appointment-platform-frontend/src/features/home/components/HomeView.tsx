@@ -2,7 +2,7 @@ import { Calendar, Clock, CheckCircle2, TrendingUp, ArrowRight, Sparkles } from 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-import { ResumenData } from '../containers/HomeContainer.container';
+import type { ResumenData } from '../containers/HomeContainer.container';
 
 interface HomeViewProps {
   data: ResumenData | null | undefined;
