@@ -1,20 +1,24 @@
-import { prisma } from '../lib/prisma';
+import { negocioRepository } from '../repositories/negocio.repository';
+import { env } from '../config/env';
+import pino from 'pino';
 
-export const enviarMensaje = async (negocioId: number, numero: string, mensaje: string) => {
+const logger = pino();
+
+export const enviarMensaje = async (negocioId: number, numero: string, mensaje: string): Promise<{ success: boolean; error?: string; waMessageId?: string }> => {
     let negocio;
     try {
-        negocio = await prisma.negocio.findUnique({ where: { id: negocioId } });
+        negocio = await negocioRepository.findByIdForInternal(negocioId);
     } catch (err) {
-        console.error(`[MetaGraph] Error buscando negocio ${negocioId}:`, err);
+        logger.error({ err }, `[MetaGraph] Error buscando negocio ${negocioId}`);
         return { success: false, error: 'Error de base de datos' };
     }
 
     if (!negocio || !negocio.isWaConnected || !negocio.waAccessToken || !negocio.waPhoneNumberId) {
-        console.warn(`[MetaGraph] Negocio ${negocioId} no configurado para Meta API.`);
+        logger.warn(`[MetaGraph] Negocio ${negocioId} no configurado para Meta API.`);
         return { success: false, error: 'Meta API no configurada' };
     }
 
-    const META_API_VERSION = process.env.META_API_VERSION || 'v19.0';
+    const META_API_VERSION = env.META_API_VERSION;
 
     try {
         const response = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${negocio.waPhoneNumberId}/messages`, {
@@ -34,31 +38,28 @@ export const enviarMensaje = async (negocioId: number, numero: string, mensaje: 
 
         if (!response.ok) {
             const errBody = await response.text();
-            console.error(`[MetaGraph] HTTP ${response.status} enviando a ${numero}: ${errBody}`);
+            logger.error(`[MetaGraph] HTTP ${response.status} enviando a ${numero}: ${errBody}`);
             return { success: false, error: `HTTP ${response.status}` };
         }
 
         const data = await response.json();
         if (data.error) {
-            console.error(`[MetaGraph] Error enviando mensaje a ${numero}:`, data.error);
+            logger.error({ err: data.error }, `[MetaGraph] Error enviando mensaje a ${numero}`);
             return { success: false, error: data.error.message };
         }
 
         if (!data.messages || !data.messages[0]) {
-            console.error(`[MetaGraph] Respuesta Meta sin messages[0]:`, data);
+            logger.error({ data }, `[MetaGraph] Respuesta Meta sin messages[0]`);
             return { success: false, error: 'Respuesta Meta inesperada' };
         }
 
-        // El id de Meta (wamid) viene en data.messages[0].id
         return { success: true, waMessageId: data.messages[0].id };
     } catch (err) {
-        console.error(`[MetaGraph] Exception enviando mensaje a ${numero}:`, err);
+        logger.error({ err }, `[MetaGraph] Exception enviando mensaje a ${numero}`);
         return { success: false, error: String(err) };
     }
 };
 
-export const resolverTelefonoReal = (jid: string) => {
-    // En Meta API, el JID no existe igual que en Baileys, es simplemente el numero de telefono
-    // Esta funcion es temporal por retrocompatibilidad
-    return jid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+export const resolverTelefonoReal = (waId: string): string => {
+    return waId.replace('@s.whatsapp.net', '').replace('@c.us', '');
 };

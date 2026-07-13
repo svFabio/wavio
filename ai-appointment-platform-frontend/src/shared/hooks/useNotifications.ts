@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface Notification {
     id: string;
@@ -13,29 +13,32 @@ const STORAGE_KEY = 'citas-notifications';
 
 export const useNotifications = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const isInitialLoad = useRef(true);
 
     // Cargar notificaciones de localStorage al montar
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
-                const parsed = JSON.parse(stored);
+                const parsed = JSON.parse(stored) as Notification[];
                 setNotifications(parsed);
-            } catch (error) {
-                console.error('Error parsing notifications:', error);
+            } catch {
+                localStorage.removeItem(STORAGE_KEY);
             }
         }
+        isInitialLoad.current = false;
     }, []);
 
-    // Guardar notificaciones en localStorage cuando cambian
+    // Guardar notificaciones en localStorage cuando cambian (skip initial load)
     useEffect(() => {
+        if (isInitialLoad.current) return;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
     }, [notifications]);
 
     const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
         const newNotification: Notification = {
             ...notification,
-            id: `notif-${Date.now()}-${Math.random()}`,
+            id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             timestamp: Date.now()
         };
         setNotifications(prev => [newNotification, ...prev]);

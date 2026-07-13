@@ -13,10 +13,10 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="min-h-screen flex items-center justify-center bg-surface-alt">
                 <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-slate-600 mx-auto" />
-                    <p className="mt-4 text-slate-600">Verificando sesión...</p>
+                    <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+                    <p className="mt-4 text-txt-secondary">Verificando sesión...</p>
                 </div>
             </div>
         );
@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     }
 
     // Validar rol si es requerido
-    if (requiredRole === 'ADMIN' && !isAdmin()) {
+    if (requiredRole === 'ADMIN' && !isAdmin) {
         return <Navigate to="/" replace />;
     }
 

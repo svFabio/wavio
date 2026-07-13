@@ -1,34 +1,26 @@
 import cron from 'node-cron';
-import { prisma } from '../lib/prisma';
+import { sesionChatRepository } from '../repositories/sesionChat.repository';
+import pino from 'pino';
 
-/**
- * Servicio de limpieza de sesiones y datos temporales
- */
+const logger = pino();
+
 export const iniciarCronJobs = () => {
-    console.log('[Cron] 🕒 Iniciando planificador de tareas...');
+    logger.info('[Cron] 🕒 Iniciando planificador de tareas...');
 
-    // Tarea 1: Limpiar sesiones inactivas cada 5 minutos
-    // Se eliminan sesiones que no han tenido actividad en los últimos 30 minutos
     cron.schedule('*/5 * * * *', async () => {
-        console.log('[Cron] 🧹 Ejecutando limpieza de sesiones expiradas...');
+        logger.info('[Cron] 🧹 Ejecutando limpieza de sesiones expiradas...');
         try {
-            const limiteTiempo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutos atrás
+            const limiteTiempo = new Date(Date.now() - 30 * 60 * 1000); 
 
-            const resultado = await prisma.sesionChat.deleteMany({
-                where: {
-                    ultimoMensaje: {
-                        lt: limiteTiempo
-                    }
-                }
-            });
+            const count = await sesionChatRepository.deleteInactiveSessions(limiteTiempo);
 
-            if (resultado.count > 0) {
-                console.log(`[Cron] ✅ Se eliminaron ${resultado.count} sesiones inactivas.`);
+            if (count > 0) {
+                logger.info({ count }, '[Cron] Sesiones inactivas eliminadas');
             } else {
-                console.log('[Cron] Ninguna sesión expirada encontrada.');
+                logger.info('[Cron] Ninguna sesión expirada encontrada.');
             }
         } catch (error) {
-            console.error('[Cron] ❌ Error en limpieza de sesiones:', error);
+            logger.error({ err: error }, '[Cron] ❌ Error en limpieza de sesiones');
         }
     });
 };

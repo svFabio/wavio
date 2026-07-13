@@ -1,119 +1,53 @@
-import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import bcrypt from 'bcryptjs';
+import { Request, Response, NextFunction } from 'express';
+import * as usuariosService from '../services/usuarios.service';
+import pino from 'pino';
 
-/**
- * GET /api/users
- * Listar todos los usuarios del negocio autenticado (solo ADMIN)
- */
-export const getAllUsers = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+const logger = pino();
+
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const usuarios = await prisma.usuario.findMany({
-            where: { negocioId },
-            select: { id: true, nombre: true, email: true, rol: true, creadoEn: true },
-            orderBy: { creadoEn: 'desc' }
-        });
+        const negocioId = req.negocioId!;
+        const usuarios = await usuariosService.getAllUsers(negocioId);
         res.json(usuarios);
     } catch (error) {
-        console.error('Error obteniendo usuarios:', error);
-        res.status(500).json({ error: 'Error al obtener usuarios' });
+        logger.error({ err: error }, 'Error obteniendo usuarios');
+        next(error);
     }
 };
 
-/**
- * POST /api/users
- * Crear nuevo usuario de staff para el negocio (solo ADMIN)
- */
-export const createUser = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { nombre, email, password, rol } = req.body;
-
-        if (!nombre || !email || !password) {
-            return res.status(400).json({ error: 'Nombre, email y contraseña son requeridos' });
-        }
-        if (rol && !['ADMIN', 'STAFF'].includes(rol)) {
-            return res.status(400).json({ error: 'Rol inválido. Debe ser ADMIN o STAFF' });
-        }
-
-        const existente = await prisma.usuario.findUnique({ where: { email } });
-        if (existente) {
-            return res.status(409).json({ error: 'El email ya está registrado' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const nuevoUsuario = await prisma.usuario.create({
-            data: { negocioId, nombre, email, password: hashedPassword, rol: rol || 'STAFF' },
-            select: { id: true, nombre: true, email: true, rol: true, creadoEn: true }
-        });
-
+        const negocioId = req.negocioId!;
+        const nuevoUsuario = await usuariosService.createUser(negocioId, req.body);
         res.status(201).json(nuevoUsuario);
     } catch (error) {
-        console.error('Error creando usuario:', error);
-        res.status(500).json({ error: 'Error al crear usuario' });
+        logger.error({ err: error }, 'Error creando usuario');
+        next(error);
     }
 };
 
-/**
- * PUT /api/users/:id
- * Actualizar usuario (solo ADMIN, dentro del mismo negocio)
- */
-export const updateUser = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+        const negocioId = req.negocioId!;
         const { id } = req.params;
-        const { nombre, email, password, rol } = req.body;
-
-        // Verificar que el usuario pertenece al negocio
-        const usuario = await prisma.usuario.findFirst({ where: { id: parseInt(id as string), negocioId } });
-        if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        const updateData: { nombre?: string; email?: string; password?: string; rol?: 'ADMIN' | 'STAFF' } = {};
-        if (nombre) updateData.nombre = nombre;
-        if (email) updateData.email = email;
-        if (password) updateData.password = await bcrypt.hash(password, 10);
-        if (rol) {
-            if (!['ADMIN', 'STAFF'].includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
-            updateData.rol = rol;
-        }
-
-        const usuarioActualizado = await prisma.usuario.update({
-            where: { id: parseInt(id as string) },
-            data: updateData,
-            select: { id: true, nombre: true, email: true, rol: true, creadoEn: true }
-        });
-
+        const usuarioActualizado = await usuariosService.updateUser(negocioId, parseInt(String(id)), req.body);
         res.json(usuarioActualizado);
     } catch (error) {
-        console.error('Error actualizando usuario:', error);
-        res.status(500).json({ error: 'Error al actualizar usuario' });
+        logger.error({ err: error }, 'Error actualizando usuario');
+        next(error);
     }
 };
 
-/**
- * DELETE /api/users/:id
- * Eliminar usuario (solo ADMIN, dentro del mismo negocio)
- */
-export const deleteUser = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+        const negocioId = req.negocioId!;
         const { id } = req.params;
+        const requestingUserId = req.usuario?.id!;
 
-        if (req.usuario?.id === parseInt(id as string)) {
-            return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
-        }
-
-        // Verificar que el usuario pertenece al negocio
-        const usuario = await prisma.usuario.findFirst({ where: { id: parseInt(id as string), negocioId } });
-        if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        await prisma.usuario.delete({ where: { id: parseInt(id as string) } });
-
+        await usuariosService.deleteUser(negocioId, parseInt(String(id)), requestingUserId);
         res.json({ message: 'Usuario eliminado correctamente' });
     } catch (error) {
-        console.error('Error eliminando usuario:', error);
-        res.status(500).json({ error: 'Error al eliminar usuario' });
+        logger.error({ err: error }, 'Error eliminando usuario');
+        next(error);
     }
 };

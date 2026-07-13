@@ -1,126 +1,40 @@
-import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import { enviarMensaje, resolverTelefonoReal } from '../services/metaGraph.service';
+import { Request, Response, NextFunction } from 'express';
+import { chatService } from '../services/chat.service';
 
-// 1. Obtener lista de conversaciones del negocio autenticado
-interface ConversacionRaw {
-    remoteJid: string;
-    ultimoMensaje: Date;
-    totalMensajes: number;
-    ultimoContenido: string | null;
-    ultimaDireccion: string | null;
-    clienteNombre: string | null;
-}
-
-export const getConversaciones = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const getConversaciones = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const conversaciones = await prisma.$queryRaw<ConversacionRaw[]>`
-            SELECT 
-                "remoteJid",
-                MAX("timestamp") as "ultimoMensaje",
-                COUNT(*)::int as "totalMensajes",
-                (SELECT "contenido" FROM "MensajeChat" m2 
-                 WHERE m2."remoteJid" = m1."remoteJid" AND m2."negocioId" = ${negocioId}
-                 ORDER BY m2."timestamp" DESC LIMIT 1) as "ultimoContenido",
-                (SELECT "direccion" FROM "MensajeChat" m3 
-                 WHERE m3."remoteJid" = m1."remoteJid" AND m3."negocioId" = ${negocioId}
-                 ORDER BY m3."timestamp" DESC LIMIT 1) as "ultimaDireccion",
-                (SELECT c."clienteNombre" FROM "Cita" c
-                 WHERE c."clienteTelefono" = SPLIT_PART(m1."remoteJid", '@', 1) AND c."negocioId" = ${negocioId}
-                 ORDER BY c."creadoEn" DESC LIMIT 1) as "clienteNombre"
-            FROM "MensajeChat" m1
-            WHERE m1."negocioId" = ${negocioId}
-            GROUP BY "remoteJid"
-            ORDER BY MAX("timestamp") DESC
-            LIMIT 50
-        `;
-
-        const enriquecidas = conversaciones.map(c => ({
-            ...c,
-            telefonoReal: resolverTelefonoReal(c.remoteJid)
-        }));
-
-        res.json(enriquecidas);
+        const result = await chatService.getConversaciones(req.negocioId!);
+        res.json(result);
     } catch (error) {
-        console.error('Error obteniendo conversaciones:', error);
-        res.status(500).json({ error: 'Error al obtener conversaciones' });
+        next(error);
     }
 };
 
-// 2. Obtener mensajes de una conversación específica (del negocio)
-export const getMensajes = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const getMensajes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const jid = req.params.jid as string;
-
-        const mensajes = await prisma.mensajeChat.findMany({
-            where: { negocioId, remoteJid: jid },
-            orderBy: { timestamp: 'asc' },
-            take: 200
-        });
-
-        res.json(mensajes);
+        const result = await chatService.getMensajes(req.negocioId!, String(req.params.jid));
+        res.json(result);
     } catch (error) {
-        console.error('Error obteniendo mensajes:', error);
-        res.status(500).json({ error: 'Error al obtener mensajes' });
+        next(error);
     }
 };
 
-// 3. Enviar mensaje desde panel admin
-export const sendMensaje = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const sendMensaje = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const jid = req.params.jid as string;
-        const { texto } = req.body;
-
-        if (!texto || typeof texto !== 'string' || !texto.trim()) {
-            return res.status(400).json({ error: 'Texto requerido y debe ser texto válido' });
-        }
-
-        const resultado = await enviarMensaje(negocioId, jid, texto.trim());
-
-        if (!resultado.success) {
-            return res.status(503).json({ error: resultado.error || 'WhatsApp no conectado' });
-        }
-
-        // Guardar el mensaje saliente en la BD
-        await prisma.mensajeChat.create({
-            data: {
-                remoteJid: jid,
-                contenido: texto.trim(),
-                direccion: 'SALIENTE',
-                waMessageId: resultado.waMessageId || null,
-                estadoEntrega: 'enviado',
-                negocioId
-            }
-        });
-
-        res.json({ success: true });
+        const result = await chatService.sendMensaje(req.negocioId!, String(req.params.jid), req.body.texto);
+        res.json(result);
     } catch (error) {
-        console.error('Error enviando mensaje:', error);
-        res.status(500).json({ error: 'Error al enviar mensaje' });
+        // Here we can map internal service errors to HTTP 503 if they are WhatsApp connection issues
+        // but for now relying on the standard error handler is better
+        next(error);
     }
 };
 
-// 4. Eliminar conversación completa (solo mensajes del negocio)
-export const deleteConversacion = async (req: Request, res: Response) => {
-    const negocioId = req.negocioId!;
+export const deleteConversacion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const jid = req.params.jid as string;
-
-        const { count } = await prisma.mensajeChat.deleteMany({
-            where: { negocioId, remoteJid: jid }
-        });
-
-        console.log(`[Chat] 🗑 Conversación eliminada: ${jid} (${count} mensajes) [negocio ${negocioId}]`);
-
-        const io = req.app.get('io');
-        if (io) io.emit('conversacion-eliminada', { remoteJid: jid });
-
-        res.json({ success: true, eliminados: count });
+        const result = await chatService.deleteConversacion(req.negocioId!, String(req.params.jid));
+        res.json(result);
     } catch (error) {
-        console.error('Error eliminando conversación:', error);
-        res.status(500).json({ error: 'Error al eliminar la conversación' });
+        next(error);
     }
 };

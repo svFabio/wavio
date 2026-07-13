@@ -15,18 +15,16 @@ export const NotificationToast = ({ id, clienteNombre, fecha, horario, onDismiss
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
     useEffect(() => {
-        // Animación de entrada
         const t = setTimeout(() => setIsVisible(true), 10);
         return () => clearTimeout(t);
     }, []);
 
     const handleClose = () => {
         setIsVisible(false);
-        const t = setTimeout(() => onDismiss(id), 300); // Esperar animación
+        const t = setTimeout(() => onDismiss(id), 300);
         return () => clearTimeout(t);
     };
 
-    // Swipe para móvil
     const handleTouchStart = (e: React.TouchEvent) => {
         setTouchEnd(null);
         setTouchStart(e.targetTouches[0].clientY);
@@ -53,7 +51,7 @@ export const NotificationToast = ({ id, clienteNombre, fecha, horario, onDismiss
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             className={`
-        bg-white rounded-xl shadow-2xl border-l-4 border-indigo-600 p-4 
+        bg-surface rounded-xl shadow-2xl border-l-4 border-primary p-4
         transition-all duration-300 transform cursor-pointer hover:scale-105
         ${isVisible ? 'translate-y-0 opacity-100' : 'translate-x-full opacity-0'}
         w-full mb-3 pointer-events-auto
@@ -61,30 +59,30 @@ export const NotificationToast = ({ id, clienteNombre, fecha, horario, onDismiss
             onClick={handleClose}
         >
             <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-indigo-600" />
+                <div className="flex-shrink-0 w-10 h-10 bg-primary-light rounded-full flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-primary" />
                 </div>
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-1">
-                        <h4 className="font-bold text-slate-800 text-sm">Nueva Cita 🎉</h4>
+                        <h4 className="font-bold text-txt text-sm">Nueva Cita</h4>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleClose();
                             }}
-                            className="text-slate-400 hover:text-slate-600 transition-colors p-1 -mt-1 -mr-1"
+                            className="text-txt-muted hover:text-txt transition-colors p-1 -mt-1 -mr-1"
                         >
                             <X className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <div className="flex items-center gap-2 text-xs text-txt">
                             <User className="w-3 h-3" />
                             <span className="font-medium truncate">{clienteNombre}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 text-xs text-txt-secondary">
                             <Clock className="w-3 h-3" />
                             <span>{fecha} a las {horario}</span>
                         </div>
@@ -92,7 +90,7 @@ export const NotificationToast = ({ id, clienteNombre, fecha, horario, onDismiss
                 </div>
             </div>
 
-            <div className="mt-2 text-[10px] text-slate-400 text-center md:hidden">
+            <div className="mt-2 text-[10px] text-txt-muted text-center md:hidden">
                 Desliza hacia arriba para cerrar
             </div>
         </div>

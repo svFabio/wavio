@@ -1,69 +1,35 @@
-import { Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
+import { Request, Response, NextFunction } from 'express';
+import * as whatsappService from '../services/whatsapp.service';
+import pino from 'pino';
 
-export const saveWhatsappCredentials = async (req: Request, res: Response) => {
+const logger = pino();
+
+export const saveWhatsappCredentials = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { waAccessToken, waPhoneNumberId, waWabaId } = req.body;
-        const negocioId = req.negocioId; // Viene del tokenMiddleware
-
-        if (!waAccessToken || !waPhoneNumberId || !waWabaId) {
-            return res.status(400).json({ error: 'Faltan credenciales de Meta' });
-        }
-
-        const negocio = await prisma.negocio.update({
-            where: { id: negocioId },
-            data: {
-                waAccessToken,
-                waPhoneNumberId,
-                waWabaId,
-                isWaConnected: true,
-            }
-        });
-
-        res.json({ success: true, message: 'WhatsApp vinculado correctamente.', negocio });
+        const result = await whatsappService.saveWhatsappCredentials(req.negocioId!, req.body);
+        res.json(result);
     } catch (error) {
-        console.error('Error guardando credenciales de WhatsApp:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        logger.error({ err: error }, 'Error guardando credenciales de WhatsApp');
+        next(error);
     }
 };
 
-export const getWhatsappStatus = async (req: Request, res: Response) => {
+export const getWhatsappStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const negocioId = req.negocioId;
-        const negocio = await prisma.negocio.findUnique({
-            where: { id: negocioId }
-        });
-
-        if (!negocio) return res.status(404).json({ error: 'Negocio no encontrado' });
-
-        res.json({ 
-            conectado: negocio.isWaConnected,
-            phoneNumberId: negocio.waPhoneNumberId,
-            wabaId: negocio.waWabaId
-        });
+        const status = await whatsappService.getWhatsappStatus(req.negocioId!);
+        res.json(status);
     } catch (error) {
-        console.error('Error obteniendo estado de WhatsApp:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        logger.error({ err: error }, 'Error obteniendo estado de WhatsApp');
+        next(error);
     }
 };
 
-export const disconnectWhatsapp = async (req: Request, res: Response) => {
+export const disconnectWhatsapp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const negocioId = req.negocioId;
-        
-        await prisma.negocio.update({
-            where: { id: negocioId },
-            data: {
-                waAccessToken: null,
-                waPhoneNumberId: null,
-                waWabaId: null,
-                isWaConnected: false,
-            }
-        });
-
-        res.json({ success: true, message: 'WhatsApp desvinculado correctamente.' });
+        const result = await whatsappService.disconnectWhatsapp(req.negocioId!);
+        res.json(result);
     } catch (error) {
-        console.error('Error desvinculando WhatsApp:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        logger.error({ err: error }, 'Error desvinculando WhatsApp');
+        next(error);
     }
 };

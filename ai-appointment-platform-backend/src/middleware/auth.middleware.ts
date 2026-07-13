@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) throw new Error('JWT_SECRET environment variable is required');
+const JWT_SECRET = env.JWT_SECRET;
 // Extender el tipo Request de Express para incluir usuario con negocioId
 declare global {
     // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -19,12 +19,13 @@ declare global {
     }
 }
 
-export const verificarToken = (req: Request, res: Response, next: NextFunction) => {
+export const verificarToken = (req: Request, res: Response, next: NextFunction): void => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
 
     if (!token) {
-        return res.status(401).json({ error: 'Acceso denegado. Token requerido.' });
+        res.status(401).json({ error: 'Acceso denegado. Token requerido.' });
+        return;
     }
 
     try {
@@ -36,7 +37,7 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction) 
         };
         req.usuario = decoded;
         next();
-    } catch {
-        return res.status(401).json({ error: 'Token inválido o expirado.' });
+    } catch (error) {
+        res.status(401).json({ error: 'Token inválido o expirado.' });
     }
 };
