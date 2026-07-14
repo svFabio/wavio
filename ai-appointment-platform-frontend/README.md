@@ -1,10 +1,6 @@
 # Frontend - Spa Appointment Admin Panel
+
 <img width="1846" height="823" alt="image" src="https://github.com/user-attachments/assets/ae4048bd-7309-47ce-95c2-1fb74572ee06" />
-
-
-
-
-
 
 Web-based administrative panel for managing spa appointments, validating payments, and controlling the WhatsApp bot in real-time.
 
@@ -74,12 +70,13 @@ Create `.env` file in frontend root:
 
 ```env
 # Backend URL (without /api suffix)
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:3000/api/v1
 ```
 
 For production:
+
 ```env
-VITE_API_URL=https://your-backend.onrender.com/api
+VITE_API_URL=https://your-backend.onrender.com/api/v1
 ```
 
 ## Project Structure
@@ -117,6 +114,7 @@ frontend/
 ### Login (Login.tsx)
 
 Authentication page with:
+
 - Email/password form
 - Credential validation
 - JWT token storage
@@ -125,6 +123,7 @@ Authentication page with:
 ### Dashboard (Dashboard.tsx)
 
 Main layout including:
+
 - Sidebar navigation
 - User information header
 - Outlet for rendering subroutes
@@ -133,6 +132,7 @@ Main layout including:
 ### Home (Home.tsx)
 
 Main view with:
+
 - Statistics cards (total, pending, confirmed)
 - Recent appointments list
 - Quick actions (confirm, reject)
@@ -141,6 +141,7 @@ Main view with:
 ### Calendar (Calendario.tsx)
 
 Appointment calendar visualization:
+
 - Monthly view with react-big-calendar
 - Color-coded events by status
 - Click event for details
@@ -149,6 +150,7 @@ Appointment calendar visualization:
 ### Payments (Pagos.tsx)
 
 Payment receipt validation:
+
 - List of pending validation appointments
 - Receipt image preview
 - Approve/reject buttons
@@ -157,6 +159,7 @@ Payment receipt validation:
 ### Link (Vincular.tsx)
 
 WhatsApp management:
+
 - QR code for WhatsApp linking
 - Real-time connection status
 - Disconnect button
@@ -165,6 +168,7 @@ WhatsApp management:
 ### Statistics (Statistics.tsx) - ADMIN only
 
 Advanced statistics:
+
 - Daily appointment charts (Recharts)
 - Status distribution
 - Total revenue
@@ -173,6 +177,7 @@ Advanced statistics:
 ### Users (Users.tsx) - ADMIN only
 
 User management:
+
 - System user list
 - Create new users (ADMIN/STAFF)
 - Edit roles and data
@@ -183,6 +188,7 @@ User management:
 ### AuthContext
 
 Context provider managing:
+
 - Global authentication state
 - Token storage in localStorage
 - Current user information
@@ -191,6 +197,7 @@ Context provider managing:
 ### ProtectedRoute
 
 HOC component that:
+
 - Verifies valid JWT token
 - Redirects to login if unauthenticated
 - Validates required roles (ADMIN/STAFF)
@@ -214,18 +221,22 @@ HOC component that:
 Frontend listens to these events:
 
 **nueva-cita**: New appointment created
+
 - Shows toast notification
 - Plays sound
 - Invalidates React Query cache
 
 **qr-actualizado**: QR code updated
+
 - Updates QR code on linking page
 
 **whatsapp-conectado**: WhatsApp connected
+
 - Updates connection status
 - Hides QR code
 
 **whatsapp-desconectado**: WhatsApp disconnected
+
 - Shows disconnection alert
 - Requests re-linking
 
@@ -332,7 +343,7 @@ api.interceptors.response.use(
       window.location.href = '/login';
     }
     return Promise.reject(error);
-  }
+  },
 );
 ```
 

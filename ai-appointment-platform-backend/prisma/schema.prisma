@@ -68,7 +68,7 @@ model Usuario {
 
 // ─── SESIÓN DE CHAT (por negocio) ────────────────────────────────────────────
 model SesionChat {
-  id            String   @id // remoteJid
+  id            String   // remoteJid
   estado        String
   datos         Json
   ultimoMensaje DateTime @default(now())
@@ -76,6 +76,7 @@ model SesionChat {
   negocioId Int
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 
+  @@id([id, negocioId])
   @@index([negocioId, ultimoMensaje])
 }
 
@@ -87,7 +88,7 @@ model Cita {
   clienteNombre   String?
   clienteTelefono String
   servicio        String   @default("Spa")
-  monto           Float
+  monto           Decimal @db.Decimal(10, 2)
   estado          String   @default("PENDIENTE")
   comprobanteUrl  String?
   descripcion     String?
