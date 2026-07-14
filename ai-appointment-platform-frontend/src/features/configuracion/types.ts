@@ -23,7 +23,7 @@ export interface HorarioEspecial {
   horaFin: string | null;
 }
 
-export type Tab = 'general' | 'servicios' | 'horarios';
+export type Tab = 'asistente' | 'servicios' | 'horarios';
 
 export interface ConfigData {
   id: number;

@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../config/env';
+import type { ChatFlowStep } from '../domain/types';
 import pino from 'pino';
 
 const logger = pino();
@@ -81,7 +82,8 @@ export const procesarMensajeConIA = async (
   mensaje: string,
   contexto: ContextoConversacion,
   serviciosDisponibles?: string[],
-  slotsDisponibles?: string[]
+  slotsDisponibles?: string[],
+  chatFlow?: ChatFlowStep[],
 ): Promise<ResultadoIA> => {
   if (!mensaje || mensaje.length > 1000) {
     return {
@@ -93,7 +95,7 @@ export const procesarMensajeConIA = async (
     };
   }
   try {
-    const prompt = construirPrompt(mensaje, contexto, serviciosDisponibles, slotsDisponibles);
+    const prompt = construirPrompt(mensaje, contexto, serviciosDisponibles, slotsDisponibles, chatFlow);
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -152,17 +154,30 @@ const construirPrompt = (
   mensaje: string, 
   contexto: ContextoConversacion,
   serviciosDisponibles?: string[],
-  slotsDisponibles?: string[]
+  slotsDisponibles?: string[],
+  chatFlow?: ChatFlowStep[],
 ): string => {
   const serviciosText = serviciosDisponibles?.length ? `\n- Servicios disponibles: ${serviciosDisponibles.join(', ')}` : '';
   const slotsText = slotsDisponibles?.length ? `\n- Horarios disponibles (slots): ${slotsDisponibles.join(', ')}` : '';
+
+  // Build custom messages from chatFlow if configured
+  let chatFlowText = '';
+  if (chatFlow && chatFlow.length > 0) {
+    const activeSteps = chatFlow.filter(s => s.activo);
+    if (activeSteps.length > 0) {
+      chatFlowText = '\n**Mensajes personalizados del negocio:**\n';
+      for (const step of activeSteps) {
+        chatFlowText += `- ${step.titulo}: "${step.mensaje}"\n`;
+      }
+    }
+  }
 
   const ejemplos = `
 Eres un asistente virtual de una clínica/consultorio en Bolivia que ayuda a agendar citas por WhatsApp.
 
 **Contexto actual:**
 - Estado de conversación: ${contexto.estado}
-- Datos recopilados: ${JSON.stringify(contexto.datos)}${serviciosText}${slotsText}
+- Datos recopilados: ${JSON.stringify(contexto.datos)}${serviciosText}${slotsText}${chatFlowText}
 
 **Tu tarea:**
 Analiza el siguiente mensaje del usuario y extrae información estructurada en formato JSON.

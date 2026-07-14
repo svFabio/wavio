@@ -5,7 +5,7 @@ import { ConfiguracionBotView } from '../components/ConfiguracionBotView';
 import type { ConfigData, Tab, Servicio, HorarioNegocio } from '../types';
 
 export const ConfiguracionBotContainer = () => {
-  const [tab, setTab] = useState<Tab>('general');
+  const [tab, setTab] = useState<Tab>('asistente');
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 

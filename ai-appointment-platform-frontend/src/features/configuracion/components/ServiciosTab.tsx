@@ -118,12 +118,15 @@ export const ServiciosTab = ({
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
                 <input
-                  type="number"
-                  min={0}
-                  step={1}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
                   required
                   value={newService.precio}
-                  onChange={(e) => setNewService({ ...newService, precio: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setNewService({ ...newService, precio: val ? Number(val) : 0 });
+                  }}
                   className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
                 />
               </div>
@@ -139,7 +142,7 @@ export const ServiciosTab = ({
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-primary-fg text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors"
+              className="px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors"
               disabled={isLoading}
             >
               Guardar Servicio

@@ -18,6 +18,7 @@ export const configuracionService = {
       cobrarAdelanto,
       porcentajeAdelanto,
       timezone,
+      chatFlow,
     } = data;
 
     if (trigger !== undefined && (typeof trigger !== 'string' || trigger.trim().length === 0)) {
@@ -32,6 +33,9 @@ export const configuracionService = {
     if (timezone !== undefined && typeof timezone !== 'string') {
       throw new ValidationError('timezone debe ser un string válido (ej: America/La_Paz)');
     }
+    if (chatFlow !== undefined && typeof chatFlow !== 'object') {
+      throw new ValidationError('chatFlow debe ser un objeto JSON válido');
+    }
 
     const updateData: Partial<{
       trigger: string;
@@ -40,6 +44,7 @@ export const configuracionService = {
       cobrarAdelanto: boolean;
       porcentajeAdelanto: number;
       timezone: string;
+      chatFlow: unknown;
     }> = {};
     if (trigger !== undefined) updateData.trigger = (trigger as string).trim();
     if (mensajeBienvenida !== undefined) updateData.mensajeBienvenida = mensajeBienvenida as string;
@@ -49,6 +54,7 @@ export const configuracionService = {
     if (porcentajeAdelanto !== undefined)
       updateData.porcentajeAdelanto = Number(porcentajeAdelanto);
     if (timezone !== undefined) updateData.timezone = timezone as string;
+    if (chatFlow !== undefined) updateData.chatFlow = chatFlow;
 
     return configuracionRepository.upsert(negocioId, updateData);
   },

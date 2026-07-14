@@ -208,6 +208,7 @@ model Configuracion {
   cobrarAdelanto      Boolean @default(true)
   porcentajeAdelanto  Int     @default(50)
   timezone            String  @default("America/La_Paz")
+  chatFlow            Json    @default("{}")
 
   negocioId Int     @unique
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)

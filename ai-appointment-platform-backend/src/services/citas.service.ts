@@ -205,6 +205,19 @@ export const citasService = {
     const staffId = typeof data.staffId === 'number' ? data.staffId : null;
     const duracionMinutos = typeof data.duracionMinutos === 'number' ? data.duracionMinutos : 60;
 
+    // Auto-calculate monto from servicio precio if not provided
+    let montoFinal = monto;
+    let estadoPago = 'PENDIENTE';
+    if (servicioId && montoFinal === 0) {
+      const { prisma } = await import('../repositories/prisma');
+      const servicio = await prisma.servicio.findFirst({
+        where: { id: servicioId, negocioId, activo: true },
+      });
+      if (servicio) {
+        montoFinal = servicio.precio;
+      }
+    }
+
     const [year, month, day] = fecha.split('-').map(Number);
     const fechaCita = new Date(year, month - 1, day);
 
@@ -233,8 +246,9 @@ export const citasService = {
       nuevaCita = await citasRepository.createIfSlotAvailable(negocioId, fechaCita, horario, {
         clienteNombre,
         clienteTelefono,
-        monto,
+        monto: montoFinal,
         estado: 'CONFIRMADA',
+        estadoPago,
         origen: 'presencial',
         servicioId: servicioId ?? undefined,
         duracionMinutos,

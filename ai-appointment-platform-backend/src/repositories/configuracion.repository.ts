@@ -1,5 +1,20 @@
 import { prisma } from '../repositories/prisma';
-import { Configuracion } from '../domain/types';
+import { Configuracion, ChatFlowStep } from '../domain/types';
+
+function mapConfig(raw: Record<string, unknown>): Configuracion {
+  return {
+    id: raw.id as number,
+    trigger: raw.trigger as string,
+    mensajeBienvenida: raw.mensajeBienvenida as string,
+    mensajeConfirmacion: raw.mensajeConfirmacion as string,
+    qrContenido: raw.qrContenido as string,
+    cobrarAdelanto: raw.cobrarAdelanto as boolean,
+    porcentajeAdelanto: raw.porcentajeAdelanto as number,
+    timezone: raw.timezone as string,
+    chatFlow: Array.isArray(raw.chatFlow) ? (raw.chatFlow as ChatFlowStep[]) : [],
+    negocioId: raw.negocioId as number,
+  };
+}
 
 export const configuracionRepository = {
   async getOrCreateByNegocioId(negocioId: number): Promise<Configuracion> {
@@ -8,7 +23,7 @@ export const configuracionRepository = {
       update: {},
       create: { negocioId },
     });
-    return config as unknown as Configuracion;
+    return mapConfig(config as unknown as Record<string, unknown>);
   },
   async upsert(negocioId: number, data: Record<string, unknown>): Promise<Configuracion> {
     const config = await prisma.configuracion.upsert({
@@ -16,6 +31,6 @@ export const configuracionRepository = {
       update: data,
       create: { negocioId, ...data },
     });
-    return config as unknown as Configuracion;
+    return mapConfig(config as unknown as Record<string, unknown>);
   },
 };

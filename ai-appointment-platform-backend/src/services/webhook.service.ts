@@ -1,6 +1,7 @@
 import { chatRepository } from '../repositories/chat.repository';
 import { negocioRepository } from '../repositories/negocio.repository';
 import { sesionChatRepository } from '../repositories/sesionChat.repository';
+import { configuracionRepository } from '../repositories/configuracion.repository';
 import { enviarMensaje } from '../lib/whatsapp';
 import { procesarMensajeConIA, ContextoConversacion } from '../services/ai.service';
 import { citasService } from '../services/citas.service';
@@ -75,6 +76,10 @@ export const webhookService = {
               const servicios = await serviciosRepository.findByNegocioId(negocio.id);
               const serviciosDisponibles = servicios.map(s => `${s.nombre} ($${s.precio})`);
               
+              // Load chatFlow from config
+              const config = await configuracionRepository.getOrCreateByNegocioId(negocio.id);
+              const chatFlow = config.chatFlow || [];
+              
               let slotsDisponibles: string[] = [];
               if (contexto.datos.fecha) {
                 try {
@@ -93,7 +98,8 @@ export const webhookService = {
                 textBody, 
                 contexto, 
                 serviciosDisponibles, 
-                slotsDisponibles
+                slotsDisponibles,
+                chatFlow,
               );
 
               await sesionChatRepository.upsert(sessionJid, negocio.id, {
@@ -154,16 +160,23 @@ async function manejarRespuestaIA(
           origen: 'whatsapp',
         });
 
-        await enviarMensaje(
-          waCreds,
-          from,
-          `¡Tu cita ha sido creada! 🎉\n\n` +
-            `📋 *Detalles:*\n` +
-            `📅 Fecha: ${fecha}\n` +
-            `⏰ Hora: ${horario}\n` +
-            `👤 Nombre: ${nombre}\n\n` +
-            `Estado: Pendiente de validación. Te notificaremos cuando sea confirmada.`,
-        );
+        // Check if advance payment is required
+        const config = await configuracionRepository.getOrCreateByNegocioId(negocio.id);
+        let confirmationMsg = `¡Tu cita ha sido creada! 🎉\n\n` +
+          `📋 *Detalles:*\n` +
+          `📅 Fecha: ${fecha}\n` +
+          `⏰ Hora: ${horario}\n` +
+          `👤 Nombre: ${nombre}\n\n`;
+
+        if (config.cobrarAdelanto && nuevaCita.monto > 0) {
+          const anticipo = Math.round((nuevaCita.monto * config.porcentajeAdelanto) / 100);
+          confirmationMsg += `💰 *Adelanto requerido:* $${anticipo} (${config.porcentajeAdelanto}% de $${nuevaCita.monto})\n` +
+            `Por favor envía tu comprobante de pago para confirmar tu cita.`;
+        } else {
+          confirmationMsg += `Estado: Pendiente de validación. Te notificaremos cuando sea confirmada.`;
+        }
+
+        await enviarMensaje(waCreds, from, confirmationMsg);
 
         contexto.estado = 'INICIO';
         contexto.datos = {};

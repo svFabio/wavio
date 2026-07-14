@@ -1,6 +1,6 @@
 import { Toggle } from '../../../shared/components/Toggle';
 
-interface GeneralTabProps {
+interface AsistenteTabProps {
   trigger: string;
   onTriggerChange: (value: string) => void;
   mensajeBienvenida: string;
@@ -13,7 +13,7 @@ interface GeneralTabProps {
   onPorcentajeAdelantoChange: (value: number) => void;
 }
 
-export const GeneralTab = ({
+export const AsistenteTab = ({
   trigger,
   onTriggerChange,
   mensajeBienvenida,
@@ -24,7 +24,7 @@ export const GeneralTab = ({
   onCobrarAdelantoChange,
   porcentajeAdelanto,
   onPorcentajeAdelantoChange,
-}: GeneralTabProps) => (
+}: AsistenteTabProps) => (
   <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-6 space-y-5">
     <div>
       <label

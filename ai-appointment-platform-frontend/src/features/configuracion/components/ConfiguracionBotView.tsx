@@ -1,6 +1,6 @@
 import type { Tab, Servicio, HorarioNegocio } from '../types';
 import { HeaderCard } from './HeaderCard';
-import { GeneralTab } from './GeneralTab';
+import { AsistenteTab } from './AsistenteTab';
 import { ServiciosTab } from './ServiciosTab';
 import { HorariosTab } from './HorariosTab';
 
@@ -69,7 +69,7 @@ const LoadingSkeleton = () => (
 );
 
 const TAB_LABELS: Record<Tab, string> = {
-  general: 'General',
+  asistente: 'Asistente',
   servicios: 'Servicios',
   horarios: 'Horarios',
 };
@@ -107,12 +107,12 @@ export const ConfiguracionBotView = ({
 
   return (
     <div className="space-y-6">
-      {tab === 'general' && (
+      {tab === 'asistente' && (
         <HeaderCard isPending={isGeneralPending} isSuccess={isGeneralSuccess} onSave={onSaveGeneral} />
       )}
       
       {/* For other tabs, we no longer need the HeaderCard since they save individually or we can hide it */}
-      {tab !== 'general' && (
+      {tab !== 'asistente' && (
         <div className="card-modern overflow-hidden">
           <div className="p-5 md:p-6 border-b border-border bg-surface flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -132,7 +132,7 @@ export const ConfiguracionBotView = ({
       )}
 
       <div className="flex bg-surface-elevated p-1 rounded-xl w-fit">
-        {(['general', 'servicios', 'horarios'] as Tab[]).map((t) => (
+        {(['asistente', 'servicios', 'horarios'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => onTabChange(t)}
@@ -145,8 +145,8 @@ export const ConfiguracionBotView = ({
         ))}
       </div>
 
-      {tab === 'general' && (
-        <GeneralTab
+      {tab === 'asistente' && (
+        <AsistenteTab
           trigger={trigger}
           onTriggerChange={onTriggerChange}
           mensajeBienvenida={mensajeBienvenida}

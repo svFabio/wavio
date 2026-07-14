@@ -80,7 +80,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="px-4 py-2 bg-primary text-primary-fg text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors flex items-center gap-2"
         >
           {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
           Guardar Horarios

@@ -113,6 +113,15 @@ export interface MensajeChat {
   negocioId: number;
 }
 
+export interface ChatFlowStep {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  tipoInput: 'texto' | 'lista' | 'boton';
+  opciones?: string[];
+  activo: boolean;
+}
+
 export interface Configuracion {
   id: number;
   trigger: string;
@@ -122,6 +131,7 @@ export interface Configuracion {
   cobrarAdelanto: boolean;
   porcentajeAdelanto: number;
   timezone: string;
+  chatFlow: ChatFlowStep[];
   negocioId: number;
 }
 
