@@ -9,6 +9,6 @@ const logger = pino();
 // Para reactivar: implementar con Prisma + enviarMensaje.
 // ============================================================
 
-export const iniciarSurvey = () => {
-    logger.info('[Cron] Sistema de encuestas DESACTIVADO por desarrollo.');
+export const iniciarSurvey = (): void => {
+  logger.info('[Cron] Sistema de encuestas DESACTIVADO por desarrollo.');
 };

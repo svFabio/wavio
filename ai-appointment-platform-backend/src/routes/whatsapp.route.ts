@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { saveWhatsappCredentials, getWhatsappStatus, disconnectWhatsapp } from '../controllers/whatsapp.controller';
+import {
+  saveWhatsappCredentials,
+  getWhatsappStatus,
+  disconnectWhatsapp,
+} from '../controllers/whatsapp.controller';
 import { verificarToken } from '../middleware/auth.middleware';
 import { tenantMiddleware } from '../middleware/tenant.middleware';
 

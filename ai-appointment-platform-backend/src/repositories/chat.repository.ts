@@ -2,30 +2,44 @@ import { prisma } from '../repositories/prisma';
 import { MensajeChat } from '../domain/types';
 
 export interface ConversacionRaw {
-    remoteJid: string;
-    ultimoMensaje: Date;
-    totalMensajes: number;
-    ultimoContenido: string | null;
-    ultimaDireccion: string | null;
-    clienteNombre: string | null;
+  remoteJid: string;
+  ultimoMensaje: Date;
+  totalMensajes: number;
+  ultimoContenido: string | null;
+  ultimaDireccion: string | null;
+  clienteNombre: string | null;
 }
 
 export const chatRepository = {
-  async getUltimoMensajeEntrantePorTelefono(negocioId: number, telefono: string): Promise<Partial<MensajeChat> | null> {
+  async getUltimoMensajeEntrantePorTelefono(
+    negocioId: number,
+    telefono: string,
+  ): Promise<Partial<MensajeChat> | null> {
     const msg = await prisma.mensajeChat.findFirst({
       where: {
         negocioId,
         remoteJid: { contains: telefono },
-        direccion: 'ENTRANTE'
+        direccion: 'ENTRANTE',
       },
       orderBy: { timestamp: 'desc' },
-      select: { remoteJid: true }
+      select: { remoteJid: true },
     });
     return msg as unknown as Partial<MensajeChat>;
   },
 
-  async getConversaciones(negocioId: number): Promise<ConversacionRaw[]> {
-    return prisma.$queryRaw<ConversacionRaw[]>`
+  async getConversaciones(
+    negocioId: number,
+    page: number,
+    limit: number,
+  ): Promise<{ data: ConversacionRaw[]; total: number; page: number; limit: number }> {
+    const countResult = await prisma.$queryRaw<[{ total: number }]>`
+        SELECT COUNT(*)::int as total
+        FROM (SELECT "remoteJid" FROM "MensajeChat" WHERE "negocioId" = ${negocioId} GROUP BY "remoteJid") sub
+    `;
+    const total = countResult[0]?.total ?? 0;
+
+    const offset = (page - 1) * limit;
+    const data = await prisma.$queryRaw<ConversacionRaw[]>`
         SELECT 
             "remoteJid",
             MAX("timestamp") as "ultimoMensaje",
@@ -43,20 +57,38 @@ export const chatRepository = {
         WHERE m1."negocioId" = ${negocioId}
         GROUP BY "remoteJid"
         ORDER BY MAX("timestamp") DESC
-        LIMIT 50
+        LIMIT ${limit} OFFSET ${offset}
     `;
+    return { data, total, page, limit };
   },
 
-  async getMensajes(negocioId: number, jid: string): Promise<MensajeChat[]> {
-    const mensajes = await prisma.mensajeChat.findMany({
-        where: { negocioId, remoteJid: jid },
-        orderBy: { timestamp: 'asc' },
-        take: 200
-    });
-    return mensajes as unknown as MensajeChat[];
+  async getMensajes(
+    negocioId: number,
+    jid: string,
+    page: number,
+    limit: number,
+  ): Promise<{ data: MensajeChat[]; total: number; page: number; limit: number }> {
+    const where = { negocioId, remoteJid: jid };
+    const [data, total] = await Promise.all([
+      prisma.mensajeChat.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.mensajeChat.count({ where }),
+    ]);
+    return { data: data as unknown as MensajeChat[], total, page, limit };
   },
 
-  async createMensaje(data: { remoteJid: string; contenido: string; direccion: 'ENTRANTE' | 'SALIENTE'; waMessageId?: string | null; estadoEntrega: string; negocioId: number }): Promise<MensajeChat> {
+  async createMensaje(data: {
+    remoteJid: string;
+    contenido: string;
+    direccion: 'ENTRANTE' | 'SALIENTE';
+    waMessageId?: string | null;
+    estadoEntrega: string;
+    negocioId: number;
+  }): Promise<MensajeChat> {
     const msg = await prisma.mensajeChat.create({ data });
     return msg as unknown as MensajeChat;
   },
@@ -64,7 +96,7 @@ export const chatRepository = {
   async updateEstadoEntrega(waMessageId: string, estado: string): Promise<void> {
     await prisma.mensajeChat.updateMany({
       where: { waMessageId },
-      data: { estadoEntrega: estado }
+      data: { estadoEntrega: estado },
     });
   },
 
@@ -74,5 +106,5 @@ export const chatRepository = {
       prisma.sesionChat.deleteMany({ where: { id: jid, negocioId } }),
     ]);
     return resultado.count;
-  }
+  },
 };
