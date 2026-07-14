@@ -26,20 +26,20 @@ enum Plan {
 
 // ─── TENANT (el negocio que se registra) ─────────────────────────────────────
 model Negocio {
-  id              Int      @id @default(autoincrement())
-  googleId        String   @unique // ID de Google del dueño que se registró
-  email           String   @unique
-  nombre          String   @default("Mi Negocio")
-  plan            Plan     @default(FREE)
-  
+  id       Int    @id @default(autoincrement())
+  googleId String @unique // ID de Google del dueño que se registró
+  email    String @unique
+  nombre   String @default("Mi Negocio")
+  plan     Plan   @default(FREE)
+
   // ─── META CLOUD API FIELDS ───
   waAccessToken   String?
-  waPhoneNumberId String?  @unique
+  waPhoneNumberId String? @unique
   waWabaId        String?
   waAppId         String?
-  isWaConnected   Boolean  @default(false)
+  isWaConnected   Boolean @default(false)
 
-  creadoEn        DateTime @default(now())
+  creadoEn DateTime @default(now())
 
   usuarios      Usuario[]
   citas         Cita[]
@@ -50,14 +50,14 @@ model Negocio {
 
 // ─── USUARIO (staff/admin del negocio) ───────────────────────────────────────
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  email     String   @unique
-  password  String   @default("") // vacío para usuarios de Google; usado solo en dev seed
-  googleId    String?  // ID de Google del usuario (opcional)
-  fotoPerfil  String?  // URL de la foto en Cloudinary u otro
-  rol         Rol      @default(STAFF)
-  creadoEn    DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  nombre     String
+  email      String   @unique
+  password   String   @default("") // vacío para usuarios de Google; usado solo en dev seed
+  googleId   String? // ID de Google del usuario (opcional)
+  fotoPerfil String? // URL de la foto en Cloudinary u otro
+  rol        Rol      @default(STAFF)
+  creadoEn   DateTime @default(now())
 
   negocioId Int
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
@@ -68,7 +68,7 @@ model Usuario {
 
 // ─── SESIÓN DE CHAT (por negocio) ────────────────────────────────────────────
 model SesionChat {
-  id            String   // remoteJid
+  id            String // remoteJid
   estado        String
   datos         Json
   ultimoMensaje DateTime @default(now())
@@ -88,7 +88,7 @@ model Cita {
   clienteNombre   String?
   clienteTelefono String
   servicio        String   @default("Spa")
-  monto           Decimal @db.Decimal(10, 2)
+  monto           Decimal  @db.Decimal(10, 2)
   estado          String   @default("PENDIENTE")
   comprobanteUrl  String?
   descripcion     String?
@@ -124,12 +124,12 @@ model MensajeChat {
 
 // ─── CONFIGURACIÓN DEL BOT ────────────────────────────────────────────────────
 model Configuracion {
-  id                  Int    @id @default(autoincrement())
-  trigger             String @default("!cita")
-  mensajeBienvenida   String @default("Hola! Soy el asistente de citas. Cual es tu nombre completo?")
-  mensajeConfirmacion String @default("Comprobante recibido! Tu cita esta siendo revisada. Te confirmamos pronto.")
-  servicios           Json   @default("[{\"nombre\":\"Servicio\",\"precio\":0}]")
-  horarios            Json   @default("{\"lunes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"martes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"miercoles\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"jueves\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"viernes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"sabado\":[],\"domingo\":[]}")
+  id                  Int     @id @default(autoincrement())
+  trigger             String  @default("!cita")
+  mensajeBienvenida   String  @default("Hola! Soy el asistente de citas. Cual es tu nombre completo?")
+  mensajeConfirmacion String  @default("Comprobante recibido! Tu cita esta siendo revisada. Te confirmamos pronto.")
+  servicios           Json    @default("[{\"nombre\":\"Servicio\",\"precio\":0}]")
+  horarios            Json    @default("{\"lunes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"martes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"miercoles\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"jueves\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"viernes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"sabado\":[],\"domingo\":[]}")
   qrContenido         String  @default("TU_CODIGO_QR_AQUI")
   cobrarAdelanto      Boolean @default(true)
   porcentajeAdelanto  Int     @default(50)

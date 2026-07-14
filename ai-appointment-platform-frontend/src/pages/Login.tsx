@@ -10,7 +10,7 @@ type Tab = 'login' | 'register';
 interface LoginResponse {
   token: string;
   usuario: Parameters<ReturnType<typeof useAuth>['login']>[1];
-  negocio: Parameters<ReturnType<typeof useAuth>['login']>[2];
+  negocio: Parameters<ReturnType<typeof useAuth>['login']>[2] | null;
   esNuevo?: boolean;
 }
 
@@ -28,7 +28,7 @@ export default function Login() {
   const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/dashboard';
 
   const handleSuccess = (data: LoginResponse) => {
-    login(data.token, data.usuario, data.negocio);
+    login(data.token, data.usuario, data.negocio!);
     navigate(data.esNuevo ? '/onboarding' : from, { replace: true });
   };
 

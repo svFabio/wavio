@@ -6,7 +6,13 @@ export const api = {
   loginConGoogle: async (googleToken: string) => {
     return apiClient.post<{
       token: string;
-      usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+      usuario: {
+        id: number;
+        nombre: string;
+        email: string;
+        rol: 'ADMIN' | 'STAFF';
+        fotoPerfil?: string;
+      };
       negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
       esNuevo?: boolean;
     }>('/auth/google', {
@@ -18,13 +24,16 @@ export const api = {
     try {
       return await apiClient.post<{
         token: string;
-        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+        usuario: {
+          id: number;
+          nombre: string;
+          email: string;
+          rol: 'ADMIN' | 'STAFF';
+          fotoPerfil?: string;
+        };
         negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
         esNuevo?: boolean;
-      }>(
-        '/auth/register',
-        { email, password },
-      );
+      }>('/auth/register', { email, password });
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw new Error('Error al registrarse');
@@ -35,13 +44,16 @@ export const api = {
     try {
       return await apiClient.post<{
         token: string;
-        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+        usuario: {
+          id: number;
+          nombre: string;
+          email: string;
+          rol: 'ADMIN' | 'STAFF';
+          fotoPerfil?: string;
+        };
         negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
         esNuevo?: boolean;
-      }>(
-        '/auth/login',
-        { email, password },
-      );
+      }>('/auth/login', { email, password });
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw new Error('Credenciales incorrectas');
