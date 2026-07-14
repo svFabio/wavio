@@ -9,8 +9,8 @@ export interface CitaResumen {
 }
 
 export interface ResumenData {
-  citasHoy: number;
+  totalHoy: number;
   pendientes: number;
-  proximasCitas: CitaResumen[];
-  totalFuturas: number;
+  completadas: number;
+  ingresos: number;
 }

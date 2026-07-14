@@ -43,7 +43,7 @@ export const RevenueChart = ({ data }: RevenueChartProps) => {
           <YAxis stroke="var(--color-text-muted)" fontSize={12} tickFormatter={(v) => `Bs.${v}`} />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
-            formatter={(value: number | undefined) => [`Bs. ${value ?? 0}`, 'Ingresos']}
+            formatter={(value) => [`Bs. ${Number(value) || 0}`, 'Ingresos']}
           />
           <Line
             type="monotone"

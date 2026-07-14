@@ -14,7 +14,7 @@ declare global {
 }
 
 export const AdminWhatsapp = () => {
-  const { negocio } = useAuth();
+  useAuth();
   const queryClient = useQueryClient();
 
   const {

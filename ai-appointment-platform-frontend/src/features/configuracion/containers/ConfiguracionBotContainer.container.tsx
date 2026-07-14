@@ -12,7 +12,13 @@ export const ConfiguracionBotContainer = () => {
 
   const { data: config, isLoading: loading } = useQuery<ConfigData>({
     queryKey: ['configuracion'],
-    queryFn: () => api.getConfiguracion(),
+    queryFn: async () => {
+      const raw = await api.getConfiguracion();
+      return {
+        ...raw,
+        servicios: raw.servicios.map((s, i) => ({ ...s, _key: i })),
+      };
+    },
   });
 
   const [trigger, setTrigger] = useState('');

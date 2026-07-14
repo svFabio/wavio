@@ -25,7 +25,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
-  const { isAdmin, logout, negocio, usuario } = useAuth();
+  const { isAdmin, logout, usuario } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
 

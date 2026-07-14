@@ -31,7 +31,10 @@ export const ChatContainer = () => {
   const [enviando, setEnviando] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedJidRef = useRef(selectedJid);
-  selectedJidRef.current = selectedJid;
+
+  useEffect(() => {
+    selectedJidRef.current = selectedJid;
+  }, [selectedJid]);
 
   const conversacionesQuery = useQuery({
     queryKey: ['conversaciones'],

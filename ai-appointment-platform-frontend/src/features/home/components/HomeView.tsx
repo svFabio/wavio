@@ -93,7 +93,7 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
   const statCards = [
     {
       label: 'Citas para Hoy',
-      value: data.citasHoy,
+      value: data.totalHoy,
       icon: Calendar,
       gradient: 'from-primary to-secondary',
       glow: 'var(--color-primary-glow)',
@@ -107,7 +107,7 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
     },
     {
       label: 'Total Citas Futuras',
-      value: data.totalFuturas,
+      value: data.completadas,
       icon: TrendingUp,
       gradient: 'from-gradient-cool-from to-gradient-cool-to',
       glow: 'var(--color-success-glow)',
@@ -155,7 +155,7 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
             Ver calendario <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <AgendaTable citas={data.proximasCitas} />
+        <AgendaTable citas={[]} />
       </div>
     </div>
   );

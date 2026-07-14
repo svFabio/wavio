@@ -3,21 +3,6 @@ import type { EventoCalendario } from '../types';
 export const CustomEventDay = ({ event }: { event: EventoCalendario }) => {
   const { title, resource } = event;
 
-  const getDotColor = () => {
-    switch (resource?.estado) {
-      case 'CONFIRMADA':
-        return 'bg-success';
-      case 'VALIDAR':
-        return 'bg-warning';
-      case 'PENDIENTE_PAGO':
-        return 'bg-info';
-      case 'NO_ASISTIO':
-        return 'bg-danger';
-      default:
-        return 'bg-primary';
-    }
-  };
-
   return (
     <div className="flex flex-col justify-center h-full px-2 py-1 bg-surface-elevated/50 backdrop-blur-sm rounded-r-md">
       <div className="flex items-center gap-1.5">

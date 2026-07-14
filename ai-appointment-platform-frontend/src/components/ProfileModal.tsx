@@ -100,7 +100,7 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
       try {
         const base64 = reader.result as string;
         const res = await api.updateAvatar(base64);
-        setFotoPerfil(res.fotoPerfil);
+        setFotoPerfil(res.url);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Error al subir la imagen');
       } finally {

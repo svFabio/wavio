@@ -4,14 +4,24 @@ import { apiClient, ApiError } from '../lib/apiClient';
 export const api = {
   // --- AUTENTICACIÓN ---
   loginConGoogle: async (googleToken: string) => {
-    return apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>('/auth/google', {
+    return apiClient.post<{
+      token: string;
+      usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+      negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+      esNuevo?: boolean;
+    }>('/auth/google', {
       googleToken,
     });
   },
 
   register: async (email: string, password: string) => {
     try {
-      return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
+      return await apiClient.post<{
+        token: string;
+        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+        esNuevo?: boolean;
+      }>(
         '/auth/register',
         { email, password },
       );
@@ -23,7 +33,12 @@ export const api = {
 
   login: async (email: string, password: string) => {
     try {
-      return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
+      return await apiClient.post<{
+        token: string;
+        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+        esNuevo?: boolean;
+      }>(
         '/auth/login',
         { email, password },
       );
