@@ -1,0 +1,11 @@
+# Default: @svfabio owns everything
+* @svfabio
+
+# Backend
+/ai-appointment-platform-backend/ @svfabio
+
+# Frontend
+/ai-appointment-platform-frontend/ @svfabio
+
+# CI/CD
+/.github/ @svfabio

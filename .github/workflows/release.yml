@@ -1,0 +1,133 @@
+# ============================================================================
+# Release — Wavio
+# ============================================================================
+# Triggered when a semver tag (v*) is pushed.
+# Builds both projects, validates Prisma, and publishes a GitHub Release
+# with the compiled artifacts attached.
+#
+# Usage:
+#   git tag v1.0.0
+#   git push origin v1.0.0
+#
+# Status badges (add to README.md):
+#   ![Release](https://github.com/<owner>/<repo>/actions/workflows/release.yml/badge.svg)
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10"
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            ai-appointment-platform-backend/pnpm-lock.yaml
+            ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      # -----------------------------------------------------------------------
+      # Install dependencies
+      # -----------------------------------------------------------------------
+
+      - name: Install backend dependencies
+        working-directory: ai-appointment-platform-backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        working-directory: ai-appointment-platform-frontend
+        run: pnpm install --frozen-lockfile
+
+      # -----------------------------------------------------------------------
+      # Validate Prisma schema
+      # -----------------------------------------------------------------------
+
+      - name: Validate & format Prisma schema
+        working-directory: ai-appointment-platform-backend
+        run: |
+          npx prisma validate
+          npx prisma format --check
+
+      # -----------------------------------------------------------------------
+      # Build backend
+      # -----------------------------------------------------------------------
+
+      - name: Generate Prisma Client
+        working-directory: ai-appointment-platform-backend
+        run: npx prisma generate
+
+      - name: Build backend
+        working-directory: ai-appointment-platform-backend
+        run: pnpm run build
+
+      # -----------------------------------------------------------------------
+      # Build frontend
+      # -----------------------------------------------------------------------
+
+      - name: Build frontend
+        working-directory: ai-appointment-platform-frontend
+        run: pnpm run build
+
+      # -----------------------------------------------------------------------
+      # Package release artifacts
+      # -----------------------------------------------------------------------
+
+      - name: Package backend artifact
+        run: |
+          cd ai-appointment-platform-backend
+          # Include compiled output, Prisma client, migrations, and production deps
+          tar czf ../backend-dist.tar.gz \
+            dist/ \
+            node_modules/.prisma/ \
+            node_modules/@prisma/ \
+            prisma/ \
+            package.json
+
+      - name: Package frontend artifact
+        run: |
+          cd ai-appointment-platform-frontend
+          tar czf ../frontend-dist.tar.gz \
+            dist/ \
+            package.json
+
+      # -----------------------------------------------------------------------
+      # Create GitHub Release
+      # -----------------------------------------------------------------------
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            backend-dist.tar.gz
+            frontend-dist.tar.gz
+          body: |
+            ## Release ${{ github.ref_name }}
+
+            ### Artifacts
+            - `backend-dist.tar.gz` — Compiled backend (TypeScript output + Prisma client + migrations)
+            - `frontend-dist.tar.gz` — Vite production build
+
+            ### Deployment
+            - **Backend**: Extract and run `node dist/src/server.js`
+            - **Frontend**: Serve the `dist/` directory with any static file server
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

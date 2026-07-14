@@ -1,0 +1,373 @@
+# ============================================================================
+# CI Pipeline — Wavio
+# ============================================================================
+# Runs on every push to dev/main and every pull request targeting dev/main.
+# All jobs run in parallel — no cross-job dependencies at this stage.
+#
+# Status badges (add to README.md):
+#   ![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg?branch=dev)
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "10"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Type checking
+  # ---------------------------------------------------------------------------
+
+  typecheck-backend:
+    name: Typecheck — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run typecheck
+
+  typecheck-frontend:
+    name: Typecheck — Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run typecheck
+
+  # ---------------------------------------------------------------------------
+  # Linting
+  # ---------------------------------------------------------------------------
+
+  lint-backend:
+    name: Lint — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+  lint-frontend:
+    name: Lint — Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+  # ---------------------------------------------------------------------------
+  # Formatting — checks both projects in a single job
+  # ---------------------------------------------------------------------------
+
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            ai-appointment-platform-backend/pnpm-lock.yaml
+            ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      # Install dependencies for both sub-projects
+      - run: pnpm install --frozen-lockfile
+        working-directory: ai-appointment-platform-backend
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: ai-appointment-platform-frontend
+
+      - run: pnpm run format:check
+        working-directory: ai-appointment-platform-backend
+
+      - run: pnpm run format:check
+        working-directory: ai-appointment-platform-frontend
+
+  # ---------------------------------------------------------------------------
+  # Build
+  # ---------------------------------------------------------------------------
+
+  build-backend:
+    name: Build — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Generate Prisma Client — required for the backend to compile
+      - run: npx prisma generate
+
+      - run: pnpm run build
+
+  build-frontend:
+    name: Build — Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run build
+
+  # ---------------------------------------------------------------------------
+  # Prisma schema validation
+  # ---------------------------------------------------------------------------
+
+  prisma-validate:
+    name: Prisma Validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: npx prisma validate
+
+      - run: npx prisma format --check
+
+  # ---------------------------------------------------------------------------
+  # Security audit — checks both sub-projects
+  # ---------------------------------------------------------------------------
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            ai-appointment-platform-backend/pnpm-lock.yaml
+            ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - name: Audit backend
+        working-directory: ai-appointment-platform-backend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level=high
+
+      - name: Audit frontend
+        working-directory: ai-appointment-platform-frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # Commitlint — validates PR commit messages follow conventional commits
+  # ---------------------------------------------------------------------------
+
+  commitlint:
+    name: Commitlint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate PR commits
+        run: pnpm commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  # ---------------------------------------------------------------------------
+  # Docker Build — validates the backend Dockerfile builds successfully
+  # ---------------------------------------------------------------------------
+
+  docker-build:
+    name: Docker Build — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ai-appointment-platform-backend
+          push: false
+          tags: wavio-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Placeholder: Tests (add when a test framework is configured)
+  # ---------------------------------------------------------------------------
+  #
+  # NOTE: Path filtering could be added to skip jobs when only unrelated
+  # files change. Example using dorny/paths-filter:
+  #   - Backend jobs run only when ai-appointment-platform-backend/** changes
+  #   - Frontend jobs run only when ai-appointment-platform-frontend/** changes
+  # For now, all jobs run on every push/PR — the pipeline is fast enough.
+  # ---------------------------------------------------------------------------
+
+  # test-backend:
+  #   name: Tests — Backend
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ai-appointment-platform-backend
+  #   services:
+  #     postgres:
+  #       image: postgres:16
+  #       env:
+  #         POSTGRES_USER: test
+  #         POSTGRES_PASSWORD: test
+  #         POSTGRES_DB: wavio_test
+  #       ports:
+  #         - 5432:5432
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #   env:
+  #     DATABASE_URL: postgresql://test:test@localhost:5432/wavio_test
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: pnpm/action-setup@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: pnpm
+  #         cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+  #     - run: pnpm install --frozen-lockfile
+  #     - run: npx prisma generate
+  #     - run: npx prisma migrate deploy
+  #     - run: pnpm test
+
+  # test-frontend:
+  #   name: Tests — Frontend
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ai-appointment-platform-frontend
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: pnpm/action-setup@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: pnpm
+  #         cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+  #     - run: pnpm install --frozen-lockfile
+  #     - run: pnpm test
