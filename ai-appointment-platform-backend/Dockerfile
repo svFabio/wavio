@@ -1,5 +1,5 @@
-# Node.js 20 slim
-FROM node:20-slim
+# Node.js 22 slim
+FROM node:22-slim
 
 # Baileys needs openssl for crypto operations
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/src/app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy config files first (layer cache)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
