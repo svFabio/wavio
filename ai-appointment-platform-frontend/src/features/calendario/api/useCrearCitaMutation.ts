@@ -8,7 +8,7 @@ interface CrearCitaParams {
   horario: string;
 }
 
-export function useCrearCita() {
+export function useCrearCitaMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({

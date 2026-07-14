@@ -1,23 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { HomeView } from '../components/HomeView';
-
-interface CitaResumen {
-  id: number;
-  clienteNombre: string | null;
-  clienteTelefono: string;
-  horario: string;
-  estado: string;
-  servicio?: string;
-  rating?: number;
-}
-
-export interface ResumenData {
-  citasHoy: number;
-  pendientes: number;
-  proximasCitas: CitaResumen[];
-  totalFuturas: number;
-}
+import type { ResumenData } from '../types';
 
 export const HomeContainer = () => {
   const { data, isLoading: loading } = useQuery<ResumenData | null>({

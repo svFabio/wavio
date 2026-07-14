@@ -1,41 +1,90 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useHorariosDisponibles } from '../../../shared/hooks/useHorariosDisponibles';
-import {
-  X,
-  Clock,
-  Calendar as CalendarIcon,
-  Loader2,
-  AlertCircle
-} from 'lucide-react';
+import { X, Clock, Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
 import type { EventoCalendario } from '../types';
 
 interface ModalReprogramarProps {
   isOpen: boolean;
   onClose: () => void;
   cita: EventoCalendario;
-  onSubmit: (citaId: string, fecha: string, horario: string) => Promise<{ success: boolean; error?: string }>;
+  onSubmit: (
+    citaId: string,
+    fecha: string,
+    horario: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
-export const ModalReprogramar = ({
-  isOpen,
-  onClose,
-  cita,
-  onSubmit
-}: ModalReprogramarProps) => {
+export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalReprogramarProps) => {
   const [fecha, setFecha] = useState(format(cita.start, 'yyyy-MM-dd'));
   const [horario, setHorario] = useState(format(cita.start, 'HH:mm'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
     fecha,
-    isOpen
+    isOpen,
+  );
+
+  // Focus trap and return focus
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement;
+      const timer = setTimeout(() => {
+        const modal = modalRef.current;
+        if (modal) {
+          const focusable = modal.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          );
+          if (focusable.length > 0) focusable[0].focus();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (triggerRef.current) {
+      triggerRef.current.focus();
+      triggerRef.current = null;
+    }
+  }, [isOpen]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose],
   );
 
   useEffect(() => {
-    if (isOpen && !horariosDisponibles.includes(horario) && fecha !== format(cita.start, 'yyyy-MM-dd')) {
+    if (
+      isOpen &&
+      !horariosDisponibles.includes(horario) &&
+      fecha !== format(cita.start, 'yyyy-MM-dd')
+    ) {
       setHorario('');
     }
   }, [isOpen, horariosDisponibles, horario, fecha, cita.start]);
@@ -58,13 +107,24 @@ export const ModalReprogramar = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-overlay flex items-center justify-center p-4 bg-sidebar/40 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="card-modern w-full max-w-md overflow-hidden animate-modal-pop shadow-2xl">
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-sidebar/40 backdrop-blur-sm animate-in fade-in duration-300">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Reprogramar cita"
+        onKeyDown={handleKeyDown}
+        className="card-modern w-full max-w-md overflow-hidden animate-modal-pop shadow-2xl"
+      >
         <div className="flex items-center justify-between p-4 border-b border-border bg-surface-elevated/30">
           <h3 className="font-bold text-lg text-txt flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" /> Reprogramar Cita
           </h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-surface-elevated rounded-full transition-colors">
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="p-1.5 hover:bg-surface-elevated rounded-full transition-colors"
+          >
             <X className="w-5 h-5 text-txt-muted" />
           </button>
         </div>
@@ -78,9 +138,13 @@ export const ModalReprogramar = ({
           )}
 
           <div className="p-3 bg-surface-elevated rounded-xl text-sm border border-border">
-            <p className="font-bold text-txt-muted text-[10px] uppercase mb-1 tracking-wider">Cita Actual</p>
+            <p className="font-bold text-txt-muted text-xs uppercase mb-1 tracking-wider">
+              Cita Actual
+            </p>
             <p className="font-bold text-txt">{cita.title}</p>
-            <p className="text-txt-secondary">{format(cita.start, 'EEEE d MMMM, HH:mm', { locale: es })}</p>
+            <p className="text-txt-secondary">
+              {format(cita.start, 'EEEE d MMMM, HH:mm', { locale: es })}
+            </p>
           </div>
 
           <div>
@@ -115,10 +179,11 @@ export const ModalReprogramar = ({
                     key={h}
                     type="button"
                     onClick={() => setHorario(h)}
-                    className={`py-2 px-1 rounded-lg font-semibold text-xs transition-all ${horario === h
-                      ? 'bg-primary text-white shadow-lg shadow-primary/30 transform scale-105'
-                      : 'bg-surface-elevated text-txt-secondary hover:bg-border-light'
-                      }`}
+                    className={`py-2 px-1 rounded-lg font-semibold text-xs transition-all ${
+                      horario === h
+                        ? 'bg-primary text-on-primary shadow-lg shadow-primary/30 transform scale-105'
+                        : 'bg-surface-elevated text-txt-secondary hover:bg-border-light'
+                    }`}
                   >
                     {h}
                   </button>
@@ -128,18 +193,10 @@ export const ModalReprogramar = ({
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary flex-1"
-            >
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={loading || !horario}
-              className="btn-primary flex-1"
-            >
+            <button type="submit" disabled={loading || !horario} className="btn-primary flex-1">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Cambio'}
             </button>
           </div>

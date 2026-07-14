@@ -1,15 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useHorariosDisponibles } from '../../../shared/hooks/useHorariosDisponibles';
-import {
-  X,
-  Plus,
-  User,
-  Phone,
-  Calendar as CalendarIcon,
-  Loader2,
-  AlertCircle
-} from 'lucide-react';
+import { X, Plus, User, Phone, Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
+import { HorariosGrid } from './HorariosGrid';
 
 interface DatosNuevaCita {
   clienteNombre: string;
@@ -29,35 +22,57 @@ export const ModalNuevaCita = ({
   isOpen,
   onClose,
   fechaInicial,
-  onSubmit
+  onSubmit,
 }: ModalNuevaCitaProps) => {
   const [formData, setFormData] = useState<DatosNuevaCita>({
     clienteNombre: '',
     clienteTelefono: '',
     fecha: fechaInicial ? format(fechaInicial, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-    horario: ''
+    horario: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const modalRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
     formData.fecha,
-    isOpen && !!formData.fecha
+    isOpen && !!formData.fecha,
   );
 
   useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement;
+      const timer = setTimeout(() => {
+        const modal = modalRef.current;
+        if (modal) {
+          const focusable = modal.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          );
+          if (focusable.length > 0) focusable[0].focus();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (triggerRef.current) {
+      triggerRef.current.focus();
+      triggerRef.current = null;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen && fechaInicial) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         fecha: format(fechaInicial, 'yyyy-MM-dd'),
-        horario: ''
+        horario: '',
       }));
     }
   }, [isOpen, fechaInicial]);
 
   useEffect(() => {
     if (isOpen && !horariosDisponibles.includes(formData.horario)) {
-      setFormData(prev => ({ ...prev, horario: '' }));
+      setFormData((prev) => ({ ...prev, horario: '' }));
     }
   }, [isOpen, horariosDisponibles, formData.horario]);
 
@@ -80,7 +95,12 @@ export const ModalNuevaCita = ({
     setLoading(false);
 
     if (result.success) {
-      setFormData({ clienteNombre: '', clienteTelefono: '', fecha: format(new Date(), 'yyyy-MM-dd'), horario: '' });
+      setFormData({
+        clienteNombre: '',
+        clienteTelefono: '',
+        fecha: format(new Date(), 'yyyy-MM-dd'),
+        horario: '',
+      });
       onClose();
     } else {
       setError(result.error || 'Error al crear la cita');
@@ -89,25 +109,70 @@ export const ModalNuevaCita = ({
 
   const handleClose = () => {
     setError(null);
-    setFormData({ clienteNombre: '', clienteTelefono: '', fecha: format(new Date(), 'yyyy-MM-dd'), horario: '' });
+    setFormData({
+      clienteNombre: '',
+      clienteTelefono: '',
+      fecha: format(new Date(), 'yyyy-MM-dd'),
+      horario: '',
+    });
     onClose();
   };
 
   const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value.replace(/\D/g, '');
-    setFormData(prev => ({ ...prev, clienteTelefono: valor }));
+    setFormData((prev) => ({ ...prev, clienteTelefono: valor }));
   };
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose],
+  );
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-sidebar/40 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="card-modern w-full max-w-md overflow-hidden animate-modal-pop shadow-2xl">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Nueva cita"
+        onKeyDown={handleKeyDown}
+        className="card-modern w-full max-w-md overflow-hidden animate-modal-pop shadow-2xl"
+      >
         <div className="flex items-center justify-between p-4 border-b border-border bg-surface-elevated/30">
           <h3 className="font-bold text-lg text-txt flex items-center gap-2">
             <Plus className="w-5 h-5 text-primary" /> Nueva Cita
           </h3>
-          <button onClick={handleClose} className="p-1.5 hover:bg-surface-elevated rounded-full transition-colors">
+          <button
+            onClick={handleClose}
+            aria-label="Cerrar"
+            className="p-1.5 hover:bg-surface-elevated rounded-full transition-colors"
+          >
             <X className="w-5 h-5 text-txt-muted" />
           </button>
         </div>
@@ -121,14 +186,18 @@ export const ModalNuevaCita = ({
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-txt mb-1.5">Nombre del Cliente *</label>
+            <label className="block text-sm font-semibold text-txt mb-1.5">
+              Nombre del Cliente *
+            </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
               <input
                 type="text"
                 required
                 value={formData.clienteNombre}
-                onChange={(e) => setFormData(prev => ({ ...prev, clienteNombre: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, clienteNombre: e.target.value }))
+                }
                 className="input-modern pl-10"
                 placeholder="Ej: Juan Perez"
               />
@@ -159,7 +228,7 @@ export const ModalNuevaCita = ({
                   type="date"
                   required
                   value={formData.fecha}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                   min={format(new Date(), 'yyyy-MM-dd')}
                   className="input-modern pl-10"
                 />
@@ -169,39 +238,16 @@ export const ModalNuevaCita = ({
 
           <div>
             <label className="block text-sm font-semibold text-txt mb-1.5">Horario *</label>
-            {loadingHorarios ? (
-              <div className="flex items-center justify-center py-4 text-txt-muted text-sm">
-                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Cargando horarios...
-              </div>
-            ) : horariosDisponibles.length === 0 ? (
-              <div className="p-3 bg-warning-light border border-warning/20 rounded-xl text-warning-dark text-sm">
-                No hay horarios disponibles hoy
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {horariosDisponibles.map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, horario: h }))}
-                    className={`py-2 px-1 rounded-lg font-semibold text-xs transition-all ${formData.horario === h
-                      ? 'bg-primary text-white shadow-lg shadow-primary/30 transform scale-105'
-                      : 'bg-surface-elevated text-txt-secondary hover:bg-border-light'
-                      }`}
-                  >
-                    {h}
-                  </button>
-                ))}
-              </div>
-            )}
+            <HorariosGrid
+              horarios={horariosDisponibles}
+              selected={formData.horario}
+              onSelect={(h) => setFormData((prev) => ({ ...prev, horario: h }))}
+              loading={loadingHorarios}
+            />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-border">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="btn-secondary flex-1"
-            >
+            <button type="button" onClick={handleClose} className="btn-secondary flex-1">
               Cancelar
             </button>
             <button

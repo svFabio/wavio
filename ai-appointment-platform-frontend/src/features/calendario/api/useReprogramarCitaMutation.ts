@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 
-export function useReprogramarCita() {
+export function useReprogramarCitaMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
