@@ -6,14 +6,26 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Usuario, Negocio } from '../domain/types';
 import { usuariosRepository } from '../repositories/usuarios.repository';
-import { uploadBase64Image, deleteImage } from '../lib/cloudinary';
+import { uploadBase64Image } from '../lib/cloudinary';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 const JWT_EXPIRES_IN = '7d';
 
+type NegocioSafe = Omit<Negocio, 'waAccessToken'>;
+type UsuarioSafe = Omit<Usuario, 'password'> & { fotoPerfil: string | null };
+
+const signToken = (user: { id: number; email: string; rol: string; negocioId: number }): string =>
+  jwt.sign(
+    { id: user.id, email: user.email, rol: user.rol, negocioId: user.negocioId },
+    env.JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN },
+  );
+
 export const authService = {
-  async loginConGoogle(googleToken: string) {
+  async loginConGoogle(
+    googleToken: string,
+  ): Promise<{ token: string; usuario: UsuarioSafe; negocio: NegocioSafe; esNuevo: boolean }> {
     let googleId: string;
     let email: string;
     let nombre: string;
@@ -35,7 +47,7 @@ export const authService = {
     } else {
       // Access Token (ya29...) — verify by calling Google's userinfo endpoint server-side
       const verifyRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${googleToken}` }
+        headers: { Authorization: `Bearer ${googleToken}` },
       });
       if (!verifyRes.ok) {
         throw new UnauthorizedError('Token de Google inválido');
@@ -61,16 +73,20 @@ export const authService = {
       throw new NotFoundError('Usuario del negocio');
     }
 
-    const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, rol: usuario.rol, negocioId: negocio.id },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken({
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+      negocioId: negocio.id,
+    });
 
     return { token, usuario, negocio, esNuevo };
   },
 
-  async registrarConEmail(email: string, password: string) {
+  async registrarConEmail(
+    email: string,
+    password: string,
+  ): Promise<{ token: string; usuario: UsuarioSafe; negocio: NegocioSafe; esNuevo: boolean }> {
     const existente = await authRepository.findUsuarioByEmail(email);
     if (existente) {
       throw new ConflictError('Ya existe una cuenta con ese email');
@@ -83,7 +99,7 @@ export const authService = {
       `email-${email}`,
       email,
       'Mi Negocio',
-      hashedPassword
+      hashedPassword,
     );
 
     const usuario = await authRepository.findUsuarioByNegocioId(negocio.id);
@@ -91,16 +107,25 @@ export const authService = {
       throw new NotFoundError('Usuario recién creado');
     }
 
-    const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, rol: usuario.rol, negocioId: negocio.id },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken({
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+      negocioId: negocio.id,
+    });
 
     return { token, usuario, negocio, esNuevo: true };
   },
 
-  async loginConEmail(email: string, password: string) {
+  async loginConEmail(
+    email: string,
+    password: string,
+  ): Promise<{
+    token: string;
+    usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'rol' | 'negocioId' | 'creadoEn'>;
+    negocio: NegocioSafe;
+    esNuevo: boolean;
+  }> {
     const usuario = await authRepository.findUsuarioByEmail(email);
     if (!usuario || !usuario.password) {
       throw new UnauthorizedError('Credenciales incorrectas');
@@ -116,16 +141,32 @@ export const authService = {
       throw new NotFoundError('Negocio');
     }
 
-    const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, rol: usuario.rol, negocioId: negocio.id },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken({
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+      negocioId: negocio.id,
+    });
 
-    return { token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, negocioId: usuario.negocioId, creadoEn: usuario.creadoEn }, negocio, esNuevo: false };
+    return {
+      token,
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        negocioId: usuario.negocioId,
+        creadoEn: usuario.creadoEn,
+      },
+      negocio,
+      esNuevo: false,
+    };
   },
 
-  async obtenerUsuarioActual(userId: number, negocioId: number) {
+  async obtenerUsuarioActual(
+    userId: number,
+    negocioId: number,
+  ): Promise<{ usuario: UsuarioSafe; negocio: NegocioSafe }> {
     const usuario = await authRepository.findUsuarioById(userId);
     const negocio = await authRepository.findNegocioById(negocioId);
 
@@ -136,14 +177,18 @@ export const authService = {
     return { usuario, negocio };
   },
 
-  async updateAvatar(userId: number, negocioId: number, base64Image: string) {
+  async updateAvatar(
+    userId: number,
+    negocioId: number,
+    base64Image: string,
+  ): Promise<{ fotoPerfil: string }> {
     const usuario = await authRepository.findUsuarioById(userId);
     if (!usuario || usuario.negocioId !== negocioId) {
       throw new NotFoundError('Usuario');
     }
 
     // Si ya tenía foto en Cloudinary, podríamos intentar borrarla (opcional, por brevedad lo omitimos o lo borramos si guardamos el public_id. Cloudinary URL no es el public_id, requeriría parseo).
-    
+
     // Subir a Cloudinary
     const fotoPerfil = await uploadBase64Image(base64Image, `wavio/users/${userId}`);
 
@@ -153,7 +198,7 @@ export const authService = {
     return { fotoPerfil };
   },
 
-  async deleteAvatar(userId: number, negocioId: number) {
+  async deleteAvatar(userId: number, negocioId: number): Promise<{ success: boolean }> {
     const usuario = await authRepository.findUsuarioById(userId);
     if (!usuario || usuario.negocioId !== negocioId) {
       throw new NotFoundError('Usuario');
@@ -162,12 +207,16 @@ export const authService = {
     return { success: true };
   },
 
-  async updateNombre(userId: number, negocioId: number, nombre: string) {
+  async updateNombre(
+    userId: number,
+    negocioId: number,
+    nombre: string,
+  ): Promise<{ nombre: string }> {
     const usuario = await authRepository.findUsuarioById(userId);
     if (!usuario || usuario.negocioId !== negocioId) {
       throw new NotFoundError('Usuario');
     }
     const updated = await usuariosRepository.update(userId, { nombre: nombre.trim() });
     return { nombre: updated.nombre };
-  }
+  },
 };
