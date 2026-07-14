@@ -63,7 +63,7 @@ export const deleteUser = async (
   try {
     const negocioId = req.negocioId!;
     const { id } = req.params;
-    const requestingUserId = req.usuario?.id!;
+    const requestingUserId = req.usuario?.id ?? 0;
 
     await usuariosService.deleteUser(negocioId, parseInt(String(id)), requestingUserId);
     res.status(204).send();

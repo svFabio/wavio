@@ -140,9 +140,7 @@ export const citasService = {
     };
   },
 
-  async getResumen(
-    negocioId: number,
-  ): Promise<{
+  async getResumen(negocioId: number): Promise<{
     citasHoy: number;
     pendientes: number;
     proximasCitas: Cita[];

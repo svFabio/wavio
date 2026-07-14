@@ -64,9 +64,7 @@ export const statisticsRepository = {
     return ratingAgregado._avg.rating || 0;
   },
 
-  async getUltimosComentarios(
-    negocioId: number,
-  ): Promise<
+  async getUltimosComentarios(negocioId: number): Promise<
     {
       clienteNombre: string | null;
       rating: number | null;

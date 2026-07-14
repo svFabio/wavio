@@ -39,9 +39,7 @@ export const usuariosRepository = {
     return { data, total, page, limit };
   },
 
-  async findByEmail(
-    email: string,
-  ): Promise<{
+  async findByEmail(email: string): Promise<{
     id: number;
     email: string;
     password: string;
@@ -79,9 +77,7 @@ export const usuariosRepository = {
     });
   },
 
-  async create(
-    data: Parameters<typeof prisma.usuario.create>[0]['data'],
-  ): Promise<{
+  async create(data: Parameters<typeof prisma.usuario.create>[0]['data']): Promise<{
     id: number;
     nombre: string;
     email: string;
