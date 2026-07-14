@@ -13,7 +13,3 @@ export const uploadBase64Image = async (base64Str: string, folder: string): Prom
   });
   return uploadResponse.secure_url;
 };
-
-export const deleteImage = async (publicId: string): Promise<void> => {
-    await cloudinary.uploader.destroy(publicId);
-};
