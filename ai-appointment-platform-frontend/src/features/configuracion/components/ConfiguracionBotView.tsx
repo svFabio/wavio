@@ -1,4 +1,4 @@
-import type { Tab, Servicio } from '../types';
+import type { Tab, Servicio, HorarioNegocio } from '../types';
 import { HeaderCard } from './HeaderCard';
 import { GeneralTab } from './GeneralTab';
 import { ServiciosTab } from './ServiciosTab';
@@ -19,15 +19,20 @@ interface ConfiguracionBotViewProps {
   onCobrarAdelantoChange: (value: boolean) => void;
   porcentajeAdelanto: number;
   onPorcentajeAdelantoChange: (value: number) => void;
+  onSaveGeneral: () => void;
+  isGeneralPending: boolean;
+  isGeneralSuccess: boolean;
+  
   servicios: Servicio[];
-  onAddServicio: () => void;
-  onRemoveServicio: (key: number) => void;
-  onUpdateServicio: (key: number, field: 'nombre' | 'precio', value: string | number) => void;
-  horariosTexto: Record<string, string>;
-  onHorariosChange: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  onSave: () => void;
-  isPending: boolean;
-  isSuccess: boolean;
+  onAddServicio: (data: { nombre: string; duracionMinutos: number; bufferMinutos: number; precio: number }) => void;
+  onUpdateServicio: (id: number, data: Partial<Servicio>) => void;
+  onDeleteServicio: (id: number) => void;
+  
+  horarios: HorarioNegocio[];
+  onSaveHorarios: (horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>) => void;
+  isHorariosSaving: boolean;
+
+  isPendingAny: boolean;
 }
 
 const LoadingSkeleton = () => (
@@ -59,16 +64,6 @@ const LoadingSkeleton = () => (
         <div className="skeleton h-20 rounded-xl" />
         <div className="skeleton h-3 w-64 rounded" />
       </div>
-      <div className="border border-border-light rounded-xl p-4 space-y-4">
-        <div className="skeleton h-3 w-36 rounded" />
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="skeleton h-3 w-48 rounded" />
-            <div className="skeleton h-2.5 w-64 rounded" />
-          </div>
-          <div className="skeleton h-6 w-11 rounded-full" />
-        </div>
-      </div>
     </div>
   </div>
 );
@@ -94,15 +89,17 @@ export const ConfiguracionBotView = ({
   onCobrarAdelantoChange,
   porcentajeAdelanto,
   onPorcentajeAdelantoChange,
+  onSaveGeneral,
+  isGeneralPending,
+  isGeneralSuccess,
   servicios,
   onAddServicio,
-  onRemoveServicio,
   onUpdateServicio,
-  horariosTexto,
-  onHorariosChange,
-  onSave,
-  isPending,
-  isSuccess,
+  onDeleteServicio,
+  horarios,
+  onSaveHorarios,
+  isHorariosSaving,
+  isPendingAny,
 }: ConfiguracionBotViewProps) => {
   if (loading) {
     return <LoadingSkeleton />;
@@ -110,7 +107,23 @@ export const ConfiguracionBotView = ({
 
   return (
     <div className="space-y-6">
-      <HeaderCard isPending={isPending} isSuccess={isSuccess} onSave={onSave} />
+      {tab === 'general' && (
+        <HeaderCard isPending={isGeneralPending} isSuccess={isGeneralSuccess} onSave={onSaveGeneral} />
+      )}
+      
+      {/* For other tabs, we no longer need the HeaderCard since they save individually or we can hide it */}
+      {tab !== 'general' && (
+        <div className="card-modern overflow-hidden">
+          <div className="p-5 md:p-6 border-b border-border bg-surface flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-txt">
+                {TAB_LABELS[tab]}
+              </h1>
+              <p className="text-txt-muted text-sm mt-1">Configuración de {TAB_LABELS[tab].toLowerCase()} del bot</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 text-sm text-danger">
@@ -123,7 +136,9 @@ export const ConfiguracionBotView = ({
           <button
             key={t}
             onClick={() => onTabChange(t)}
-            className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${tab === t ? 'bg-surface text-txt shadow-sm border border-border' : 'text-txt-muted hover:text-txt'}`}
+            className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              tab === t ? 'bg-surface text-txt shadow-sm border border-border' : 'text-txt-muted hover:text-txt'
+            }`}
           >
             {TAB_LABELS[t]}
           </button>
@@ -148,14 +163,20 @@ export const ConfiguracionBotView = ({
       {tab === 'servicios' && (
         <ServiciosTab
           servicios={servicios}
-          onAddServicio={onAddServicio}
-          onRemoveServicio={onRemoveServicio}
-          onUpdateServicio={onUpdateServicio}
+          onAdd={onAddServicio}
+          onUpdate={onUpdateServicio}
+          onDelete={onDeleteServicio}
+          isLoading={isPendingAny}
         />
       )}
 
       {tab === 'horarios' && (
-        <HorariosTab horariosTexto={horariosTexto} onHorariosChange={onHorariosChange} />
+        <HorariosTab 
+          horarios={horarios} 
+          onSave={onSaveHorarios} 
+          isLoading={loading}
+          isSaving={isHorariosSaving} 
+        />
       )}
     </div>
   );

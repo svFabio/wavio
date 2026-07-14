@@ -1,11 +1,14 @@
+
+
 export interface RecursoEvento {
-  estado?: string;
+  tipo: 'resumen' | 'cita';
+  estado: string;
   telefono?: string;
-  tipo?: 'resumen' | 'cita';
-  count?: number;
   servicio?: string;
+  servicioId?: number;
   origen?: string;
   descripcion?: string;
+  count?: number;
   citaId?: string;
 }
 

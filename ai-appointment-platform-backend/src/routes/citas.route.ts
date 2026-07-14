@@ -32,6 +32,9 @@ const crearCitaAdminSchema = z.object({
   fecha: z.string().min(1, 'La fecha es requerida'),
   horario: z.string().min(1, 'El horario es requerido'),
   monto: z.number().min(0, 'El monto no puede ser negativo').optional(),
+  servicioId: z.number().int().optional(),
+  staffId: z.number().int().optional(),
+  duracionMinutos: z.number().int().min(15).max(480).optional(),
 });
 
 const reprogramarCitaSchema = z.object({

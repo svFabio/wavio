@@ -21,6 +21,8 @@ import webhookRoutes from './routes/webhook.route';
 import usuariosRoutes from './routes/usuarios.route';
 import statisticsRoutes from './routes/statistics.route';
 import negocioRoutes from './routes/negocio.route';
+import serviciosRoutes from './routes/servicios.route';
+import horariosRoutes from './routes/horarios.route';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -77,6 +79,8 @@ app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/users', usuariosRoutes);
 app.use('/api/v1/statistics', statisticsRoutes);
 app.use('/api/v1/negocio', negocioRoutes);
+app.use('/api/v1/servicios', serviciosRoutes);
+app.use('/api/v1/horarios', horariosRoutes);
 
 // ─── Legacy /api/* → 404 with migration hint ──────────────────────────────
 app.use('/api', (_req, res) => {

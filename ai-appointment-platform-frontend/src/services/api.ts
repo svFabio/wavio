@@ -1,5 +1,6 @@
 import type { Cita } from '../types';
 import { apiClient, ApiError } from '../lib/apiClient';
+import type { Servicio, HorarioNegocio, HorarioEspecial } from '../features/configuracion/types';
 
 export const api = {
   // --- AUTENTICACIÓN ---
@@ -110,10 +111,12 @@ export const api = {
     }
   },
 
-  obtenerHorariosDisponibles: async (fecha: string): Promise<string[]> => {
-    const data = await apiClient.get<{ horarios?: string[] }>(
-      `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`,
-    );
+  obtenerHorariosDisponibles: async (fecha: string, servicioId?: number): Promise<string[]> => {
+    let url = `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`;
+    if (servicioId) {
+      url += `&servicioId=${servicioId}`;
+    }
+    const data = await apiClient.get<{ horarios?: string[] }>(url);
     return data.horarios || [];
   },
 
@@ -122,6 +125,7 @@ export const api = {
     clienteTelefono: string;
     fecha: string;
     horario: string;
+    servicioId?: number;
   }): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.post('/citas/admin', datos);
@@ -255,10 +259,9 @@ export const api = {
       trigger: string;
       mensajeBienvenida: string;
       mensajeConfirmacion: string;
-      servicios: { nombre: string; precio: number }[];
-      horarios: Record<string, string[]>;
       cobrarAdelanto: boolean;
       porcentajeAdelanto: number;
+      timezone: string;
     }>('/configuracion');
   },
 
@@ -266,12 +269,44 @@ export const api = {
     trigger?: string;
     mensajeBienvenida?: string;
     mensajeConfirmacion?: string;
-    servicios?: { nombre: string; precio: number }[];
-    horarios?: Record<string, string[]>;
     cobrarAdelanto?: boolean;
     porcentajeAdelanto?: number;
+    timezone?: string;
   }) => {
     return apiClient.patch('/configuracion', data);
+  },
+
+  // --- SERVICIOS ---
+  getServicios: async () => {
+    return apiClient.get<Servicio[]>('/servicios');
+  },
+  createServicio: async (data: { nombre: string; duracionMinutos: number; bufferMinutos: number; precio: number }) => {
+    return apiClient.post<Servicio>('/servicios', data);
+  },
+  updateServicio: async (id: number, data: Partial<{ nombre: string; duracionMinutos: number; bufferMinutos: number; precio: number; activo: boolean }>) => {
+    return apiClient.patch<Servicio>(`/servicios/${id}`, data);
+  },
+  deleteServicio: async (id: number) => {
+    return apiClient.delete(`/servicios/${id}`);
+  },
+
+  // --- HORARIOS NEGOCIO ---
+  getHorariosNegocio: async () => {
+    return apiClient.get<HorarioNegocio[]>('/horarios');
+  },
+  updateHorariosNegocio: async (horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>) => {
+    return apiClient.put('/horarios', { horarios });
+  },
+
+  // --- HORARIOS ESPECIALES ---
+  getHorariosEspeciales: async () => {
+    return apiClient.get<HorarioEspecial[]>('/horarios/especiales');
+  },
+  createHorarioEspecial: async (data: { fecha: string; cerrado: boolean; horaInicio?: string; horaFin?: string }) => {
+    return apiClient.post<HorarioEspecial>('/horarios/especiales', data);
+  },
+  deleteHorarioEspecial: async (id: number) => {
+    return apiClient.delete(`/horarios/especiales/${id}`);
   },
 
   // --- STATISTICS ---

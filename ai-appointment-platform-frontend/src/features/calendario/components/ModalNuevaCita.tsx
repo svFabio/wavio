@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useHorariosDisponibles } from '../../../shared/hooks/useHorariosDisponibles';
-import { X, Plus, User, Phone, Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../../services/api';
+import { X, Plus, User, Phone, Calendar as CalendarIcon, Loader2, AlertCircle, Scissors } from 'lucide-react';
 import { HorariosGrid } from './HorariosGrid';
 
 interface DatosNuevaCita {
@@ -9,6 +11,7 @@ interface DatosNuevaCita {
   clienteTelefono: string;
   fecha: string;
   horario: string;
+  servicioId?: number;
 }
 
 interface ModalNuevaCitaProps {
@@ -29,6 +32,7 @@ export const ModalNuevaCita = ({
     clienteTelefono: '',
     fecha: fechaInicial ? format(fechaInicial, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     horario: '',
+    servicioId: undefined,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +40,15 @@ export const ModalNuevaCita = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
+  const { data: servicios = [] } = useQuery({
+    queryKey: ['servicios'],
+    queryFn: api.getServicios,
+  });
+
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
     formData.fecha,
     isOpen && !!formData.fecha,
+    formData.servicioId
   );
 
   useEffect(() => {
@@ -76,6 +86,13 @@ export const ModalNuevaCita = ({
     }
   }, [isOpen, horariosDisponibles, formData.horario]);
 
+  // Set initial service
+  useEffect(() => {
+    if (servicios.length > 0 && !formData.servicioId) {
+      setFormData(prev => ({ ...prev, servicioId: servicios[0].id }));
+    }
+  }, [servicios, formData.servicioId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -100,6 +117,7 @@ export const ModalNuevaCita = ({
         clienteTelefono: '',
         fecha: format(new Date(), 'yyyy-MM-dd'),
         horario: '',
+        servicioId: servicios[0]?.id,
       });
       onClose();
     } else {
@@ -114,6 +132,7 @@ export const ModalNuevaCita = ({
       clienteTelefono: '',
       fecha: format(new Date(), 'yyyy-MM-dd'),
       horario: '',
+      servicioId: servicios[0]?.id,
     });
     onClose();
   };
@@ -232,6 +251,24 @@ export const ModalNuevaCita = ({
                   min={format(new Date(), 'yyyy-MM-dd')}
                   className="input-modern pl-10"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-txt mb-1.5">Servicio</label>
+              <div className="relative">
+                <Scissors className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
+                <select
+                  value={formData.servicioId || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, servicioId: Number(e.target.value) }))}
+                  className="input-modern pl-10 appearance-none bg-surface"
+                >
+                  {servicios.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre} ({s.duracionMinutos} min)
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

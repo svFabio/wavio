@@ -71,6 +71,7 @@ export const getHorariosDisponibles = async (
     const result = await citasService.getHorariosDisponibles(
       req.negocioId!,
       req.query.fecha as string,
+      req.query.servicioId ? Number(req.query.servicioId) : undefined,
     );
     res.json({ horarios: result });
   } catch (error) {

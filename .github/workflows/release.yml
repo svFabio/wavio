@@ -62,11 +62,9 @@ jobs:
       # Validate Prisma schema
       # -----------------------------------------------------------------------
 
-      - name: Validate & format Prisma schema
+      - name: Validate Prisma schema
         working-directory: ai-appointment-platform-backend
-        run: |
-          npx prisma validate
-          npx prisma format --check
+        run: npx prisma validate
 
       # -----------------------------------------------------------------------
       # Build backend

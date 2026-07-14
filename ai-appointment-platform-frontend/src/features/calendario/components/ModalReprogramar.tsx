@@ -28,6 +28,7 @@ export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalRepro
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
     fecha,
     isOpen,
+    cita.resource?.servicioId
   );
 
   // Focus trap and return focus

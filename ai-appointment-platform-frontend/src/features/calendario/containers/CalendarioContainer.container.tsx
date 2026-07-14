@@ -97,6 +97,7 @@ export const CalendarioContainer = () => {
           estado: cita.estado,
           telefono: cita.clienteTelefono,
           servicio: cita.servicio || 'Spa',
+          servicioId: (cita as any).servicioId,
           origen: cita.origen || 'virtual',
           descripcion: cita.descripcion || '',
           citaId: cita.id.toString(),

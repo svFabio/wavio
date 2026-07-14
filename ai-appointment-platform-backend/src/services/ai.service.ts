@@ -80,6 +80,8 @@ export interface ResultadoIA {
 export const procesarMensajeConIA = async (
   mensaje: string,
   contexto: ContextoConversacion,
+  serviciosDisponibles?: string[],
+  slotsDisponibles?: string[]
 ): Promise<ResultadoIA> => {
   if (!mensaje || mensaje.length > 1000) {
     return {
@@ -91,7 +93,7 @@ export const procesarMensajeConIA = async (
     };
   }
   try {
-    const prompt = construirPrompt(mensaje, contexto);
+    const prompt = construirPrompt(mensaje, contexto, serviciosDisponibles, slotsDisponibles);
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -146,13 +148,21 @@ export const procesarMensajeConIA = async (
 /**
  * Construye el prompt contextual para Gemini
  */
-const construirPrompt = (mensaje: string, contexto: ContextoConversacion): string => {
+const construirPrompt = (
+  mensaje: string, 
+  contexto: ContextoConversacion,
+  serviciosDisponibles?: string[],
+  slotsDisponibles?: string[]
+): string => {
+  const serviciosText = serviciosDisponibles?.length ? `\n- Servicios disponibles: ${serviciosDisponibles.join(', ')}` : '';
+  const slotsText = slotsDisponibles?.length ? `\n- Horarios disponibles (slots): ${slotsDisponibles.join(', ')}` : '';
+
   const ejemplos = `
 Eres un asistente virtual de una clínica/consultorio en Bolivia que ayuda a agendar citas por WhatsApp.
 
 **Contexto actual:**
 - Estado de conversación: ${contexto.estado}
-- Datos recopilados: ${JSON.stringify(contexto.datos)}
+- Datos recopilados: ${JSON.stringify(contexto.datos)}${serviciosText}${slotsText}
 
 **Tu tarea:**
 Analiza el siguiente mensaje del usuario y extrae información estructurada en formato JSON.
@@ -173,6 +183,7 @@ Analiza el siguiente mensaje del usuario y extrae información estructurada en f
 - Si el mensaje es ambiguo o poco claro, marca confianza < 0.6
 - Si menciona fechas relativas como "viernes" sin especificar cuál, extráelo igual
 - Sé flexible con errores tipográficos (ej: "veirnes" = "viernes")
+- NO inventes horarios. Solo ofrece los que están en la lista de slots disponibles.
 
 **Responde ÚNICAMENTE con JSON válido:**
 {

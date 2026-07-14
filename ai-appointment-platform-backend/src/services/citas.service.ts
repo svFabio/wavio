@@ -6,19 +6,10 @@ import { NotFoundError, ConflictError, ValidationError } from '../domain/errors'
 import { Cita } from '../domain/types';
 import { enviarMensaje } from '../lib/whatsapp';
 import { getSocket } from '../lib/socket';
+import { getSlotsDisponibles } from './availability.service';
 import pino from 'pino';
 
-const logger = pino();
-const HORARIOS_DEFINIDOS = ['13:00', '14:00', '15:00', '16:00', '17:00'];
-const DIAS_SEMANA = [
-  'domingo',
-  'lunes',
-  'martes',
-  'miercoles',
-  'jueves',
-  'viernes',
-  'sabado',
-] as const;
+const logger = pino({ name: 'citas-service' });
 
 export const citasService = {
   async getPendientes(
@@ -141,66 +132,67 @@ export const citasService = {
   },
 
   async getResumen(negocioId: number): Promise<{
-    citasHoy: number;
+    totalHoy: number;
     pendientes: number;
-    proximasCitas: Cita[];
-    totalFuturas: number;
+    completadas: number;
+    ingresos: number;
   }> {
     const inicioHoy = new Date();
     inicioHoy.setHours(0, 0, 0, 0);
     const finHoy = new Date();
     finHoy.setHours(23, 59, 59, 999);
 
-    const [citasHoy, pendientes, totalFuturas, proximasCitas] = await Promise.all([
+    const [totalHoy, pendientes, completadas] = await Promise.all([
+      citasRepository.getCitasCount(negocioId, {
+        fecha: { gte: inicioHoy, lte: finHoy },
+        estado: { notIn: ['CANCELADA'] },
+      }),
+      citasRepository.getCitasCount(negocioId, { estado: 'VALIDACION_PENDIENTE' }),
       citasRepository.getCitasCount(negocioId, {
         fecha: { gte: inicioHoy, lte: finHoy },
         estado: 'CONFIRMADA',
       }),
-      citasRepository.getCitasCount(negocioId, { estado: 'VALIDACION_PENDIENTE' }),
-      citasRepository.getCitasCount(negocioId, {
-        fecha: { gte: new Date() },
-        estado: { not: 'CANCELADA' },
-      }),
-      citasRepository.getProximasCitas(negocioId, inicioHoy, finHoy, 5),
     ]);
 
-    return { citasHoy, pendientes, proximasCitas, totalFuturas };
+    return { totalHoy, pendientes, completadas, ingresos: 0 };
   },
 
-  async getHorariosDisponibles(negocioId: number, fechaStr: string): Promise<string[]> {
+  /**
+   * Obtiene los horarios disponibles usando el availability engine.
+   * Retorna un array de strings "HH:mm" para backward compatibility con el frontend.
+   */
+  async getHorariosDisponibles(
+    negocioId: number,
+    fechaStr: string,
+    servicioId?: number,
+    staffId?: number,
+  ): Promise<string[]> {
     if (!fechaStr) throw new ValidationError('Fecha requerida');
 
-    const [year, month, day] = fechaStr.split('-').map(Number);
-    const inicio = new Date(year, month - 1, day);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(inicio);
-    fin.setHours(23, 59, 59, 999);
-
-    const ocupadas = await citasRepository.getOcupadas(negocioId, inicio, fin);
-    const diaNombre = DIAS_SEMANA[inicio.getDay()];
-
-    const config = await configuracionRepository.getOrCreateByNegocioId(negocioId);
-    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
-    const horariosPermitidos =
-      (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
-
-    const horasOcupadas = ocupadas.map((c) => c.horario);
-    let disponibles = horariosPermitidos.filter((h) => !horasOcupadas.includes(h));
-
-    const ahora = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/La_Paz' }));
-    const esHoy =
-      ahora.getFullYear() === year && ahora.getMonth() === month - 1 && ahora.getDate() === day;
-
-    if (esHoy) {
-      const horaActual = ahora.getHours();
-      const minutoActual = ahora.getMinutes();
-      disponibles = disponibles.filter((horario) => {
-        const [hora, minuto] = horario.split(':').map(Number);
-        return hora > horaActual || (hora === horaActual && minuto > minutoActual);
+    // Si no se especifica servicio, buscar el primero activo del negocio
+    let resolvedServicioId = servicioId;
+    if (!resolvedServicioId) {
+      const { prisma } = await import('../repositories/prisma');
+      const primerServicio = await prisma.servicio.findFirst({
+        where: { negocioId, activo: true },
+        orderBy: { id: 'asc' },
       });
+      if (!primerServicio) {
+        throw new ValidationError('No hay servicios configurados para este negocio');
+      }
+      resolvedServicioId = primerServicio.id;
     }
 
-    return disponibles;
+    const config = await configuracionRepository.getOrCreateByNegocioId(negocioId);
+    const slots = await getSlotsDisponibles({
+      negocioId,
+      servicioId: resolvedServicioId,
+      fecha: fechaStr,
+      staffId,
+      timezone: config.timezone,
+    });
+
+    return slots.map((s) => s.inicio);
   },
 
   async crearCitaAdmin(negocioId: number, data: Record<string, unknown>): Promise<Cita> {
@@ -209,20 +201,28 @@ export const citasService = {
     const fecha = String(data.fecha);
     const horario = String(data.horario);
     const monto = typeof data.monto === 'number' ? data.monto : 0;
+    const servicioId = typeof data.servicioId === 'number' ? data.servicioId : null;
+    const staffId = typeof data.staffId === 'number' ? data.staffId : null;
+    const duracionMinutos = typeof data.duracionMinutos === 'number' ? data.duracionMinutos : 60;
 
     const [year, month, day] = fecha.split('-').map(Number);
     const fechaCita = new Date(year, month - 1, day);
-    const diaNombre = DIAS_SEMANA[fechaCita.getDay()];
 
-    const config = await configuracionRepository.getOrCreateByNegocioId(negocioId);
-    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
-    const horariosPermitidos =
-      (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
+    // Validar que el slot esté disponible usando el availability engine
+    if (servicioId) {
+      const slots = await getSlotsDisponibles({
+        negocioId,
+        servicioId,
+        fecha,
+        staffId: staffId ?? undefined,
+      });
 
-    if (!horariosPermitidos.includes(horario)) {
-      throw new ValidationError(
-        `Horario inválido para el día ${diaNombre}. Horarios disponibles: ${horariosPermitidos.join(', ')}`,
-      );
+      const slotValido = slots.find((s) => s.inicio === horario);
+      if (!slotValido) {
+        throw new ValidationError(
+          `Horario ${horario} no está disponible para la fecha ${fecha}`,
+        );
+      }
     }
 
     const [horas, minutos] = horario.split(':').map(Number);
@@ -236,6 +236,9 @@ export const citasService = {
         monto,
         estado: 'CONFIRMADA',
         origen: 'presencial',
+        servicioId: servicioId ?? undefined,
+        duracionMinutos,
+        staffId: staffId ?? undefined,
       });
     } catch (err) {
       if (err instanceof Error && err.message === 'SLOT_OCCUPIED') {
@@ -270,26 +273,30 @@ export const citasService = {
     if (!fecha || !horario) throw new ValidationError('Fecha y horario son requeridos');
     const [year, month, day] = fecha.split('-').map(Number);
     const nuevaFecha = new Date(year, month - 1, day);
-    const diaNombre = DIAS_SEMANA[nuevaFecha.getDay()];
 
-    const config = await configuracionRepository.getOrCreateByNegocioId(negocioId);
-    const horariosNegocio = config.horarios as Record<string, string[]> | undefined;
-    const horariosPermitidos =
-      (horariosNegocio && horariosNegocio[diaNombre]) || HORARIOS_DEFINIDOS;
+    const citaActual = await citasRepository.getByIdAndNegocio(id, negocioId);
+    if (!citaActual) throw new NotFoundError('Cita');
 
-    if (!horariosPermitidos.includes(horario)) {
-      throw new ValidationError(
-        `Horario inválido para el día ${diaNombre}. Disponibles: ${horariosPermitidos.join(', ')}`,
-      );
+    // Validar slot disponible si tiene servicio asignado
+    if (citaActual.servicioId) {
+      const slots = await getSlotsDisponibles({
+        negocioId,
+        servicioId: citaActual.servicioId,
+        fecha,
+        staffId: citaActual.staffId ?? undefined,
+      });
+
+      const slotValido = slots.find((s) => s.inicio === horario);
+      if (!slotValido) {
+        throw new ValidationError(
+          `Horario ${horario} no está disponible para la fecha ${fecha}`,
+        );
+      }
     }
 
     const [horas, minutos] = horario.split(':').map(Number);
     nuevaFecha.setHours(horas, minutos, 0, 0);
 
-    const citaActual = await citasRepository.getByIdAndNegocio(id, negocioId);
-    if (!citaActual) throw new NotFoundError('Cita');
-
-    // Atomic check+update to prevent double-booking race condition
     const citaActualizada = await citasRepository.reprogramarIfSlotAvailable(
       id,
       negocioId,

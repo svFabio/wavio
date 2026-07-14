@@ -6,6 +6,7 @@ interface CrearCitaParams {
   clienteTelefono: string;
   fecha: string;
   horario: string;
+  servicioId?: number;
 }
 
 export function useCrearCitaMutation() {

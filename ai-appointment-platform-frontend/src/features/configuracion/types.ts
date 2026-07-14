@@ -1,10 +1,27 @@
 export interface Servicio {
-  _key: number;
+  id: number;
   nombre: string;
+  duracionMinutos: number;
+  bufferMinutos: number;
   precio: number;
+  activo: boolean;
 }
 
-export type Horarios = Record<string, string[]>;
+export interface HorarioNegocio {
+  id: number;
+  diaSemana: number; // 0=domingo, 1=lunes, ..., 6=sabado
+  horaInicio: string;
+  horaFin: string;
+  activo: boolean;
+}
+
+export interface HorarioEspecial {
+  id: number;
+  fecha: string;
+  cerrado: boolean;
+  horaInicio: string | null;
+  horaFin: string | null;
+}
 
 export type Tab = 'general' | 'servicios' | 'horarios';
 
@@ -13,34 +30,17 @@ export interface ConfigData {
   trigger: string;
   mensajeBienvenida: string;
   mensajeConfirmacion: string;
-  servicios: Servicio[];
-  horarios: Record<string, string[]>;
   cobrarAdelanto: boolean;
   porcentajeAdelanto: number;
+  timezone: string;
 }
 
-export const DIAS = [
-  'lunes',
-  'martes',
-  'miercoles',
-  'jueves',
-  'viernes',
-  'sabado',
-  'domingo',
+export const DIAS_SEMANA = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Lunes' },
+  { value: 2, label: 'Martes' },
+  { value: 3, label: 'Miercoles' },
+  { value: 4, label: 'Jueves' },
+  { value: 5, label: 'Viernes' },
+  { value: 6, label: 'Sabado' },
 ] as const;
-
-export const DIAS_LABEL: Record<string, string> = {
-  lunes: 'Lunes',
-  martes: 'Martes',
-  miercoles: 'Miercoles',
-  jueves: 'Jueves',
-  viernes: 'Viernes',
-  sabado: 'Sabado',
-  domingo: 'Domingo',
-};
-
-export const makeServicio = (): Servicio => ({
-  _key: Date.now() + Math.random(),
-  nombre: '',
-  precio: 0,
-});

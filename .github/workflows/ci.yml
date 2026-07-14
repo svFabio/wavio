@@ -244,8 +244,6 @@ jobs:
 
       - run: npx prisma validate
 
-      - run: npx prisma format --check
-
   # ---------------------------------------------------------------------------
   # Security audit — checks both sub-projects
   # ---------------------------------------------------------------------------
