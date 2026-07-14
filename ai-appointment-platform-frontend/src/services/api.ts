@@ -4,17 +4,16 @@ import { apiClient, ApiError } from '../lib/apiClient';
 export const api = {
   // --- AUTENTICACIÓN ---
   loginConGoogle: async (googleToken: string) => {
-    return apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
-      '/auth/google',
-      { googleToken }
-    );
+    return apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>('/auth/google', {
+      googleToken,
+    });
   },
 
   register: async (email: string, password: string) => {
     try {
       return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
         '/auth/register',
-        { email, password }
+        { email, password },
       );
     } catch (err) {
       if (err instanceof ApiError) throw err;
@@ -26,7 +25,7 @@ export const api = {
     try {
       return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
         '/auth/login',
-        { email, password }
+        { email, password },
       );
     } catch (err) {
       if (err instanceof ApiError) throw err;
@@ -37,9 +36,15 @@ export const api = {
   me: async (token: string) => {
     try {
       return await apiClient.get<{
-        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
+        usuario: {
+          id: number;
+          nombre: string;
+          email: string;
+          rol: 'ADMIN' | 'STAFF';
+          fotoPerfil?: string;
+        };
         negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
-      }>('/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+      }>('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
     } catch {
       return null;
     }
@@ -60,11 +65,13 @@ export const api = {
   // --- CITAS ---
   obtenerCitas: async (fecha?: string): Promise<Cita[]> => {
     const url = fecha ? `/citas?fecha=${encodeURIComponent(fecha)}` : '/citas';
-    return apiClient.get<Cita[]>(url);
+    const res = await apiClient.get<{ data: Cita[]; pagination: unknown }>(url);
+    return res.data;
   },
 
   obtenerPendientes: async (): Promise<Cita[]> => {
-    return apiClient.get<Cita[]>('/citas/pendientes');
+    const res = await apiClient.get<{ data: Cita[]; pagination: unknown }>('/citas/pendientes');
+    return res.data;
   },
 
   validarPago: async (id: string, accion: 'APROBAR' | 'RECHAZAR'): Promise<boolean> => {
@@ -78,7 +85,7 @@ export const api = {
 
   obtenerHorariosDisponibles: async (fecha: string): Promise<string[]> => {
     const data = await apiClient.get<{ horarios?: string[] }>(
-      `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`
+      `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`,
     );
     return data.horarios || [];
   },
@@ -107,7 +114,11 @@ export const api = {
     }>('/citas/resumen');
   },
 
-  reprogramarCita: async (id: string, fecha: string, horario: string): Promise<{ success: boolean; error?: string }> => {
+  reprogramarCita: async (
+    id: string,
+    fecha: string,
+    horario: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.put(`/citas/${id}/reprogramar`, { fecha, horario });
       return { success: true };
@@ -137,7 +148,10 @@ export const api = {
     }
   },
 
-  actualizarDescripcion: async (id: string, descripcion: string): Promise<{ success: boolean; error?: string }> => {
+  actualizarDescripcion: async (
+    id: string,
+    descripcion: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.put(`/citas/${id}/descripcion`, { descripcion });
       return { success: true };
@@ -149,14 +163,25 @@ export const api = {
 
   // --- CHAT ---
   obtenerConversaciones: async () => {
-    return apiClient.get<import('../types').Conversacion[]>('/chat/conversaciones');
+    const res = await apiClient.get<{
+      data: import('../types').Conversacion[];
+      pagination: unknown;
+    }>('/chat/conversaciones');
+    return res.data;
   },
 
   obtenerMensajes: async (jid: string) => {
-    return apiClient.get<import('../types').MensajeChat[]>(`/chat/mensajes/${encodeURIComponent(jid)}`);
+    const res = await apiClient.get<{
+      data: import('../types').MensajeChat[];
+      pagination: unknown;
+    }>(`/chat/mensajes/${encodeURIComponent(jid)}`);
+    return res.data;
   },
 
-  enviarMensajeChat: async (jid: string, texto: string): Promise<{ success: boolean; error?: string }> => {
+  enviarMensajeChat: async (
+    jid: string,
+    texto: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.post(`/chat/enviar/${encodeURIComponent(jid)}`, { texto });
       return { success: true };
@@ -180,11 +205,16 @@ export const api = {
     return apiClient.get<{ connected: boolean; phone?: string } | null>('/whatsapp/status');
   },
 
-  guardarCredencialesWhatsApp: async (waAccessToken: string, waPhoneNumberId: string, waWabaId: string) => {
-    return apiClient.post<{ success?: boolean; error?: string }>(
-      '/whatsapp/save-credentials',
-      { waAccessToken, waPhoneNumberId, waWabaId }
-    );
+  guardarCredencialesWhatsApp: async (
+    waAccessToken: string,
+    waPhoneNumberId: string,
+    waWabaId: string,
+  ) => {
+    return apiClient.post<{ success?: boolean; error?: string }>('/whatsapp/save-credentials', {
+      waAccessToken,
+      waPhoneNumberId,
+      waWabaId,
+    });
   },
 
   desvincularWhatsApp: async () => {
@@ -232,26 +262,38 @@ export const api = {
 
   getStatisticsRevenue: async (months: number = 6) => {
     return apiClient.get<{ revenue: Array<{ mes: string; total: number }> }>(
-      `/statistics/revenue?months=${months}`
+      `/statistics/revenue?months=${months}`,
     );
   },
 
   // --- USERS ---
   getUsers: async () => {
-    return apiClient.get<Array<{
-      id: number;
-      nombre: string;
-      email: string;
-      rol: 'ADMIN' | 'STAFF';
-      creadoEn: string;
-    }>>('/users');
+    const res = await apiClient.get<{
+      data: Array<{
+        id: number;
+        nombre: string;
+        email: string;
+        rol: 'ADMIN' | 'STAFF';
+        creadoEn: string;
+      }>;
+      pagination: unknown;
+    }>('/users');
+    return res.data;
   },
 
-  createUser: async (data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' }) => {
+  createUser: async (data: {
+    nombre: string;
+    email: string;
+    password: string;
+    rol: 'ADMIN' | 'STAFF';
+  }) => {
     return apiClient.post('/users', data);
   },
 
-  updateUser: async (id: number, data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' }) => {
+  updateUser: async (
+    id: number,
+    data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' },
+  ) => {
     return apiClient.put(`/users/${id}`, data);
   },
 

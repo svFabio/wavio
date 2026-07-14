@@ -1,6 +1,6 @@
 import { auth } from './auth';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 export class ApiError extends Error {
   status: number;
@@ -41,9 +41,10 @@ async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Pro
       window.dispatchEvent(new Event('unauthorized'));
     }
     const errorData = data as Record<string, unknown> | null;
-    const message = (errorData && typeof errorData === 'object' && 'error' in errorData)
-      ? String(errorData.error)
-      : response.statusText;
+    const message =
+      errorData && typeof errorData === 'object' && 'error' in errorData
+        ? String(errorData.error)
+        : response.statusText;
     throw new ApiError(message, response.status, data);
   }
 
@@ -54,11 +55,23 @@ export const apiClient = {
   get: <T>(endpoint: string, options?: RequestInit) =>
     fetchWrapper<T>(endpoint, { ...options, method: 'GET' }),
   post: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
-    fetchWrapper<T>(endpoint, { ...options, method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
+    fetchWrapper<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
   put: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
-    fetchWrapper<T>(endpoint, { ...options, method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }),
+    fetchWrapper<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
   patch: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
-    fetchWrapper<T>(endpoint, { ...options, method: 'PATCH', body: body !== undefined ? JSON.stringify(body) : undefined }),
+    fetchWrapper<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
   delete: <T>(endpoint: string, options?: RequestInit) =>
     fetchWrapper<T>(endpoint, { ...options, method: 'DELETE' }),
 };

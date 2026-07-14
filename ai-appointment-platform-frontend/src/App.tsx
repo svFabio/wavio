@@ -1,22 +1,23 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useCallback } from 'react';
+import { useCallback, Suspense, lazy } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import { useSocketEvent } from './shared/hooks/useSocketEvent';
-import Dashboard from './pages/Dashboard';
-import Pagos from './pages/Pagos';
-import Calendario from './pages/Calendario';
-import Home from './pages/Home';
-import Vincular from './pages/Vincular';
-import Login from './pages/Login';
-import Onboarding from './pages/Onboarding';
-import Statistics from './pages/Statistics';
-import Users from './pages/Users';
-import Chat from './pages/Chat';
-import ConfiguracionBot from './pages/ConfiguracionBot';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Pagos = lazy(() => import('./pages/Pagos'));
+const Calendario = lazy(() => import('./pages/Calendario'));
+const Home = lazy(() => import('./pages/Home'));
+const Vincular = lazy(() => import('./pages/Vincular'));
+const Login = lazy(() => import('./pages/Login'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Statistics = lazy(() => import('./pages/Statistics'));
+const Users = lazy(() => import('./pages/Users'));
+const Chat = lazy(() => import('./pages/Chat'));
+const ConfiguracionBot = lazy(() => import('./pages/ConfiguracionBot'));
 import { NotificationToast } from './components/NotificationToast';
 import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
@@ -28,16 +29,19 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 function App() {
   const { notifications, addNotification, dismissNotification } = useNotifications();
 
-  const handleNuevaCita = useCallback((data: { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string }) => {
-    const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
-    addNotification({
-      message: `Nueva cita de ${data.clienteNombre}`,
-      clienteNombre: data.clienteNombre,
-      fecha: fechaFormateada,
-      horario: data.horario
-    });
-    playNotificationSound();
-  }, [addNotification]);
+  const handleNuevaCita = useCallback(
+    (data: { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string }) => {
+      const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
+      addNotification({
+        message: `Nueva cita de ${data.clienteNombre}`,
+        clienteNombre: data.clienteNombre,
+        fecha: fechaFormateada,
+        horario: data.horario,
+      });
+      playNotificationSound();
+    },
+    [addNotification],
+  );
 
   useSocketEvent('nueva-cita', handleNuevaCita);
 
@@ -62,56 +66,85 @@ function App() {
             </div>
 
             <ErrorBoundary>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/onboarding" element={
-                <ProtectedRoute>
-                  <Onboarding />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Home />} />
-                <Route path="calendario" element={<Calendario />} />
-                <Route path="pagos" element={<Pagos />} />
-                <Route path="chat" element={<Chat />} />
-                <Route path="vincular" element={<Vincular />} />
-
-                <Route path="statistics" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <Statistics />
-                  </ProtectedRoute>
-                } />
-                <Route path="users" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <Users />
-                  </ProtectedRoute>
-                } />
-                <Route path="configuracion-bot" element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <ConfiguracionBot />
-                  </ProtectedRoute>
-                } />
-              </Route>
-
-              <Route path="*" element={
-                <div className="flex items-center justify-center min-h-screen bg-surface-alt">
-                  <div className="text-center">
-                    <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
-                    <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
-                    <a href="/dashboard" className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors">
-                      Volver al Dashboard
-                    </a>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-screen">
+                    <div className="skeleton w-48 h-8 rounded" />
                   </div>
-                </div>
-              } />
-            </Routes>
+                }
+              >
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/onboarding"
+                    element={
+                      <ProtectedRoute>
+                        <Onboarding />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Home />} />
+                    <Route path="calendario" element={<Calendario />} />
+                    <Route path="pagos" element={<Pagos />} />
+                    <Route path="chat" element={<Chat />} />
+                    <Route path="vincular" element={<Vincular />} />
+
+                    <Route
+                      path="statistics"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <Statistics />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="users"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <Users />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="configuracion-bot"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <ConfiguracionBot />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Route>
+
+                  <Route
+                    path="*"
+                    element={
+                      <div className="flex items-center justify-center min-h-screen bg-surface-alt">
+                        <div className="text-center">
+                          <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
+                          <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
+                          <a
+                            href="/dashboard"
+                            className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors"
+                          >
+                            Volver al Dashboard
+                          </a>
+                        </div>
+                      </div>
+                    }
+                  />
+                </Routes>
+              </Suspense>
             </ErrorBoundary>
           </div>
         </AuthProvider>

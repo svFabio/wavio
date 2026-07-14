@@ -13,11 +13,11 @@ export const ValidationCard = ({ cita, onAction }: Props) => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div>
             <h3 className="font-bold text-txt text-lg md:text-xl">{cita.clienteNombre}</h3>
-            <p className="text-sm text-txt-secondary font-medium mt-1">Telefono: {cita.clienteTelefono}</p>
+            <p className="text-sm text-txt-secondary font-medium mt-1">
+              Telefono: {cita.clienteTelefono}
+            </p>
           </div>
-          <span className="badge badge-warning">
-            {cita.estado}
-          </span>
+          <span className="badge badge-warning">{cita.estado}</span>
         </div>
       </div>
 
@@ -25,7 +25,9 @@ export const ValidationCard = ({ cita, onAction }: Props) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-bold text-txt-muted uppercase tracking-wider mb-2">Fecha Solicitada</p>
+              <p className="text-xs font-bold text-txt-muted uppercase tracking-wider mb-2">
+                Fecha Solicitada
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm md:text-base">
                 <div className="bg-surface-elevated p-3 rounded-lg">
                   <span className="text-txt-secondary font-medium">Fecha:</span>
