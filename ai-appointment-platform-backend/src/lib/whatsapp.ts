@@ -4,6 +4,8 @@ import pino from 'pino';
 
 const logger = pino();
 
+const sanitizeForLog = (value: unknown): string => String(value).replace(/[\r\n]/g, ' ');
+
 export type WaCredentials = {
   waAccessToken: string;
   waPhoneNumberId: string;
@@ -65,7 +67,7 @@ export const enviarMensaje = async (
     if (err instanceof WhatsAppError || err instanceof ExternalServiceError) {
       throw err;
     }
-    logger.error({ err }, `[MetaGraph] Exception enviando mensaje a ${numero}`);
+    logger.error({ err }, `[MetaGraph] Exception enviando mensaje a ${sanitizeForLog(numero)}`);
     throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
   }
 };
@@ -107,7 +109,9 @@ export const enviarImagen = async (
 
     if (!response.ok) {
       const errBody = await response.text();
-      logger.error(`[MetaGraph] HTTP ${response.status} enviando imagen a ${numero}: ${errBody}`);
+      logger.error(
+        `[MetaGraph] HTTP ${response.status} enviando imagen a ${sanitizeForLog(numero)}: ${sanitizeForLog(errBody)}`,
+      );
       throw new ExternalServiceError(
         `Meta API responded with HTTP ${response.status}`,
         'WHATSAPP_ERROR',
@@ -117,7 +121,7 @@ export const enviarImagen = async (
 
     const data = await response.json();
     if (data.error) {
-      logger.error({ err: data.error }, `[MetaGraph] Error enviando imagen a ${numero}`);
+      logger.error({ err: data.error }, `[MetaGraph] Error enviando imagen a ${sanitizeForLog(numero)}`);
       throw new ExternalServiceError(data.error.message || 'Meta API error', 'WHATSAPP_ERROR', 502);
     }
 
@@ -131,7 +135,7 @@ export const enviarImagen = async (
     if (err instanceof WhatsAppError || err instanceof ExternalServiceError) {
       throw err;
     }
-    logger.error({ err }, `[MetaGraph] Exception enviando imagen a ${numero}`);
+    logger.error({ err }, `[MetaGraph] Exception enviando imagen a ${sanitizeForLog(numero)}`);
     throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
   }
 };
