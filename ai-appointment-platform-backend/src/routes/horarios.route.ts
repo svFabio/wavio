@@ -5,7 +5,6 @@ import { tenantMiddleware } from '../middleware/tenant.middleware';
 import { validateBody } from '../middleware/validate';
 import { horariosNegocioRepository } from '../repositories/horariosNegocio.repository';
 import { horariosEspecialesRepository } from '../repositories/horariosEspeciales.repository';
-import { AppError } from '../domain/errors';
 
 const router = Router();
 router.use(verificarToken, tenantMiddleware);
