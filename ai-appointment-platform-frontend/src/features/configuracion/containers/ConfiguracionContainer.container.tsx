@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { ConfiguracionView } from '../components/ConfiguracionView';
-import type { Servicio, HorarioNegocio } from '../types';
+import type { Servicio, HorarioNegocio, HorarioEspecial } from '../types';
 
 export const ConfiguracionContainer = () => {
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,12 @@ export const ConfiguracionContainer = () => {
     queryFn: api.getHorariosNegocio,
   });
 
-  const isLoading = loadingServicios || loadingHorarios;
+  const { data: horariosEspecialesData, isLoading: loadingHorariosEspeciales } = useQuery<HorarioEspecial[]>({
+    queryKey: ['horariosEspeciales'],
+    queryFn: api.getHorariosEspeciales,
+  });
+
+  const isLoading = loadingServicios || loadingHorarios || loadingHorariosEspeciales;
 
   const addServicioMutation = useMutation({
     mutationFn: (data: {
@@ -48,11 +53,25 @@ export const ConfiguracionContainer = () => {
     onError: (e: Error) => setError(e.message || 'Error guardando horarios'),
   });
 
+  const createHorarioEspecialMutation = useMutation({
+    mutationFn: (data: { fecha: string; cerrado: boolean; horaInicio: string | null; horaFin: string | null }) => api.createHorarioEspecial(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horariosEspeciales'] }),
+    onError: (e: Error) => setError(e.message || 'Error creando horario especial'),
+  });
+
+  const deleteHorarioEspecialMutation = useMutation({
+    mutationFn: (id: number) => api.deleteHorarioEspecial(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horariosEspeciales'] }),
+    onError: (e: Error) => setError(e.message || 'Error eliminando horario especial'),
+  });
+
   const isPending =
     addServicioMutation.isPending ||
     updateServicioMutation.isPending ||
     deleteServicioMutation.isPending ||
-    saveHorariosMutation.isPending;
+    saveHorariosMutation.isPending ||
+    createHorarioEspecialMutation.isPending ||
+    deleteHorarioEspecialMutation.isPending;
 
   return (
     <ConfiguracionView
@@ -65,6 +84,9 @@ export const ConfiguracionContainer = () => {
       horarios={horariosData || []}
       onSaveHorarios={(horarios) => saveHorariosMutation.mutate(horarios)}
       isHorariosSaving={saveHorariosMutation.isPending}
+      horariosEspeciales={horariosEspecialesData || []}
+      onCreateHorarioEspecial={(data) => createHorarioEspecialMutation.mutate(data)}
+      onDeleteHorarioEspecial={(id) => deleteHorarioEspecialMutation.mutate(id)}
       isPendingAny={isPending}
     />
   );

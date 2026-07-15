@@ -9,6 +9,8 @@ import { StatCard } from './StatCard';
 interface HomeViewProps {
   data: ResumenData | null | undefined;
   loading: boolean;
+  citas: any[];
+  citasLoading: boolean;
 }
 
 const getGreeting = () => {
@@ -18,7 +20,7 @@ const getGreeting = () => {
   return 'Buenas noches';
 };
 
-export const HomeView = ({ data, loading }: HomeViewProps) => {
+export const HomeView = ({ data, loading, citas, citasLoading }: HomeViewProps) => {
   if (loading || !data)
     return (
       <div className="space-y-6">
@@ -155,7 +157,7 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
             Ver calendario <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <AgendaTable citas={[]} />
+        <AgendaTable citas={citas} />
       </div>
     </div>
   );

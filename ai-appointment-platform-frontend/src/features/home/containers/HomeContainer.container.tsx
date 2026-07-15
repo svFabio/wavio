@@ -9,5 +9,10 @@ export const HomeContainer = () => {
     queryFn: () => api.obtenerResumen(),
   });
 
-  return <HomeView data={data} loading={loading} />;
+  const { data: citasData, isLoading: citasLoading } = useQuery({
+    queryKey: ['citas', 'hoy'],
+    queryFn: () => api.obtenerCitas(new Date().toISOString().split('T')[0]),
+  });
+
+  return <HomeView data={data} loading={loading} citas={citasData || []} citasLoading={citasLoading} />;
 };

@@ -1,9 +1,10 @@
-import type { Servicio, HorarioNegocio } from '../types';
+import type { Servicio, HorarioNegocio, HorarioEspecial } from '../types';
 import { ServiciosTab } from './ServiciosTab';
 import { HorariosTab } from './HorariosTab';
+import { HorariosEspecialesTab } from './HorariosEspecialesTab';
 import { useState } from 'react';
 
-type ConfigTab = 'servicios' | 'horarios';
+type ConfigTab = 'servicios' | 'horarios' | 'horariosEspeciales';
 
 interface ConfiguracionViewProps {
   loading: boolean;
@@ -22,12 +23,16 @@ interface ConfiguracionViewProps {
     horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>,
   ) => void;
   isHorariosSaving: boolean;
+  horariosEspeciales: HorarioEspecial[];
+  onCreateHorarioEspecial: (data: { fecha: string; cerrado: boolean; horaInicio: string | null; horaFin: string | null }) => void;
+  onDeleteHorarioEspecial: (id: number) => void;
   isPendingAny: boolean;
 }
 
 const TAB_LABELS: Record<ConfigTab, string> = {
   servicios: 'Servicios',
-  horarios: 'Horarios',
+  horarios: 'Horarios Regulares',
+  horariosEspeciales: 'Fechas Especiales',
 };
 
 const LoadingSkeleton = () => (
@@ -57,6 +62,9 @@ export const ConfiguracionView = ({
   horarios,
   onSaveHorarios,
   isHorariosSaving,
+  horariosEspeciales,
+  onCreateHorarioEspecial,
+  onDeleteHorarioEspecial,
   isPendingAny,
 }: ConfiguracionViewProps) => {
   const [tab, setTab] = useState<ConfigTab>('servicios');
@@ -76,8 +84,8 @@ export const ConfiguracionView = ({
             </p>
           </div>
         </div>
-        <div className="px-5 md:px-6 py-3 flex gap-1">
-          {(['servicios', 'horarios'] as ConfigTab[]).map((t) => (
+        <div className="px-5 md:px-6 py-3 flex gap-1 flex-wrap">
+          {(['servicios', 'horarios', 'horariosEspeciales'] as ConfigTab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -115,6 +123,15 @@ export const ConfiguracionView = ({
           onSave={onSaveHorarios}
           isLoading={loading}
           isSaving={isHorariosSaving}
+        />
+      )}
+
+      {tab === 'horariosEspeciales' && (
+        <HorariosEspecialesTab
+          horariosEspeciales={horariosEspeciales}
+          onCreate={onCreateHorarioEspecial}
+          onDelete={onDeleteHorarioEspecial}
+          isLoading={loading}
         />
       )}
     </div>
