@@ -34,7 +34,7 @@ async function migrateHorarios() {
         // --- 1. MIGRAR SERVICIOS ---
         if (config.servicios) {
           let parsedServicios: Array<{ nombre: string; precio: number }> = [];
-          
+
           if (typeof config.servicios === 'string') {
             try {
               parsedServicios = JSON.parse(config.servicios);
@@ -75,7 +75,7 @@ async function migrateHorarios() {
         // --- 2. MIGRAR HORARIOS ---
         if (config.horarios) {
           let parsedHorarios: Record<string, string[]> = {};
-          
+
           if (typeof config.horarios === 'string') {
             try {
               parsedHorarios = JSON.parse(config.horarios);
@@ -89,13 +89,19 @@ async function migrateHorarios() {
           let horariosCreados = 0;
 
           for (const [diaStr, horas] of Object.entries(parsedHorarios)) {
-            const diaSemana = DAY_MAPPING[diaStr.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "")];
-            
+            const diaSemana =
+              DAY_MAPPING[
+                diaStr
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+              ];
+
             if (diaSemana === undefined || !Array.isArray(horas) || horas.length === 0) continue;
 
             // Ordenar horas
             const sortedHoras = [...horas].sort();
-            
+
             // Agrupar horas consecutivas en rangos
             let rangoActual = { inicio: sortedHoras[0], fin: sortedHoras[0] };
             const rangos = [];
@@ -103,9 +109,11 @@ async function migrateHorarios() {
             for (let i = 1; i < sortedHoras.length; i++) {
               const prevHora = rangoActual.fin;
               const curHora = sortedHoras[i];
-              
-              const prevMinutos = parseInt(prevHora.split(':')[0]) * 60 + parseInt(prevHora.split(':')[1] || '0');
-              const curMinutos = parseInt(curHora.split(':')[0]) * 60 + parseInt(curHora.split(':')[1] || '0');
+
+              const prevMinutos =
+                parseInt(prevHora.split(':')[0]) * 60 + parseInt(prevHora.split(':')[1] || '0');
+              const curMinutos =
+                parseInt(curHora.split(':')[0]) * 60 + parseInt(curHora.split(':')[1] || '0');
 
               // Si es exactamente 1 hora (60 mins) o menos de diferencia, extender rango
               if (curMinutos - prevMinutos <= 60) {
