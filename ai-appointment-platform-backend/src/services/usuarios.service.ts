@@ -93,7 +93,12 @@ export const updateUser = async (
   const updateData: { nombre?: string; email?: string; password?: string; rol?: Rol } = {};
   if (nombre) updateData.nombre = nombre;
   if (email) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (
+      !email.includes('@') ||
+      !email.includes('.') ||
+      email.indexOf('@') < 1 ||
+      email.endsWith('.')
+    ) {
       throw new ValidationError('Formato de email inválido');
     }
     const existente = await usuariosRepository.findByEmail(email);
