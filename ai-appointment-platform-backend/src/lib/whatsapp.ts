@@ -135,7 +135,7 @@ export const enviarImagen = async (
     if (err instanceof WhatsAppError || err instanceof ExternalServiceError) {
       throw err;
     }
-    logger.error({ err }, `[MetaGraph] Exception enviando imagen a ${sanitizeForLog(numero)}`);
+    logger.error({ err, numero: sanitizeForLog(numero) }, '[MetaGraph] Exception enviando imagen');
     throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
   }
 };
