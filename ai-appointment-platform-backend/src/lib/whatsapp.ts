@@ -4,7 +4,7 @@ import pino from 'pino';
 
 const logger = pino();
 
-const sanitizeForLog = (value: unknown): string => String(value).replace(/[\r\n]/g, ' ');
+const sanitizeForLog = (value: unknown): string => String(value).replace(/[\r\n\t\f\v\0\x00-\x1F\x7F]/g, ' ');
 
 export type WaCredentials = {
   waAccessToken: string;
@@ -110,7 +110,12 @@ export const enviarImagen = async (
     if (!response.ok) {
       const errBody = await response.text();
       logger.error(
-        `[MetaGraph] HTTP ${response.status} enviando imagen a ${sanitizeForLog(numero)}: ${sanitizeForLog(errBody)}`,
+        {
+          httpStatus: response.status,
+          numero: sanitizeForLog(numero),
+          errBody: sanitizeForLog(errBody),
+        },
+        '[MetaGraph] Error enviando imagen',
       );
       throw new ExternalServiceError(
         `Meta API responded with HTTP ${response.status}`,
