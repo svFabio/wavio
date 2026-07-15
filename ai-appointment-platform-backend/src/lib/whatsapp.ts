@@ -43,7 +43,14 @@ export const enviarMensaje = async (
 
     if (!response.ok) {
       const errBody = await response.text();
-      logger.error(`[MetaGraph] HTTP ${response.status} enviando a ${numero}: ${errBody}`);
+      logger.error(
+        {
+          status: response.status,
+          numero: sanitizeForLog(numero),
+          errBody: sanitizeForLog(errBody),
+        },
+        '[MetaGraph] HTTP error enviando mensaje',
+      );
       throw new ExternalServiceError(
         `Meta API responded with HTTP ${response.status}`,
         'WHATSAPP_ERROR',
@@ -53,7 +60,10 @@ export const enviarMensaje = async (
 
     const data = await response.json();
     if (data.error) {
-      logger.error({ err: data.error }, `[MetaGraph] Error enviando mensaje a ${numero}`);
+      logger.error(
+        { err: data.error, numero: sanitizeForLog(numero) },
+        '[MetaGraph] Error enviando mensaje',
+      );
       throw new ExternalServiceError(data.error.message || 'Meta API error', 'WHATSAPP_ERROR', 502);
     }
 
@@ -67,7 +77,10 @@ export const enviarMensaje = async (
     if (err instanceof WhatsAppError || err instanceof ExternalServiceError) {
       throw err;
     }
-    logger.error({ err }, `[MetaGraph] Exception enviando mensaje a ${sanitizeForLog(numero)}`);
+    logger.error(
+      { err, numero: sanitizeForLog(numero) },
+      '[MetaGraph] Exception enviando mensaje',
+    );
     throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
   }
 };
