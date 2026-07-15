@@ -11,7 +11,7 @@ async function checkApi() {
     return;
   }
 
-  console.log(`🔑 Testing API Key: ${apiKey.substring(0, 10)}...`);
+  console.log('🔑 Testing API Key presence...');
   const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
   try {
