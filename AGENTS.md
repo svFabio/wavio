@@ -395,6 +395,53 @@ React Query errors are caught at the query level and surfaced via the `isError` 
 When multiple AIs operate simultaneously on this codebase, they MUST follow this coordination protocol.
 The goal: **semi-autonomous work with collision avoidance**, not synchronized串行 execution.
 
+### Quick Start — Session Boot
+
+**Trigger phrase**: `revisa engram wavio` (or any variation: "connect to wavio", "start wavio", "revisa engram")
+
+When an AI hears this phrase, it MUST execute this boot sequence BEFORE doing anything else:
+
+**Step 1 — Project Context:**
+
+```
+mem_search(query: "project wavio architecture")
+mem_search(query: "session summary wavio")
+```
+
+**Step 2 — Current State:**
+
+```
+mem_search(query: "claim:")           // Active file claims
+mem_search(query: "agy/task-board")   // AGY tasks
+mem_search(query: "agy/completions")  // AGY completions
+```
+
+**Step 3 — Report Status:**
+After loading context, the AI MUST report to the user:
+
+- What Wavio is (1 sentence)
+- What was done last session (key items)
+- What's currently in progress (active claims, AGY tasks)
+- What's blocked or needs attention
+
+**Example output:**
+
+```
+Wavio: AI-powered appointment platform for WhatsApp.
+Last session: Fixed CI, added AI Collaboration Protocol with Engram claims.
+In progress: No active claims. AGY: no pending tasks.
+Ready to work. What's next?
+```
+
+**For AGY specifically:**
+After boot, also search:
+
+```
+mem_search(query: "agy/prompt-board")  // Detailed instructions
+```
+
+Then execute tasks from the prompt board.
+
 ### Identity and Ownership
 
 Each AI has a **primary domain** — the area they own exclusively:
