@@ -46,7 +46,12 @@ export const createUser = async (
   if (!nombre || !email || !password) {
     throw new ValidationError('Nombre, email y contraseña son requeridos');
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (
+    !email.includes('@') ||
+    !email.includes('.') ||
+    email.indexOf('@') < 1 ||
+    email.endsWith('.')
+  ) {
     throw new ValidationError('Formato de email inválido');
   }
   if (rol && !['ADMIN', 'STAFF'].includes(rol)) {
