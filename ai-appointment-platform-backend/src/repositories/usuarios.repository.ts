@@ -1,4 +1,4 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 
 export const usuariosRepository = {
   async findByNegocioId(

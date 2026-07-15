@@ -21,7 +21,11 @@ class SocketManager {
 
   static connect() {
     const socket = this.getInstance();
-    socket.auth = { token: auth.getToken() };
+    const activeNegocioId = auth.getActiveNegocioId();
+    socket.auth = {
+      token: auth.getToken(),
+      negocioId: activeNegocioId ?? undefined,
+    };
     if (!socket.connected) {
       socket.connect();
     }

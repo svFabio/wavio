@@ -7,7 +7,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import { useSocketEvent } from './shared/hooks/useSocketEvent';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+// NotificationToast is eagerly loaded — small component used on every page
+import { NotificationToast } from './components/NotificationToast';
 const Pagos = lazy(() => import('./pages/Pagos'));
 const Calendario = lazy(() => import('./pages/Calendario'));
 const Home = lazy(() => import('./pages/Home'));
@@ -19,7 +20,7 @@ const Users = lazy(() => import('./pages/Users'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Asistente = lazy(() => import('./pages/Asistente'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
-import { NotificationToast } from './components/NotificationToast';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
 import { format } from 'date-fns';
@@ -66,95 +67,147 @@ function App() {
               </div>
             </div>
 
-            <ErrorBoundary>
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center h-screen">
-                    <div className="skeleton w-48 h-8 rounded" />
-                  </div>
-                }
-              >
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/onboarding"
-                    element={
-                      <ProtectedRoute>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-screen">
+                  <div className="skeleton w-48 h-8 rounded" />
+                </div>
+              }
+            >
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <ErrorBoundary>
+                      <Login />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/onboarding"
+                  element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
                         <Onboarding />
-                      </ProtectedRoute>
-                    }
-                  />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  }
+                />
 
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
                         <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<Home />} />
-                    <Route path="calendario" element={<Calendario />} />
-                    <Route path="pagos" element={<Pagos />} />
-                    <Route path="chat" element={<Chat />} />
-                    <Route path="vincular" element={<Vincular />} />
-
-                    <Route
-                      path="statistics"
-                      element={
-                        <ProtectedRoute requiredRole="ADMIN">
-                          <Statistics />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="users"
-                      element={
-                        <ProtectedRoute requiredRole="ADMIN">
-                          <Users />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="asistente"
-                      element={
-                        <ProtectedRoute requiredRole="ADMIN">
-                          <Asistente />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="configuracion"
-                      element={
-                        <ProtectedRoute requiredRole="ADMIN">
-                          <Configuracion />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Route>
-
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  }
+                >
                   <Route
-                    path="*"
+                    index
                     element={
-                      <div className="flex items-center justify-center min-h-screen bg-surface-alt">
-                        <div className="text-center">
-                          <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
-                          <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
-                          <a
-                            href="/dashboard"
-                            className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors"
-                          >
-                            Volver al Dashboard
-                          </a>
-                        </div>
-                      </div>
+                      <ErrorBoundary>
+                        <Home />
+                      </ErrorBoundary>
                     }
                   />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
+                  <Route
+                    path="calendario"
+                    element={
+                      <ErrorBoundary>
+                        <Calendario />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="pagos"
+                    element={
+                      <ErrorBoundary>
+                        <Pagos />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="chat"
+                    element={
+                      <ErrorBoundary>
+                        <Chat />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="vincular"
+                    element={
+                      <ErrorBoundary>
+                        <Vincular />
+                      </ErrorBoundary>
+                    }
+                  />
+
+                  <Route
+                    path="statistics"
+                    element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <ErrorBoundary>
+                          <Statistics />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="users"
+                    element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <ErrorBoundary>
+                          <Users />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="asistente"
+                    element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <ErrorBoundary>
+                          <Asistente />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="configuracion"
+                    element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <ErrorBoundary>
+                          <Configuracion />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
+
+                <Route
+                  path="*"
+                  element={
+                    <div className="flex items-center justify-center min-h-screen bg-surface-alt">
+                      <div className="text-center">
+                        <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
+                        <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
+                        <a
+                          href="/dashboard"
+                          className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors"
+                        >
+                          Volver al Dashboard
+                        </a>
+                      </div>
+                    </div>
+                  }
+                />
+              </Routes>
+            </Suspense>
           </div>
         </AuthProvider>
       </ThemeProvider>

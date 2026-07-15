@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
-import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import { verifyJwt } from '../middleware/auth.middleware';
 import pino from 'pino';
 
 const logger = pino();
@@ -25,10 +25,18 @@ export const initSocket = (httpServer: HttpServer): SocketIOServer => {
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    const negocioIdRaw = socket.handshake.auth?.negocioId || socket.handshake.query?.negocioId;
+
     if (!token) return next(new Error('Authentication required'));
+    if (!negocioIdRaw) return next(new Error('negocioId is required'));
+
+    const negocioId = Number(negocioIdRaw);
+    if (isNaN(negocioId)) return next(new Error('negocioId must be a number'));
+
     try {
-      const decoded = jwt.verify(token as string, env.JWT_SECRET) as { negocioId: number };
-      socket.data.negocioId = decoded.negocioId;
+      const decoded = verifyJwt(token as string);
+      socket.data.userId = decoded.id;
+      socket.data.negocioId = negocioId;
       next();
     } catch {
       next(new Error('Invalid token'));

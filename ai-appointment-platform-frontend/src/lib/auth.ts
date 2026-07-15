@@ -1,5 +1,6 @@
 // auth.ts - Single source of truth for auth tokens
 const TOKEN_KEY = 'token';
+const ACTIVE_NEGOCIO_KEY = 'activeNegocioId';
 
 export const auth = {
   getToken(): string | null {
@@ -16,5 +17,16 @@ export const auth = {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  },
+
+  getActiveNegocioId(): number | null {
+    const raw = localStorage.getItem(ACTIVE_NEGOCIO_KEY);
+    if (!raw) return null;
+    const id = Number(raw);
+    return isNaN(id) ? null : id;
+  },
+
+  setActiveNegocioId(id: number): void {
+    localStorage.setItem(ACTIVE_NEGOCIO_KEY, String(id));
   },
 };

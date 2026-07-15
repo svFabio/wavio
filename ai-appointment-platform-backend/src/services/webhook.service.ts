@@ -37,7 +37,8 @@ export const webhookService = {
 
               if (!phoneNumberId || !from || !textBody) continue;
 
-              const negocio = await negocioRepository.findByWaPhoneNumberId(phoneNumberId);
+              const negocio =
+                await negocioRepository.findByWaPhoneNumberIdForInternal(phoneNumberId);
               if (!negocio) {
                 logger.warn(
                   { phoneNumberId },

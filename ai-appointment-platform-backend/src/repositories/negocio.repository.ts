@@ -1,24 +1,22 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 import { Negocio } from '../domain/types';
-
-const NEGOCIO_SAFE_SELECT = {
-  id: true,
-  googleId: true,
-  email: true,
-  nombre: true,
-  plan: true,
-  waPhoneNumberId: true,
-  waWabaId: true,
-  waAppId: true,
-  isWaConnected: true,
-  creadoEn: true,
-} as const;
+import { NEGOCIO_SAFE_SELECT } from './negocio-select';
 
 export const negocioRepository = {
-  async findByWaPhoneNumberId(waPhoneNumberId: string): Promise<Negocio | null> {
+  async findByWaPhoneNumberId(
+    waPhoneNumberId: string,
+  ): Promise<(Omit<Negocio, 'waAccessToken'> & { configuracion: unknown }) | null> {
     const negocio = await prisma.negocio.findUnique({
       where: { waPhoneNumberId },
-      include: { configuracion: true },
+      select: { ...NEGOCIO_SAFE_SELECT, configuracion: true },
+    });
+    return negocio as unknown as Omit<Negocio, 'waAccessToken'> & { configuracion: unknown };
+  },
+
+  async findByWaPhoneNumberIdForInternal(waPhoneNumberId: string): Promise<Negocio | null> {
+    const negocio = await prisma.negocio.findUnique({
+      where: { waPhoneNumberId },
+      select: { ...NEGOCIO_SAFE_SELECT, waAccessToken: true, configuracion: true },
     });
     return negocio as unknown as Negocio;
   },

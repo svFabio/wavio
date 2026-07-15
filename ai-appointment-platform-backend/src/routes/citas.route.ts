@@ -14,6 +14,7 @@ import {
 } from '../controllers/citas.controller';
 import { verificarToken } from '../middleware/auth.middleware';
 import { tenantMiddleware } from '../middleware/tenant.middleware';
+import { requireAdmin } from '../middleware/permissions.middleware';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { paginate } from '../middleware/pagination';
 
@@ -57,11 +58,16 @@ router.get('/', validateQuery(agendaQuerySchema), paginate, getAgenda);
 router.get('/pendientes', paginate, getPendientes);
 router.get('/resumen', getResumen);
 router.get('/horarios-disponibles', getHorariosDisponibles);
-router.post('/admin', validateBody(crearCitaAdminSchema), crearCitaAdmin);
-router.post('/:id/validar', validateBody(validarCitaSchema), validarCita);
-router.put('/:id/reprogramar', validateBody(reprogramarCitaSchema), reprogramarCita);
-router.put('/:id/no-asistio', marcarNoAsistio);
-router.put('/:id/asistio', marcarAsistio);
-router.put('/:id/descripcion', validateBody(actualizarDescripcionSchema), actualizarDescripcion);
+router.post('/admin', requireAdmin, validateBody(crearCitaAdminSchema), crearCitaAdmin);
+router.post('/:id/validar', requireAdmin, validateBody(validarCitaSchema), validarCita);
+router.put('/:id/reprogramar', requireAdmin, validateBody(reprogramarCitaSchema), reprogramarCita);
+router.put('/:id/no-asistio', requireAdmin, marcarNoAsistio);
+router.put('/:id/asistio', requireAdmin, marcarAsistio);
+router.put(
+  '/:id/descripcion',
+  requireAdmin,
+  validateBody(actualizarDescripcionSchema),
+  actualizarDescripcion,
+);
 
 export default router;

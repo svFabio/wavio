@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 
 export const statisticsRepository = {
   async countCitasMes(negocioId: number, startOfMonth: Date, endOfMonth: Date): Promise<number> {

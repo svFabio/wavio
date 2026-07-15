@@ -1,4 +1,4 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 import type { Cliente } from '../domain/types';
 
 export const clientesRepository = {

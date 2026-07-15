@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../repositories/prisma';
 import { AppError } from '../domain/errors';
+import { tenantService } from '../services/tenant.service';
 
 export const tenantMiddleware = async (
   req: Request,
@@ -16,14 +16,12 @@ export const tenantMiddleware = async (
     if (isNaN(negocioId)) {
       throw new AppError('x-negocio-id must be a number', 400, 'INVALID_TENANT');
     }
-    const membership = await prisma.usuarioNegocio.findUnique({
-      where: { usuarioId_negocioId: { usuarioId: req.usuario!.id, negocioId } },
-    });
+    const membership = await tenantService.verificarMembresia(req.usuario!.id, negocioId);
     if (!membership) {
       throw new AppError('You do not have access to this business', 403, 'TENANT_DENIED');
     }
     req.negocioId = negocioId;
-    (req as any).negocioRole = membership.rol;
+    req.negocioRole = membership.rol;
     next();
   } catch (error) {
     next(error);

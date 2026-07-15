@@ -1,4 +1,4 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 import { MensajeChat } from '../domain/types';
 
 export interface ConversacionRaw {

@@ -1,4 +1,4 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 import type { HorarioEspecial } from '../domain/types';
 
 export const horariosEspecialesRepository = {
@@ -48,6 +48,13 @@ export const horariosEspecialesRepository = {
       },
     });
     return record as unknown as HorarioEspecial;
+  },
+
+  async findById(id: number): Promise<HorarioEspecial | null> {
+    const record = await prisma.horarioEspecial.findUnique({
+      where: { id },
+    });
+    return record as unknown as HorarioEspecial | null;
   },
 
   async deleteById(id: number): Promise<HorarioEspecial> {

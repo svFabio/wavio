@@ -1,4 +1,4 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 import { Configuracion, ChatFlowStep } from '../domain/types';
 
 function mapConfig(raw: Record<string, unknown>): Configuracion {
