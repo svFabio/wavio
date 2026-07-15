@@ -412,7 +412,7 @@ Some files belong to both AIs' workflows. Before modifying these, you MUST:
 
 1. **Search Engram** for active claims: `mem_search(query: "claim:<filepath>")`
 2. **If unclaimed**: write your claim, then work freely
-3. **If claimed by other AI**: wait, rebase, or ask the user
+3. **If claimed by other AI**: check if claim is stale (expired). If stale → take over. If active → coordinate.
 
 **Files that require claims:**
 
@@ -423,6 +423,10 @@ Some files belong to both AIs' workflows. Before modifying these, you MUST:
 - Root `package.json`, `pnpm-lock.yaml` — Dependencies
 - `commitlint.config.js`, `eslint.config.js` — Root configs
 
+### Claim Lifecycle (Critical — prevents ghost locks)
+
+**Why this matters**: AIs can crash mid-task. Without timestamps, a dead AI leaves a ghost claim that blocks the other AI forever.
+
 **Claim format in Engram:**
 
 ```
@@ -432,10 +436,46 @@ Content:
   **What**: Claiming [file] for modification
   **Why**: [reason]
   **Where**: [filepath]
-  **Expires**: after push / [timestamp]
+  **Status**: active | completed | abandoned
+  **Claimed at**: [ISO timestamp]
+  **Expires at**: [ISO timestamp] — default: 2 hours from claim time
+  **AI**: opencode | agy
 ```
 
-After pushing, release the claim by updating it with completion status.
+**Rules:**
+
+1. **Every claim MUST include timestamps** — `Claimed at` and `Expires at`
+2. **Default expiry: 2 hours** — enough for a focused task, short enough to not block
+3. **Refresh if needed** — if work takes longer, update `Expires at` before it expires
+4. **Release after push** — update `Status: completed` and set `Expires at` to now
+5. **Stale claims are dead** — if current time > `Expires at`, the claim is abandoned
+
+**Stale claim detection (when checking claims):**
+
+```
+1. Search: mem_search(query: "claim:<filepath>")
+2. If no results → claim is free, write yours
+3. If results found → check Expires at timestamp
+4. If Expires at < now → STALE, treat as unclaimed, write yours
+5. If Expires at > now → ACTIVE, coordinate with claiming AI
+```
+
+**AGY crash scenario:**
+
+- AGY claims `.github/workflows/ci.yml` at 14:00, expires at 16:00
+- AGY crashes at 14:30 (never releases claim)
+- Opencode wants to modify the same file at 15:00
+- Opencode checks: claim exists, but `Expires at` (16:00) > now (15:00) → still active
+- Opencode waits or coordinates
+- At 16:01: claim expires, Opencode takes over
+
+**If the task is short (< 30 min):**
+
+```
+**Expires at**: after push
+```
+
+This means the claim auto-expires once changes are pushed. If the AI dies before pushing, the claim expires after 2 hours (default).
 
 ### Engram Coordination Topics
 
@@ -458,24 +498,27 @@ After pushing, release the claim by updating it with completion status.
 Before modifying ANY file outside your exclusive domain:
 
 1. Search Engram for active claims on that file
-2. Check `git log --oneline -5` for recent changes by the other AI
-3. If claimed or recently changed → coordinate first
-4. Write your claim before starting work
+2. **Check claim timestamps** — is it stale? If yes, treat as unclaimed
+3. Check `git log --oneline -5` for recent changes by the other AI
+4. If claimed and active → coordinate first
+5. Write your claim with timestamps before starting work
 
 ### Conflict Resolution
 
 When both AIs need the same file:
 
 1. **First-come-first-served**: the AI that claimed first keeps the file
-2. **The other AI rebases** onto the first AI's changes
-3. **If conflicting**: ask the user to resolve
+2. **Stale claims are ignored**: expired claims don't count
+3. **The other AI rebases** onto the first AI's changes
+4. **If conflicting**: ask the user to resolve
 
 ### What Went Wrong Without This Protocol
 
-- Both AIs added commitlint to CI workflows → duplication
-- CI broke because both pushed to `dev` simultaneously
-- No mechanism to know "who is working on what right now"
-- These mistakes are preventable with claims + pre-change checklist
+- Both AIs added commitlint to CI workflows → duplication (no claims)
+- CI broke because both pushed to `dev` simultaneously (no branch coordination)
+- No mechanism to know "who is working on what right now" (no Engram claims)
+- A dead AI could leave ghost claims forever (no timestamps/expiry)
+- These mistakes are preventable with timestamped claims + pre-change checklist
 
 ---
 
