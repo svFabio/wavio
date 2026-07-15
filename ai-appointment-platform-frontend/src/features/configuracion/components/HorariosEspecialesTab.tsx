@@ -6,7 +6,12 @@ import { es } from 'date-fns/locale';
 
 interface HorariosEspecialesTabProps {
   horariosEspeciales: HorarioEspecial[];
-  onCreate: (data: { fecha: string; cerrado: boolean; horaInicio: string | null; horaFin: string | null }) => void;
+  onCreate: (data: {
+    fecha: string;
+    cerrado: boolean;
+    horaInicio: string | null;
+    horaFin: string | null;
+  }) => void;
   onDelete: (id: number) => void;
   isLoading: boolean;
 }
@@ -48,7 +53,8 @@ export const HorariosEspecialesTab = ({
     <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-6 space-y-6">
       <div>
         <p className="text-sm text-txt-muted max-w-md">
-          Configura fechas específicas donde el negocio estará cerrado o tendrá un horario diferente al habitual.
+          Configura fechas específicas donde el negocio estará cerrado o tendrá un horario diferente
+          al habitual.
         </p>
       </div>
 
@@ -121,8 +127,10 @@ export const HorariosEspecialesTab = ({
         ) : (
           horariosEspeciales.map((h) => {
             const dateStr = h.fecha.includes('T') ? h.fecha : `${h.fecha}T00:00:00`;
-            const formattedDate = format(parseISO(dateStr), "EEEE d 'de' MMMM, yyyy", { locale: es });
-            
+            const formattedDate = format(parseISO(dateStr), "EEEE d 'de' MMMM, yyyy", {
+              locale: es,
+            });
+
             return (
               <div
                 key={h.id}
@@ -154,3 +162,4 @@ export const HorariosEspecialesTab = ({
       </div>
     </div>
   );
+};

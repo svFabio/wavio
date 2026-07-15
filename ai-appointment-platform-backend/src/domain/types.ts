@@ -84,6 +84,17 @@ export interface HorarioEspecial {
   horaFin: string | null;
 }
 
+export interface Cliente {
+  id: number;
+  negocioId: number;
+  nombre: string;
+  telefono: string;
+  email: string | null;
+  notas: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Cita {
   id: number;
   fecha: Date;
