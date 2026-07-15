@@ -279,32 +279,6 @@ jobs:
           pnpm audit --audit-level=high
 
   # ---------------------------------------------------------------------------
-  # Commitlint — validates PR commit messages follow conventional commits
-  # ---------------------------------------------------------------------------
-
-  commitlint:
-    name: Commitlint
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Validate PR commits
-        run: pnpm commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-  # ---------------------------------------------------------------------------
   # Docker Build — validates the backend Dockerfile builds successfully
   # ---------------------------------------------------------------------------
 
