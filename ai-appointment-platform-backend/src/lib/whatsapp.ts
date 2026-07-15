@@ -4,8 +4,8 @@ import pino from 'pino';
 
 const logger = pino();
 
-const sanitizeForLog = (value: unknown): string =>
-  String(value).replace(/[\r\n\t\f\v\0\x00-\x1F\x7F]/g, ' ');
+// eslint-disable-next-line no-control-regex
+const sanitizeForLog = (value: unknown): string => String(value).replace(/[\x00-\x1F\x7F]/g, ' ');
 
 export type WaCredentials = {
   waAccessToken: string;
