@@ -1,8 +1,5 @@
 import { prisma } from '../repositories/prisma';
 import { ValidationError } from '../domain/errors';
-import pino from 'pino';
-
-const logger = pino({ name: 'availability-service' });
 
 export interface Slot {
   inicio: string;

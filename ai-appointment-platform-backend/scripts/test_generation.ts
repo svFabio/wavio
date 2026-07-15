@@ -12,7 +12,7 @@ async function testGeneration() {
     return;
   }
 
-  console.log(`🔑 Testing Generation with: ${apiKey.substring(0, 10)}...`);
+  console.log('🔑 API key loaded. Testing generation...');
   console.log('🤖 Model: gemini-2.0-flash');
 
   const genAI = new GoogleGenerativeAI(apiKey);
