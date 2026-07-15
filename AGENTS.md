@@ -13,6 +13,7 @@ It lets business owners manage clients, appointments, and communications through
 with an AI assistant (Google Gemini) handling natural-language scheduling.
 
 Two deployable units:
+
 - `ai-appointment-platform-backend/` — Express 5 + TypeScript + Prisma + Socket.IO API
 - `ai-appointment-platform-frontend/` — React 19 + Vite + TypeScript + TailwindCSS SPA
 
@@ -52,9 +53,10 @@ A violation in any of these rules MUST cause a review failure.
 - Any Google, AWS, Stripe, Cloudinary, or Meta credential pattern hardcoded.
 
 **The correct pattern — always read from environment:**
+
 ```typescript
 // Backend: read from config/env.ts only
-import { env } from '../config/env';
+import { env } from "../config/env";
 jwt.sign(payload, env.JWT_SECRET);
 
 // Frontend: read from import.meta.env only
@@ -68,19 +70,20 @@ const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 - Logs a token, password, JWT, or API key with `console.log`, `pino`, or any logger:
   ```typescript
   // VIOLATION
-  console.log('token:', token);
+  console.log("token:", token);
   logger.info({ jwt, user });
   ```
 - Passes auth headers or full request objects to a logger without sanitization.
 - Returns a raw error object (which may contain stack traces or internal paths) directly in an HTTP response to the client.
 
 **Correct pattern:**
+
 ```typescript
 // Log only safe fields
-logger.info({ userId: user.id, action: 'login' });
+logger.info({ userId: user.id, action: "login" });
 
 // Sanitize errors before returning
-res.status(500).json({ error: 'Internal server error', code: 'INTERNAL' });
+res.status(500).json({ error: "Internal server error", code: "INTERNAL" });
 ```
 
 ### Environment Files
@@ -121,6 +124,7 @@ middleware/   ← Auth, validation, error handling.
 ```
 
 **Layer communication rule**: each layer talks ONLY to the layer directly below it.
+
 - Controller → Service → Repository → Prisma
 - A controller NEVER imports from a repository directly.
 - A repository NEVER contains business logic.
@@ -154,17 +158,17 @@ src/
 
 ### Files
 
-| Context | Convention | Example |
-|---------|-----------|---------|
-| Backend service | `camelCase.service.ts` | `citas.service.ts` |
-| Backend repository | `camelCase.repository.ts` | `citas.repository.ts` |
-| Backend controller | `camelCase.controller.ts` | `citas.controller.ts` |
-| Backend route | `camelCase.route.ts` | `citas.route.ts` |
-| Frontend component | `PascalCase.tsx` | `CitaCard.tsx` |
+| Context            | Convention                 | Example                        |
+| ------------------ | -------------------------- | ------------------------------ |
+| Backend service    | `camelCase.service.ts`     | `citas.service.ts`             |
+| Backend repository | `camelCase.repository.ts`  | `citas.repository.ts`          |
+| Backend controller | `camelCase.controller.ts`  | `citas.controller.ts`          |
+| Backend route      | `camelCase.route.ts`       | `citas.route.ts`               |
+| Frontend component | `PascalCase.tsx`           | `CitaCard.tsx`                 |
 | Frontend container | `PascalCase.container.tsx` | `CalendarioView.container.tsx` |
-| Frontend hook | `useNoun.ts` | `useCitas.ts` |
-| Frontend api hook | `useNounQuery/Mutation.ts` | `useCitasQuery.ts` |
-| Types file | `types.ts` or `domain.ts` | `citas/types.ts` |
+| Frontend hook      | `useNoun.ts`               | `useCitas.ts`                  |
+| Frontend api hook  | `useNounQuery/Mutation.ts` | `useCitasQuery.ts`             |
+| Types file         | `types.ts` or `domain.ts`  | `citas/types.ts`               |
 
 ### Identifiers
 
@@ -210,13 +214,13 @@ src/
 
 ## State Management (Frontend)
 
-| Data type | Solution |
-|-----------|----------|
-| Server data (API responses) | React Query (`@tanstack/react-query`) |
-| Auth state | `AuthContext` (backed by `lib/auth.ts`) |
-| UI-local state (modals, forms) | `useState` in the container |
-| Cross-feature UI state | React Context — create a dedicated context |
-| Notifications | `useNotifications` hook (existing, in `shared/hooks/`) |
+| Data type                      | Solution                                               |
+| ------------------------------ | ------------------------------------------------------ |
+| Server data (API responses)    | React Query (`@tanstack/react-query`)                  |
+| Auth state                     | `AuthContext` (backed by `lib/auth.ts`)                |
+| UI-local state (modals, forms) | `useState` in the container                            |
+| Cross-feature UI state         | React Context — create a dedicated context             |
+| Notifications                  | `useNotifications` hook (existing, in `shared/hooks/`) |
 
 No Redux, no Zustand unless a measurable performance problem requires it and is documented in `docs/decisions.md`.
 
@@ -248,9 +252,10 @@ No Redux, no Zustand unless a measurable performance problem requires it and is 
   ```
 
 **Correct pattern — use Tailwind design tokens:**
+
 ```tsx
 // Use semantic Tailwind classes
-className="text-blue-500 mt-6 text-sm z-modal"
+className = "text-blue-500 mt-6 text-sm z-modal";
 
 // If a value is not in Tailwind defaults, add it to tailwind.config.cjs
 // extend.zIndex: { modal: '100', overlay: '200' }
@@ -275,15 +280,21 @@ className="text-blue-500 mt-6 text-sm z-modal"
   ```tsx
   // VIOLATION — use React Query instead
   useEffect(() => {
-    fetch('/api/citas').then(r => r.json()).then(setCitas);
+    fetch("/api/citas")
+      .then((r) => r.json())
+      .then(setCitas);
   }, []);
   ```
 - Uses array index as React `key` in a list that can be reordered or filtered:
   ```tsx
   // VIOLATION
-  {items.map((item, index) => <Card key={index} />)}
+  {
+    items.map((item, index) => <Card key={index} />);
+  }
   // CORRECT
-  {items.map((item) => <Card key={item.id} />)}
+  {
+    items.map((item) => <Card key={item.id} />);
+  }
   ```
 - Has a `useEffect` with a missing or incomplete dependency array (all referenced variables must be listed).
 - Uses `any` type in props or state — use explicit types or `unknown` with a type guard.
@@ -301,6 +312,7 @@ className="text-blue-500 mt-6 text-sm z-modal"
 **BLOCK the commit if any staged `.tsx` file uses `style={{}}` for anything that can be expressed as a Tailwind class.**
 
 The only acceptable uses of `style={{}}` are:
+
 - Dynamic values that cannot be expressed statically (e.g., `style={{ width: `${progress}%` }}`).
 - CSS custom property injection (e.g., `style={{ '--color': value }}`).
 
@@ -316,12 +328,14 @@ export class AppError extends Error {
   constructor(
     public readonly message: string,
     public readonly statusCode: number,
-    public readonly code: string
-  ) { super(message); }
+    public readonly code: string,
+  ) {
+    super(message);
+  }
 }
 
 // Usage in service
-throw new AppError('Appointment not found', 404, 'CITA_NOT_FOUND');
+throw new AppError("Appointment not found", 404, "CITA_NOT_FOUND");
 ```
 
 All unhandled errors bubble up to `middleware/errorHandler.ts`, which formats and returns the response.
@@ -362,17 +376,106 @@ React Query errors are caught at the query level and surfaced via the `isError` 
 
 ## Key Files Reference
 
-| File | Purpose |
-|------|---------|
-| `docs/architecture.md` | Full architecture rationale and diagrams |
-| `docs/decisions.md` | Architecture Decision Records (ADRs) |
-| `docs/api.md` | REST API contract and endpoint reference |
-| `docs/onboarding.md` | Setup guide for new contributors |
-| `backend/src/domain/errors.ts` | Typed domain error classes |
-| `backend/src/config/env.ts` | Env variable parsing and validation |
-| `backend/src/lib/socket.ts` | Socket.IO singleton |
-| `frontend/src/lib/auth.ts` | Token read/write — single source of truth |
-| `frontend/src/lib/apiClient.ts` | Centralized fetch wrapper |
+| File                            | Purpose                                   |
+| ------------------------------- | ----------------------------------------- |
+| `docs/architecture.md`          | Full architecture rationale and diagrams  |
+| `docs/decisions.md`             | Architecture Decision Records (ADRs)      |
+| `docs/api.md`                   | REST API contract and endpoint reference  |
+| `docs/onboarding.md`            | Setup guide for new contributors          |
+| `backend/src/domain/errors.ts`  | Typed domain error classes                |
+| `backend/src/config/env.ts`     | Env variable parsing and validation       |
+| `backend/src/lib/socket.ts`     | Socket.IO singleton                       |
+| `frontend/src/lib/auth.ts`      | Token read/write — single source of truth |
+| `frontend/src/lib/apiClient.ts` | Centralized fetch wrapper                 |
+
+---
+
+## AI Collaboration Protocol
+
+When multiple AIs operate simultaneously on this codebase, they MUST follow this coordination protocol.
+The goal: **semi-autonomous work with collision avoidance**, not synchronized串行 execution.
+
+### Identity and Ownership
+
+Each AI has a **primary domain** — the area they own exclusively:
+
+| AI       | Primary Domain                               | Exclusive Files                                                      |
+| -------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| Opencode | Architecture, Backend, CI/CD, Infrastructure | `ai-appointment-platform-backend/src/**`, `.github/**`, root configs |
+| AGY      | Frontend Features, UI                        | `ai-appointment-platform-frontend/src/**`                            |
+
+**Rule**: Work freely within your exclusive domain. No coordination needed.
+
+### Shared Files — Claim Before Modifying
+
+Some files belong to both AIs' workflows. Before modifying these, you MUST:
+
+1. **Search Engram** for active claims: `mem_search(query: "claim:<filepath>")`
+2. **If unclaimed**: write your claim, then work freely
+3. **If claimed by other AI**: wait, rebase, or ask the user
+
+**Files that require claims:**
+
+- `.github/workflows/*.yml` — CI/CD pipelines
+- `ai-appointment-platform-backend/prisma/schema.prisma` — Database schema
+- `AGENTS.md` — This contract
+- `docs/*.md` — Documentation
+- Root `package.json`, `pnpm-lock.yaml` — Dependencies
+- `commitlint.config.js`, `eslint.config.js` — Root configs
+
+**Claim format in Engram:**
+
+```
+Title: claim:<filepath>
+Type: architecture
+Content:
+  **What**: Claiming [file] for modification
+  **Why**: [reason]
+  **Where**: [filepath]
+  **Expires**: after push / [timestamp]
+```
+
+After pushing, release the claim by updating it with completion status.
+
+### Engram Coordination Topics
+
+| Topic Key               | Purpose                       | Owner                      |
+| ----------------------- | ----------------------------- | -------------------------- |
+| `agy/task-board`        | Tasks delegated to AGY        | Opencode writes, AGY reads |
+| `agy/prompt-board`      | Detailed instructions for AGY | Opencode writes, AGY reads |
+| `agy/completions`       | AGY reports when done         | AGY writes, Opencode reads |
+| `agy/claims/<filepath>` | Active claim on shared file   | Whoever claims first       |
+
+### Branch Coordination
+
+- **Only one AI pushes to `dev` at a time.**
+- Before pushing: always `git pull --rebase origin dev`.
+- If you see the other AI's fresh commits, rebase before pushing.
+- For large features: use feature branches `feat/<slug>`, merge via PR.
+
+### Pre-Change Checklist (Mandatory)
+
+Before modifying ANY file outside your exclusive domain:
+
+1. Search Engram for active claims on that file
+2. Check `git log --oneline -5` for recent changes by the other AI
+3. If claimed or recently changed → coordinate first
+4. Write your claim before starting work
+
+### Conflict Resolution
+
+When both AIs need the same file:
+
+1. **First-come-first-served**: the AI that claimed first keeps the file
+2. **The other AI rebases** onto the first AI's changes
+3. **If conflicting**: ask the user to resolve
+
+### What Went Wrong Without This Protocol
+
+- Both AIs added commitlint to CI workflows → duplication
+- CI broke because both pushed to `dev` simultaneously
+- No mechanism to know "who is working on what right now"
+- These mistakes are preventable with claims + pre-change checklist
 
 ---
 
