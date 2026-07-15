@@ -56,8 +56,13 @@ export const verifyWebhook = async (
 
     if (mode && token) {
       if (mode === 'subscribe' && timingSafeEqual(String(token), WEBHOOK_VERIFY_TOKEN)) {
+        const challengeStr = String(challenge);
+        if (!/^\d+$/.test(challengeStr)) {
+          res.sendStatus(400);
+          return;
+        }
         logger.info('✅ Webhook verificado por Meta!');
-        res.status(200).send(challenge);
+        res.status(200).send(challengeStr);
         return;
       } else {
         logger.error('❌ Falló la verificación del Webhook de Meta');
