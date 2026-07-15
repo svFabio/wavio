@@ -4,7 +4,8 @@ import pino from 'pino';
 
 const logger = pino();
 
-const sanitizeForLog = (value: unknown): string => String(value).replace(/[\r\n\t\f\v\0\x00-\x1F\x7F]/g, ' ');
+const sanitizeForLog = (value: unknown): string =>
+  String(value).replace(/[\r\n\t\f\v\0\x00-\x1F\x7F]/g, ' ');
 
 export type WaCredentials = {
   waAccessToken: string;
@@ -77,10 +78,7 @@ export const enviarMensaje = async (
     if (err instanceof WhatsAppError || err instanceof ExternalServiceError) {
       throw err;
     }
-    logger.error(
-      { err, numero: sanitizeForLog(numero) },
-      '[MetaGraph] Exception enviando mensaje',
-    );
+    logger.error({ err, numero: sanitizeForLog(numero) }, '[MetaGraph] Exception enviando mensaje');
     throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
   }
 };
