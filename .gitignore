@@ -3,6 +3,3 @@
 
 # Dependencies
 node_modules/
-
-# Lock files (sub-projects have their own)
-pnpm-lock.yaml
