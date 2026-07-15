@@ -2,7 +2,8 @@ export type Rol = 'ADMIN' | 'STAFF';
 export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';
 export type Plan = 'FREE' | 'PRO';
 
-export type EstadoCita = 'PENDIENTE' | 'EN_PROCESO' | 'VALIDACION_PENDIENTE' | 'CONFIRMADA' | 'CANCELADA' | 'NO_ASISTIO';
+export type EstadoCita =
+  'PENDIENTE' | 'EN_PROCESO' | 'VALIDACION_PENDIENTE' | 'CONFIRMADA' | 'CANCELADA' | 'NO_ASISTIO';
 export type EstadoPago = 'PENDIENTE' | 'ESPERANDO_COMPROBANTE' | 'VERIFICADO' | 'RECHAZADO';
 
 export interface Negocio {
@@ -27,7 +28,13 @@ export interface Usuario {
   googleId: string | null;
   fotoPerfil: string | null;
   rol: Rol;
+  creadoEn: Date;
+}
+
+export interface UsuarioNegocio {
+  usuarioId: number;
   negocioId: number;
+  rol: string;
   creadoEn: Date;
 }
 
@@ -55,7 +62,7 @@ export interface HorarioNegocio {
   negocioId: number;
   diaSemana: number; // 0=domingo, 1=lunes, ..., 6=sabado
   horaInicio: string; // "09:00"
-  horaFin: string;    // "13:00"
+  horaFin: string; // "13:00"
   activo: boolean;
 }
 
@@ -128,6 +135,7 @@ export interface Configuracion {
   mensajeBienvenida: string;
   mensajeConfirmacion: string;
   qrContenido: string;
+  qrFotoUrl: string | null;
   cobrarAdelanto: boolean;
   porcentajeAdelanto: number;
   timezone: string;
@@ -138,15 +146,15 @@ export interface Configuracion {
 // ─── Availability Engine Types ─────────────────────────────────────────────
 
 export interface Slot {
-  inicio: string;        // "09:00"
-  fin: string;           // "10:00"
+  inicio: string; // "09:00"
+  fin: string; // "10:00"
   staffId: number | null;
 }
 
 export interface DisponibilidadParams {
   negocioId: number;
   servicioId: number;
-  fecha: string;         // "2025-07-15"
+  fecha: string; // "2025-07-15"
   staffId?: number;
 }
 

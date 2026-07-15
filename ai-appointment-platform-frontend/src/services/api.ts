@@ -1,6 +1,11 @@
 import type { Cita } from '../types';
 import { apiClient, ApiError } from '../lib/apiClient';
-import type { Servicio, HorarioNegocio, HorarioEspecial, ChatFlowStep } from '../features/configuracion/types';
+import type {
+  Servicio,
+  HorarioNegocio,
+  HorarioEspecial,
+  ChatFlowStep,
+} from '../features/configuracion/types';
 
 export const api = {
   // --- AUTENTICACIÓN ---
@@ -14,7 +19,7 @@ export const api = {
         rol: 'ADMIN' | 'STAFF';
         fotoPerfil?: string;
       };
-      negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+      negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
       esNuevo?: boolean;
     }>('/auth/google', {
       googleToken,
@@ -32,7 +37,7 @@ export const api = {
           rol: 'ADMIN' | 'STAFF';
           fotoPerfil?: string;
         };
-        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+        negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
         esNuevo?: boolean;
       }>('/auth/register', { email, password });
     } catch (err) {
@@ -52,7 +57,7 @@ export const api = {
           rol: 'ADMIN' | 'STAFF';
           fotoPerfil?: string;
         };
-        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+        negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
         esNuevo?: boolean;
       }>('/auth/login', { email, password });
     } catch (err) {
@@ -71,7 +76,7 @@ export const api = {
           rol: 'ADMIN' | 'STAFF';
           fotoPerfil?: string;
         };
-        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
+        negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
       }>('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
     } catch {
       return null;
@@ -259,9 +264,11 @@ export const api = {
       trigger: string;
       mensajeBienvenida: string;
       mensajeConfirmacion: string;
+      qrFotoUrl: string | null;
       cobrarAdelanto: boolean;
       porcentajeAdelanto: number;
       timezone: string;
+      chatFlow: ChatFlowStep[];
     }>('/configuracion');
   },
 
@@ -269,6 +276,7 @@ export const api = {
     trigger?: string;
     mensajeBienvenida?: string;
     mensajeConfirmacion?: string;
+    qrFotoUrl?: string | null;
     cobrarAdelanto?: boolean;
     porcentajeAdelanto?: number;
     timezone?: string;
@@ -277,14 +285,32 @@ export const api = {
     return apiClient.patch('/configuracion', data);
   },
 
+  uploadQR: async (imagen: string) => {
+    return apiClient.post<{ qrFotoUrl: string }>('/configuracion/qr', { imagen });
+  },
+
   // --- SERVICIOS ---
   getServicios: async () => {
     return apiClient.get<Servicio[]>('/servicios');
   },
-  createServicio: async (data: { nombre: string; duracionMinutos: number; bufferMinutos: number; precio: number }) => {
+  createServicio: async (data: {
+    nombre: string;
+    duracionMinutos: number;
+    bufferMinutos: number;
+    precio: number;
+  }) => {
     return apiClient.post<Servicio>('/servicios', data);
   },
-  updateServicio: async (id: number, data: Partial<{ nombre: string; duracionMinutos: number; bufferMinutos: number; precio: number; activo: boolean }>) => {
+  updateServicio: async (
+    id: number,
+    data: Partial<{
+      nombre: string;
+      duracionMinutos: number;
+      bufferMinutos: number;
+      precio: number;
+      activo: boolean;
+    }>,
+  ) => {
     return apiClient.patch<Servicio>(`/servicios/${id}`, data);
   },
   deleteServicio: async (id: number) => {
@@ -295,7 +321,9 @@ export const api = {
   getHorariosNegocio: async () => {
     return apiClient.get<HorarioNegocio[]>('/horarios');
   },
-  updateHorariosNegocio: async (horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>) => {
+  updateHorariosNegocio: async (
+    horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>,
+  ) => {
     return apiClient.put('/horarios', { horarios });
   },
 
@@ -303,7 +331,12 @@ export const api = {
   getHorariosEspeciales: async () => {
     return apiClient.get<HorarioEspecial[]>('/horarios/especiales');
   },
-  createHorarioEspecial: async (data: { fecha: string; cerrado: boolean; horaInicio?: string; horaFin?: string }) => {
+  createHorarioEspecial: async (data: {
+    fecha: string;
+    cerrado: boolean;
+    horaInicio?: string;
+    horaFin?: string;
+  }) => {
     return apiClient.post<HorarioEspecial>('/horarios/especiales', data);
   },
   deleteHorarioEspecial: async (id: number) => {

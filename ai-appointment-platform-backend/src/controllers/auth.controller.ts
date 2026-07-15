@@ -18,7 +18,7 @@ export const loginConGoogle = async (
 export const me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.usuario?.id;
-    const negocioId = req.usuario?.negocioId;
+    const negocioId = req.negocioId;
 
     if (!userId || !negocioId) {
       res.status(401).json({ error: 'No autenticado' });
@@ -26,7 +26,7 @@ export const me = async (req: Request, res: Response, next: NextFunction): Promi
     }
 
     const result = await authService.obtenerUsuarioActual(userId, negocioId);
-    res.json({ usuario: result.usuario, negocio: result.negocio });
+    res.json({ usuario: result.usuario, negocios: result.negocios });
   } catch (error) {
     next(error);
   }
@@ -39,7 +39,7 @@ export const updateAvatar = async (
 ): Promise<void> => {
   try {
     const userId = req.usuario?.id;
-    const negocioId = req.usuario?.negocioId;
+    const negocioId = req.negocioId;
     const { image } = req.body;
 
     if (!userId || !negocioId) {
@@ -61,7 +61,7 @@ export const deleteAvatar = async (
 ): Promise<void> => {
   try {
     const userId = req.usuario?.id;
-    const negocioId = req.usuario?.negocioId;
+    const negocioId = req.negocioId;
     if (!userId || !negocioId) {
       res.status(401).json({ error: 'No autenticado' });
       return;
@@ -80,7 +80,7 @@ export const updateNombre = async (
 ): Promise<void> => {
   try {
     const userId = req.usuario?.id;
-    const negocioId = req.usuario?.negocioId;
+    const negocioId = req.negocioId;
     const { nombre } = req.body;
     if (!userId || !negocioId) {
       res.status(401).json({ error: 'No autenticado' });

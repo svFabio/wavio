@@ -19,36 +19,67 @@ interface Negocio {
 interface AuthContextType {
   usuario: Usuario | null;
   negocio: Negocio | null;
+  negocios: Negocio[];
+  activeNegocioId: number | null;
   token: string | null;
   loading: boolean;
-  login: (token: string, usuario: Usuario, negocio: Negocio) => void;
+  login: (token: string, usuario: Usuario, negocios: Negocio[]) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
   setFotoPerfil: (url: string | null) => void;
   setNombre: (nombre: string) => void;
+  switchNegocio: (negocioId: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [negocio, setNegocio] = useState<Negocio | null>(null);
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [activeNegocioId, setActiveNegocioId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('activeNegocioId');
+    return stored ? Number(stored) : null;
+  });
   const [token, setToken] = useState<string | null>(auth.getToken());
   const [loading, setLoading] = useState(true);
 
+  const negocio = useMemo(
+    () => negocios.find((n) => n.id === activeNegocioId) || null,
+    [negocios, activeNegocioId],
+  );
+
   const logout = useCallback(() => {
     auth.clearToken();
+    localStorage.removeItem('activeNegocioId');
     setToken(null);
     setUsuario(null);
-    setNegocio(null);
+    setNegocios([]);
+    setActiveNegocioId(null);
   }, []);
 
-  const login = useCallback((newToken: string, newUser: Usuario, newNegocio: Negocio) => {
+  const switchNegocio = useCallback((negocioId: number) => {
+    setActiveNegocioId(negocioId);
+    localStorage.setItem('activeNegocioId', String(negocioId));
+    window.location.reload();
+  }, []);
+
+  const login = useCallback((newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {
     auth.setToken(newToken);
     setToken(newToken);
     setUsuario(newUser);
-    setNegocio(newNegocio);
+    setNegocios(newNegocios);
+
+    if (newNegocios.length > 0) {
+      const stored = localStorage.getItem('activeNegocioId');
+      if (!stored || !newNegocios.find((n) => n.id === Number(stored))) {
+        setActiveNegocioId(newNegocios[0].id);
+        localStorage.setItem('activeNegocioId', String(newNegocios[0].id));
+      }
+    } else {
+      setActiveNegocioId(null);
+      localStorage.removeItem('activeNegocioId');
+    }
   }, []);
 
   useEffect(() => {
@@ -67,7 +98,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               rol: data.usuario.rol,
               fotoPerfil: data.usuario.fotoPerfil,
             });
-            setNegocio(data.negocio || null);
+            setNegocios(data.negocios || []);
+            if (data.negocios && data.negocios.length > 0) {
+              const stored = localStorage.getItem('activeNegocioId');
+              if (!stored || !data.negocios.find((n) => n.id === Number(stored))) {
+                setActiveNegocioId(data.negocios[0].id);
+                localStorage.setItem('activeNegocioId', String(data.negocios[0].id));
+              }
+            } else {
+              setActiveNegocioId(null);
+              localStorage.removeItem('activeNegocioId');
+            }
             setToken(storedToken);
           } else {
             logout();
@@ -97,6 +138,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       usuario,
       negocio,
+      negocios,
+      activeNegocioId,
       token,
       loading,
       login,
@@ -105,8 +148,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isAdmin,
       setFotoPerfil,
       setNombre,
+      switchNegocio,
     }),
-    [usuario, negocio, token, loading, login, logout, isAdmin, setFotoPerfil, setNombre],
+    [
+      usuario,
+      negocio,
+      negocios,
+      activeNegocioId,
+      token,
+      loading,
+      login,
+      logout,
+      isAdmin,
+      setFotoPerfil,
+      setNombre,
+      switchNegocio,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

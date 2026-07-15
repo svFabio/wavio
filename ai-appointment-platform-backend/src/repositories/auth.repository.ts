@@ -23,7 +23,6 @@ const USUARIO_SAFE_SELECT = {
   email: true,
   googleId: true,
   rol: true,
-  negocioId: true,
   creadoEn: true,
   fotoPerfil: true,
 } as const;
@@ -39,23 +38,34 @@ export const authRepository = {
     nombre: string,
     hashedPassword?: string,
   ): Promise<NegocioSafe> {
-    return prisma.negocio.create({
+    const negocio = await prisma.negocio.create({
       data: {
         googleId,
         email,
         nombre,
-        usuarios: {
-          create: {
-            nombre,
-            email,
-            googleId: hashedPassword ? null : googleId,
-            password: hashedPassword || '',
-            rol: 'ADMIN',
-          },
-        },
       },
       select: NEGOCIO_SAFE_SELECT,
     });
+
+    const usuario = await prisma.usuario.create({
+      data: {
+        nombre,
+        email,
+        googleId: hashedPassword ? null : googleId,
+        password: hashedPassword || '',
+        rol: 'ADMIN',
+      },
+    });
+
+    await prisma.usuarioNegocio.create({
+      data: {
+        usuarioId: usuario.id,
+        negocioId: negocio.id,
+        rol: 'ADMIN',
+      },
+    });
+
+    return negocio;
   },
 
   async findUsuarioByNegocioAndGoogleId(
@@ -63,7 +73,10 @@ export const authRepository = {
     googleId: string,
   ): Promise<UsuarioSafe | null> {
     return prisma.usuario.findFirst({
-      where: { negocioId, googleId },
+      where: {
+        googleId,
+        usuarioNegocios: { some: { negocioId } },
+      },
       select: USUARIO_SAFE_SELECT,
     });
   },
@@ -83,6 +96,30 @@ export const authRepository = {
   },
 
   async findUsuarioByNegocioId(negocioId: number): Promise<UsuarioSafe | null> {
-    return prisma.usuario.findFirst({ where: { negocioId }, select: USUARIO_SAFE_SELECT });
+    return prisma.usuario.findFirst({
+      where: { usuarioNegocios: { some: { negocioId } } },
+      select: USUARIO_SAFE_SELECT,
+    });
+  },
+
+  async findNegociosByUsuarioId(usuarioId: number): Promise<NegocioSafe[]> {
+    const memberships = await prisma.usuarioNegocio.findMany({
+      where: { usuarioId },
+      select: { negocio: { select: NEGOCIO_SAFE_SELECT } },
+    });
+    return memberships.map((m) => m.negocio);
+  },
+
+  async findUsuarioByEmailAndNegocioId(
+    email: string,
+    negocioId: number,
+  ): Promise<UsuarioSafe | null> {
+    return prisma.usuario.findFirst({
+      where: {
+        email,
+        usuarioNegocios: { some: { negocioId } },
+      },
+      select: USUARIO_SAFE_SELECT,
+    });
   },
 };

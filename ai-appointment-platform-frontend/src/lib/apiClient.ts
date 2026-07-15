@@ -22,6 +22,10 @@ async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Pro
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  const activeNegocioId = localStorage.getItem('activeNegocioId');
+  if (activeNegocioId) {
+    headers.set('x-negocio-id', activeNegocioId);
+  }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,

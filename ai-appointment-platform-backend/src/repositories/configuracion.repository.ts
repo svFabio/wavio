@@ -8,6 +8,7 @@ function mapConfig(raw: Record<string, unknown>): Configuracion {
     mensajeBienvenida: raw.mensajeBienvenida as string,
     mensajeConfirmacion: raw.mensajeConfirmacion as string,
     qrContenido: raw.qrContenido as string,
+    qrFotoUrl: (raw.qrFotoUrl as string) || null,
     cobrarAdelanto: raw.cobrarAdelanto as boolean,
     porcentajeAdelanto: raw.porcentajeAdelanto as number,
     timezone: raw.timezone as string,

@@ -98,8 +98,7 @@ export async function getSlotsDisponibles(params: DisponibilidadParams): Promise
 
     // Intersectar: solo quedan los rangos que están dentro del horario del staff
     rangos = rangos.filter(
-      (r) =>
-        r.horaInicio < horarioStaff.horaFin && r.horaFin > horarioStaff.horaInicio,
+      (r) => r.horaInicio < horarioStaff.horaFin && r.horaFin > horarioStaff.horaInicio,
     );
 
     // Recortar a los límites del staff

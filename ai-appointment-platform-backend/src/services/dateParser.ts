@@ -1,5 +1,9 @@
 export function resolverFechaRelativa(textoFecha: string, fechaActual: Date): Date | null {
-  const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   const texto = normalize(textoFecha.trim());
   const year = fechaActual.getFullYear();
   const month = fechaActual.getMonth();
@@ -57,8 +61,18 @@ export function resolverFechaRelativa(textoFecha: string, fechaActual: Date): Da
     const day = parseInt(match[1], 10);
     const monthStr = match[2];
     const monthsMapping: Record<string, number> = {
-      enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
-      julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
+      enero: 0,
+      febrero: 1,
+      marzo: 2,
+      abril: 3,
+      mayo: 4,
+      junio: 5,
+      julio: 6,
+      agosto: 7,
+      septiembre: 8,
+      octubre: 9,
+      noviembre: 10,
+      diciembre: 11,
     };
     const m = monthsMapping[monthStr];
     if (m !== undefined) {

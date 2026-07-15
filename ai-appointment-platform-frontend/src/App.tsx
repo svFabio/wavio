@@ -17,7 +17,8 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Statistics = lazy(() => import('./pages/Statistics'));
 const Users = lazy(() => import('./pages/Users'));
 const Chat = lazy(() => import('./pages/Chat'));
-const ConfiguracionBot = lazy(() => import('./pages/ConfiguracionBot'));
+const Asistente = lazy(() => import('./pages/Asistente'));
+const Configuracion = lazy(() => import('./pages/Configuracion'));
 import { NotificationToast } from './components/NotificationToast';
 import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
@@ -117,10 +118,18 @@ function App() {
                       }
                     />
                     <Route
-                      path="configuracion-bot"
+                      path="asistente"
                       element={
                         <ProtectedRoute requiredRole="ADMIN">
-                          <ConfiguracionBot />
+                          <Asistente />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="configuracion"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <Configuracion />
                         </ProtectedRoute>
                       }
                     />

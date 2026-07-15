@@ -18,7 +18,7 @@ export const usuariosRepository = {
     page: number;
     limit: number;
   }> {
-    const where = { negocioId };
+    const where = { usuarioNegocios: { some: { negocioId } } };
     const [data, total] = await Promise.all([
       prisma.usuario.findMany({
         where,
@@ -43,7 +43,6 @@ export const usuariosRepository = {
     id: number;
     email: string;
     password: string;
-    negocioId: number;
     rol: string;
     fotoPerfil: string | null;
   } | null> {
@@ -53,7 +52,6 @@ export const usuariosRepository = {
         id: true,
         email: true,
         password: true,
-        negocioId: true,
         rol: true,
         fotoPerfil: true,
       },
@@ -72,12 +70,16 @@ export const usuariosRepository = {
     fotoPerfil: string | null;
   } | null> {
     return prisma.usuario.findFirst({
-      where: { id, negocioId },
+      where: { id, usuarioNegocios: { some: { negocioId } } },
       select: { id: true, nombre: true, email: true, rol: true, creadoEn: true, fotoPerfil: true },
     });
   },
 
-  async create(data: Parameters<typeof prisma.usuario.create>[0]['data']): Promise<{
+  async create(
+    data: Omit<Parameters<typeof prisma.usuario.create>[0]['data'], 'usuarioNegocios'> & {
+      negocioId?: number;
+    },
+  ): Promise<{
     id: number;
     nombre: string;
     email: string;
@@ -85,10 +87,23 @@ export const usuariosRepository = {
     creadoEn: Date;
     fotoPerfil: string | null;
   }> {
-    return prisma.usuario.create({
-      data,
+    const { negocioId, ...userData } = data;
+    const usuario = await prisma.usuario.create({
+      data: userData,
       select: { id: true, nombre: true, email: true, rol: true, creadoEn: true, fotoPerfil: true },
     });
+
+    if (negocioId) {
+      await prisma.usuarioNegocio.create({
+        data: {
+          usuarioId: usuario.id,
+          negocioId,
+          rol: userData.rol || 'STAFF',
+        },
+      });
+    }
+
+    return usuario;
   },
 
   async update(

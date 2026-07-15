@@ -3,7 +3,16 @@ import { format } from 'date-fns';
 import { useHorariosDisponibles } from '../../../shared/hooks/useHorariosDisponibles';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
-import { X, Plus, User, Phone, Calendar as CalendarIcon, Loader2, AlertCircle, Scissors } from 'lucide-react';
+import {
+  X,
+  Plus,
+  User,
+  Phone,
+  Calendar as CalendarIcon,
+  Loader2,
+  AlertCircle,
+  Scissors,
+} from 'lucide-react';
 import { HorariosGrid } from './HorariosGrid';
 
 interface DatosNuevaCita {
@@ -53,7 +62,7 @@ export const ModalNuevaCita = ({
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
     formData.fecha,
     isOpen && !!formData.fecha,
-    formData.servicioId
+    formData.servicioId,
   );
 
   useEffect(() => {
@@ -94,7 +103,7 @@ export const ModalNuevaCita = ({
   // Set initial service
   useEffect(() => {
     if (servicios.length > 0 && !formData.servicioId) {
-      setFormData(prev => ({ ...prev, servicioId: servicios[0].id }));
+      setFormData((prev) => ({ ...prev, servicioId: servicios[0].id }));
     }
   }, [servicios, formData.servicioId]);
 
@@ -265,7 +274,9 @@ export const ModalNuevaCita = ({
                 <Scissors className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
                 <select
                   value={formData.servicioId || ''}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, servicioId: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, servicioId: Number(e.target.value) }))
+                  }
                   className="input-modern pl-10 appearance-none bg-surface"
                 >
                   {servicios.map((s) => (
@@ -287,9 +298,14 @@ export const ModalNuevaCita = ({
                 </div>
                 {config?.cobrarAdelanto && (
                   <div className="flex justify-between text-sm mt-2 pt-2 border-t border-border-light items-center">
-                    <span className="text-txt-muted">Adelanto requerido ({config.porcentajeAdelanto}%):</span>
+                    <span className="text-txt-muted">
+                      Adelanto requerido ({config.porcentajeAdelanto}%):
+                    </span>
                     <span className="font-bold text-primary">
-                      ${((servicios.find((s) => s.id === formData.servicioId)?.precio || 0) * (config.porcentajeAdelanto || 0)) / 100}
+                      $
+                      {((servicios.find((s) => s.id === formData.servicioId)?.precio || 0) *
+                        (config.porcentajeAdelanto || 0)) /
+                        100}
                     </span>
                   </div>
                 )}

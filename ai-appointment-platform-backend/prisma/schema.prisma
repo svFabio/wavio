@@ -41,7 +41,7 @@ model Negocio {
 
   creadoEn DateTime @default(now())
 
-  usuarios          Usuario[]
+  usuarioNegocios   UsuarioNegocio[]
   citas             Cita[]
   sesionesChat      SesionChat[]
   mensajesChat      MensajeChat[]
@@ -49,6 +49,20 @@ model Negocio {
   servicios         Servicio[]
   horariosNegocio   HorarioNegocio[]
   horariosEspeciales HorarioEspecial[]
+}
+
+// ─── USUARIO-NEGOCIO (M:N junction) ──────────────────────────────────────────
+model UsuarioNegocio {
+  usuarioId  Int
+  negocioId  Int
+  rol        Rol      @default(STAFF)
+  creadoEn   DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, negocioId])
+  @@index([negocioId])
 }
 
 // ─── USUARIO (staff/admin del negocio) ───────────────────────────────────────
@@ -62,8 +76,7 @@ model Usuario {
   rol        Rol      @default(STAFF)
   creadoEn   DateTime @default(now())
 
-  negocioId Int
-  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  usuarioNegocios UsuarioNegocio[]
 
   horarioStaff HorarioStaff[]
   citas        Cita[]          @relation("StaffCitas")
@@ -205,6 +218,7 @@ model Configuracion {
   mensajeBienvenida   String  @default("Hola! Soy el asistente de citas. Cual es tu nombre completo?")
   mensajeConfirmacion String  @default("Comprobante recibido! Tu cita esta siendo revisada. Te confirmamos pronto.")
   qrContenido         String  @default("TU_CODIGO_QR_AQUI")
+  qrFotoUrl           String?
   cobrarAdelanto      Boolean @default(true)
   porcentajeAdelanto  Int     @default(50)
   timezone            String  @default("America/La_Paz")

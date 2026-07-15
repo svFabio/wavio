@@ -2,7 +2,7 @@ import { chatRepository } from '../repositories/chat.repository';
 import { negocioRepository } from '../repositories/negocio.repository';
 import { sesionChatRepository } from '../repositories/sesionChat.repository';
 import { configuracionRepository } from '../repositories/configuracion.repository';
-import { enviarMensaje } from '../lib/whatsapp';
+import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
 import { procesarMensajeConIA, ContextoConversacion } from '../services/ai.service';
 import { citasService } from '../services/citas.service';
 import { getSlotsDisponibles } from '../services/availability.service';
@@ -74,12 +74,12 @@ export const webhookService = {
                 : { estado: 'INICIO', datos: {}, intentosAclaracion: 0 };
 
               const servicios = await serviciosRepository.findByNegocioId(negocio.id);
-              const serviciosDisponibles = servicios.map(s => `${s.nombre} ($${s.precio})`);
-              
+              const serviciosDisponibles = servicios.map((s) => `${s.nombre} ($${s.precio})`);
+
               // Load chatFlow from config
               const config = await configuracionRepository.getOrCreateByNegocioId(negocio.id);
               const chatFlow = config.chatFlow || [];
-              
+
               let slotsDisponibles: string[] = [];
               if (contexto.datos.fecha) {
                 try {
@@ -88,16 +88,16 @@ export const webhookService = {
                     servicioId: (contexto.datos as any).servicioId || 1, // Default to 1 if unknown
                     fecha: contexto.datos.fecha as unknown as string,
                   });
-                  slotsDisponibles = slots.map(s => s.inicio);
+                  slotsDisponibles = slots.map((s) => s.inicio);
                 } catch (e) {
                   logger.warn({ err: e }, 'Error obteniendo slots para contexto de IA');
                 }
               }
 
               const resultadoIA = await procesarMensajeConIA(
-                textBody, 
-                contexto, 
-                serviciosDisponibles, 
+                textBody,
+                contexto,
+                serviciosDisponibles,
                 slotsDisponibles,
                 chatFlow,
               );
@@ -131,7 +131,11 @@ export const webhookService = {
 async function manejarRespuestaIA(
   negocio: { id: number; waAccessToken: string | null; waPhoneNumberId: string | null },
   from: string,
-  resultadoIA: { intencion: string; respuestaSugerida?: string; entidades?: Record<string, string | undefined> },
+  resultadoIA: {
+    intencion: string;
+    respuestaSugerida?: string;
+    entidades?: Record<string, string | undefined>;
+  },
   contexto: ContextoConversacion,
 ): Promise<void> {
   const waCreds = {
@@ -140,7 +144,7 @@ async function manejarRespuestaIA(
   };
 
   if (resultadoIA.intencion === 'AGENDAR' && contexto.estado === 'CONFIRMANDO_FECHA') {
-    const { fecha, horario, nombre, servicioId } = (contexto.datos as any) as {
+    const { fecha, horario, nombre, servicioId } = contexto.datos as any as {
       fecha?: string;
       horario?: string;
       nombre?: string;
@@ -162,7 +166,8 @@ async function manejarRespuestaIA(
 
         // Check if advance payment is required
         const config = await configuracionRepository.getOrCreateByNegocioId(negocio.id);
-        let confirmationMsg = `¡Tu cita ha sido creada! 🎉\n\n` +
+        let confirmationMsg =
+          `¡Tu cita ha sido creada! 🎉\n\n` +
           `📋 *Detalles:*\n` +
           `📅 Fecha: ${fecha}\n` +
           `⏰ Hora: ${horario}\n` +
@@ -170,13 +175,24 @@ async function manejarRespuestaIA(
 
         if (config.cobrarAdelanto && nuevaCita.monto > 0) {
           const anticipo = Math.round((nuevaCita.monto * config.porcentajeAdelanto) / 100);
-          confirmationMsg += `💰 *Adelanto requerido:* $${anticipo} (${config.porcentajeAdelanto}% de $${nuevaCita.monto})\n` +
+          confirmationMsg +=
+            `💰 *Adelanto requerido:* $${anticipo} (${config.porcentajeAdelanto}% de $${nuevaCita.monto})\n` +
             `Por favor envía tu comprobante de pago para confirmar tu cita.`;
         } else {
           confirmationMsg += `Estado: Pendiente de validación. Te notificaremos cuando sea confirmada.`;
         }
 
         await enviarMensaje(waCreds, from, confirmationMsg);
+
+        if (config.cobrarAdelanto && nuevaCita.monto > 0 && config.qrFotoUrl) {
+          const anticipo = Math.round((nuevaCita.monto * config.porcentajeAdelanto) / 100);
+          await enviarImagen(
+            waCreds,
+            from,
+            config.qrFotoUrl,
+            `Escanea este QR para pagar tu adelanto de $${anticipo}`,
+          );
+        }
 
         contexto.estado = 'INICIO';
         contexto.datos = {};
@@ -189,11 +205,7 @@ async function manejarRespuestaIA(
         );
       }
     } else if (fecha && horario) {
-      await enviarMensaje(
-        waCreds,
-        from,
-        '¿Cuál es tu nombre para completar la reserva?',
-      );
+      await enviarMensaje(waCreds, from, '¿Cuál es tu nombre para completar la reserva?');
       contexto.estado = 'ESPERANDO_NOMBRE';
     } else if (fecha) {
       try {
@@ -210,7 +222,10 @@ async function manejarRespuestaIA(
             `Lo siento, no hay horarios disponibles para el ${fecha}. ¿Te gustaría probar con otra fecha?`,
           );
         } else {
-          const horariosStr = slots.slice(0, 5).map((s) => `• ${s.inicio}`).join('\n');
+          const horariosStr = slots
+            .slice(0, 5)
+            .map((s) => `• ${s.inicio}`)
+            .join('\n');
           await enviarMensaje(
             waCreds,
             from,
@@ -220,19 +235,15 @@ async function manejarRespuestaIA(
         }
       } catch (err) {
         logger.error({ err }, '[Webhook] Error obteniendo slots');
-        await enviarMensaje(
-          waCreds,
-          from,
-          '¿Para qué hora te gustaría tu cita?',
-        );
+        await enviarMensaje(waCreds, from, '¿Para qué hora te gustaría tu cita?');
       }
     } else {
       const servicios = await serviciosRepository.findByNegocioId(negocio.id);
-      const listaServicios = servicios.map(s => `• ${s.nombre} ($${s.precio})`).join('\n');
+      const listaServicios = servicios.map((s) => `• ${s.nombre} ($${s.precio})`).join('\n');
       await enviarMensaje(
         waCreds,
         from,
-        `¡Hola! Para agendar tu cita, primero dime qué servicio deseas:\n\n${listaServicios}`
+        `¡Hola! Para agendar tu cita, primero dime qué servicio deseas:\n\n${listaServicios}`,
       );
       contexto.estado = 'ESPERANDO_SERVICIO';
     }

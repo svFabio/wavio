@@ -15,6 +15,7 @@ export const configuracionService = {
       trigger,
       mensajeBienvenida,
       mensajeConfirmacion,
+      qrFotoUrl,
       cobrarAdelanto,
       porcentajeAdelanto,
       timezone,
@@ -36,11 +37,15 @@ export const configuracionService = {
     if (chatFlow !== undefined && typeof chatFlow !== 'object') {
       throw new ValidationError('chatFlow debe ser un objeto JSON válido');
     }
+    if (qrFotoUrl !== undefined && qrFotoUrl !== null && typeof qrFotoUrl !== 'string') {
+      throw new ValidationError('qrFotoUrl debe ser un string URL o null');
+    }
 
     const updateData: Partial<{
       trigger: string;
       mensajeBienvenida: string;
       mensajeConfirmacion: string;
+      qrFotoUrl: string | null;
       cobrarAdelanto: boolean;
       porcentajeAdelanto: number;
       timezone: string;
@@ -50,6 +55,7 @@ export const configuracionService = {
     if (mensajeBienvenida !== undefined) updateData.mensajeBienvenida = mensajeBienvenida as string;
     if (mensajeConfirmacion !== undefined)
       updateData.mensajeConfirmacion = mensajeConfirmacion as string;
+    if (qrFotoUrl !== undefined) updateData.qrFotoUrl = qrFotoUrl as string | null;
     if (cobrarAdelanto !== undefined) updateData.cobrarAdelanto = Boolean(cobrarAdelanto);
     if (porcentajeAdelanto !== undefined)
       updateData.porcentajeAdelanto = Number(porcentajeAdelanto);

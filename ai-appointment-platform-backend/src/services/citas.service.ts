@@ -232,9 +232,7 @@ export const citasService = {
 
       const slotValido = slots.find((s) => s.inicio === horario);
       if (!slotValido) {
-        throw new ValidationError(
-          `Horario ${horario} no está disponible para la fecha ${fecha}`,
-        );
+        throw new ValidationError(`Horario ${horario} no está disponible para la fecha ${fecha}`);
       }
     }
 
@@ -302,9 +300,7 @@ export const citasService = {
 
       const slotValido = slots.find((s) => s.inicio === horario);
       if (!slotValido) {
-        throw new ValidationError(
-          `Horario ${horario} no está disponible para la fecha ${fecha}`,
-        );
+        throw new ValidationError(`Horario ${horario} no está disponible para la fecha ${fecha}`);
       }
     }
 

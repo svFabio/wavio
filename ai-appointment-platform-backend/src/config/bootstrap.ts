@@ -34,5 +34,7 @@ export const bootstrap = () => {
   iniciarSurvey();
   iniciarJobCancelacionExpirados();
 
-  logger.info('Servicios en segundo plano inicializados (cron, recordatorios, encuestas, cancelacion)');
+  logger.info(
+    'Servicios en segundo plano inicializados (cron, recordatorios, encuestas, cancelacion)',
+  );
 };

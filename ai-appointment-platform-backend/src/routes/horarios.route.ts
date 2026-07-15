@@ -23,8 +23,16 @@ const updateHorariosSchema = z.object({
 const createEspecialSchema = z.object({
   fecha: z.string().min(1, 'La fecha es requerida'),
   cerrado: z.boolean(),
-  horaInicio: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
-  horaFin: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  horaInicio: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable()
+    .optional(),
+  horaFin: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable()
+    .optional(),
 });
 
 // ── HORARIOS NEGOCIO ────────────────────────────────────────────────────────
@@ -43,7 +51,9 @@ const getHorarios = async (req: Request, res: Response, next: NextFunction): Pro
 const updateHorarios = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const negocioId = req.negocioId!;
-    const { horarios } = req.body as { horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }> };
+    const { horarios } = req.body as {
+      horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>;
+    };
 
     // Delete existing, then re-create
     await horariosNegocioRepository.deleteByNegocioId(negocioId);
@@ -77,8 +87,11 @@ const createEspecial = async (req: Request, res: Response, next: NextFunction): 
   try {
     const { fecha, cerrado, horaInicio, horaFin } = req.body;
     const fechaDate = new Date(fecha);
-    const existing = await horariosEspecialesRepository.findByNegocioIdYFecha(req.negocioId!, fechaDate);
-    
+    const existing = await horariosEspecialesRepository.findByNegocioIdYFecha(
+      req.negocioId!,
+      fechaDate,
+    );
+
     let especial;
     if (existing) {
       await horariosEspecialesRepository.deleteById(existing.id);

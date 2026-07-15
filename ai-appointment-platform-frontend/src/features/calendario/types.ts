@@ -1,5 +1,3 @@
-
-
 export interface RecursoEvento {
   tipo: 'resumen' | 'cita';
   estado: string;

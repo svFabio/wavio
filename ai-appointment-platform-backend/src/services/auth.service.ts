@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Usuario, Negocio } from '../domain/types';
 import { usuariosRepository } from '../repositories/usuarios.repository';
+import { prisma } from '../repositories/prisma';
 import { uploadBase64Image } from '../lib/cloudinary';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
@@ -15,17 +16,15 @@ const JWT_EXPIRES_IN = '7d';
 type NegocioSafe = Omit<Negocio, 'waAccessToken'>;
 type UsuarioSafe = Omit<Usuario, 'password'> & { fotoPerfil: string | null };
 
-const signToken = (user: { id: number; email: string; rol: string; negocioId: number }): string =>
-  jwt.sign(
-    { id: user.id, email: user.email, rol: user.rol, negocioId: user.negocioId },
-    env.JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN },
-  );
+const signToken = (user: { id: number; email: string; rol: string }): string =>
+  jwt.sign({ id: user.id, email: user.email, rol: user.rol }, env.JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
 
 export const authService = {
   async loginConGoogle(
     googleToken: string,
-  ): Promise<{ token: string; usuario: UsuarioSafe; negocio: NegocioSafe; esNuevo: boolean }> {
+  ): Promise<{ token: string; usuario: UsuarioSafe; negocios: NegocioSafe[]; esNuevo: boolean }> {
     let googleId: string;
     let email: string;
     let nombre: string;
@@ -68,25 +67,40 @@ export const authService = {
       negocio = await authRepository.createNegocioWithAdmin(googleId, email, nombre);
     }
 
-    const usuario = await authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
+    let usuario = await authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
     if (!usuario) {
-      throw new NotFoundError('Usuario del negocio');
+      // Safety net: user exists but has no junction record (e.g., after M:N migration)
+      const existingUser = await prisma.usuario.findFirst({ where: { googleId } });
+      if (existingUser) {
+        await prisma.usuarioNegocio.upsert({
+          where: {
+            usuarioId_negocioId: { usuarioId: existingUser.id, negocioId: negocio.id },
+          },
+          update: {},
+          create: { usuarioId: existingUser.id, negocioId: negocio.id, rol: 'ADMIN' },
+        });
+        usuario = await authRepository.findUsuarioById(existingUser.id);
+      }
+      if (!usuario) {
+        throw new NotFoundError('Usuario del negocio');
+      }
     }
 
     const token = signToken({
       id: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
-      negocioId: negocio.id,
     });
 
-    return { token, usuario, negocio, esNuevo };
+    const negocios = await authRepository.findNegociosByUsuarioId(usuario.id);
+
+    return { token, usuario, negocios, esNuevo };
   },
 
   async registrarConEmail(
     email: string,
     password: string,
-  ): Promise<{ token: string; usuario: UsuarioSafe; negocio: NegocioSafe; esNuevo: boolean }> {
+  ): Promise<{ token: string; usuario: UsuarioSafe; negocios: NegocioSafe[]; esNuevo: boolean }> {
     const existente = await authRepository.findUsuarioByEmail(email);
     if (existente) {
       throw new ConflictError('Ya existe una cuenta con ese email');
@@ -111,10 +125,11 @@ export const authService = {
       id: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
-      negocioId: negocio.id,
     });
 
-    return { token, usuario, negocio, esNuevo: true };
+    const negocios = await authRepository.findNegociosByUsuarioId(usuario.id);
+
+    return { token, usuario, negocios, esNuevo: true };
   },
 
   async loginConEmail(
@@ -122,8 +137,8 @@ export const authService = {
     password: string,
   ): Promise<{
     token: string;
-    usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'rol' | 'negocioId' | 'creadoEn'>;
-    negocio: NegocioSafe;
+    usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'rol' | 'creadoEn'>;
+    negocios: NegocioSafe[];
     esNuevo: boolean;
   }> {
     const usuario = await authRepository.findUsuarioByEmail(email);
@@ -136,8 +151,8 @@ export const authService = {
       throw new UnauthorizedError('Credenciales incorrectas');
     }
 
-    const negocio = await authRepository.findNegocioById(usuario.negocioId);
-    if (!negocio) {
+    const negocios = await authRepository.findNegociosByUsuarioId(usuario.id);
+    if (negocios.length === 0) {
       throw new NotFoundError('Negocio');
     }
 
@@ -145,7 +160,6 @@ export const authService = {
       id: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
-      negocioId: negocio.id,
     });
 
     return {
@@ -155,10 +169,9 @@ export const authService = {
         nombre: usuario.nombre,
         email: usuario.email,
         rol: usuario.rol,
-        negocioId: usuario.negocioId,
         creadoEn: usuario.creadoEn,
       },
-      negocio,
+      negocios,
       esNuevo: false,
     };
   },
@@ -166,15 +179,18 @@ export const authService = {
   async obtenerUsuarioActual(
     userId: number,
     negocioId: number,
-  ): Promise<{ usuario: UsuarioSafe; negocio: NegocioSafe }> {
+  ): Promise<{ usuario: UsuarioSafe; negocios: NegocioSafe[] }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    const negocio = await authRepository.findNegocioById(negocioId);
-
-    if (!usuario || !negocio) {
-      throw new NotFoundError('Usuario o negocio');
+    if (!usuario) {
+      throw new NotFoundError('Usuario');
     }
 
-    return { usuario, negocio };
+    const negocios = await authRepository.findNegociosByUsuarioId(userId);
+    if (negocios.length === 0) {
+      throw new NotFoundError('Negocio');
+    }
+
+    return { usuario, negocios };
   },
 
   async updateAvatar(
@@ -183,7 +199,14 @@ export const authService = {
     base64Image: string,
   ): Promise<{ fotoPerfil: string }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    if (!usuario || usuario.negocioId !== negocioId) {
+    if (!usuario) {
+      throw new NotFoundError('Usuario');
+    }
+
+    const membership = await prisma.usuarioNegocio.findUnique({
+      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
+    });
+    if (!membership) {
       throw new NotFoundError('Usuario');
     }
 
@@ -200,9 +223,17 @@ export const authService = {
 
   async deleteAvatar(userId: number, negocioId: number): Promise<{ success: boolean }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    if (!usuario || usuario.negocioId !== negocioId) {
+    if (!usuario) {
       throw new NotFoundError('Usuario');
     }
+
+    const membership = await prisma.usuarioNegocio.findUnique({
+      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
+    });
+    if (!membership) {
+      throw new NotFoundError('Usuario');
+    }
+
     await usuariosRepository.update(userId, { fotoPerfil: null });
     return { success: true };
   },
@@ -213,9 +244,17 @@ export const authService = {
     nombre: string,
   ): Promise<{ nombre: string }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    if (!usuario || usuario.negocioId !== negocioId) {
+    if (!usuario) {
       throw new NotFoundError('Usuario');
     }
+
+    const membership = await prisma.usuarioNegocio.findUnique({
+      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
+    });
+    if (!membership) {
+      throw new NotFoundError('Usuario');
+    }
+
     const updated = await usuariosRepository.update(userId, { nombre: nombre.trim() });
     return { nombre: updated.nombre };
   },

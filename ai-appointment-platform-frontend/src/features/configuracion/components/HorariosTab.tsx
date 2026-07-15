@@ -19,28 +19,28 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
   // Inicializar estado desde props
   useEffect(() => {
     const map: Record<number, Array<RangoHorario>> = {};
-    
+
     // Iniciar con array vacio o con valores por defecto
-    DIAS_SEMANA.forEach(dia => {
+    DIAS_SEMANA.forEach((dia) => {
       map[dia.value] = [];
     });
 
     // Sobrescribir con horarios existentes
     if (horarios && horarios.length > 0) {
-      horarios.forEach(h => {
+      horarios.forEach((h) => {
         if (!map[h.diaSemana]) {
           map[h.diaSemana] = [];
         }
         map[h.diaSemana].push({
           activo: h.activo,
           horaInicio: h.horaInicio,
-          horaFin: h.horaFin
+          horaFin: h.horaFin,
         });
       });
     }
 
     // Asegurar que al menos exista 1 rango (aunque sea inactivo) por día
-    DIAS_SEMANA.forEach(dia => {
+    DIAS_SEMANA.forEach((dia) => {
       if (map[dia.value].length === 0) {
         map[dia.value].push({ activo: false, horaInicio: '09:00', horaFin: '13:00' });
       }
@@ -50,18 +50,23 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
   }, [horarios]);
 
   const handleToggle = (dia: number) => {
-    setLocalHorarios(prev => {
-      const isAnyActive = prev[dia].some(r => r.activo);
+    setLocalHorarios((prev) => {
+      const isAnyActive = prev[dia].some((r) => r.activo);
       // Toggle all to the opposite of current state
       return {
         ...prev,
-        [dia]: prev[dia].map(r => ({ ...r, activo: !isAnyActive }))
+        [dia]: prev[dia].map((r) => ({ ...r, activo: !isAnyActive })),
       };
     });
   };
 
-  const handleChange = (dia: number, index: number, field: 'horaInicio' | 'horaFin', value: string) => {
-    setLocalHorarios(prev => {
+  const handleChange = (
+    dia: number,
+    index: number,
+    field: 'horaInicio' | 'horaFin',
+    value: string,
+  ) => {
+    setLocalHorarios((prev) => {
       const newDia = [...prev[dia]];
       newDia[index] = { ...newDia[index], [field]: value };
       return { ...prev, [dia]: newDia };
@@ -69,7 +74,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
   };
 
   const handleAddRange = (dia: number) => {
-    setLocalHorarios(prev => {
+    setLocalHorarios((prev) => {
       const newDia = [...prev[dia]];
       // If adding a range, ensure it's active if the day is active
       const isActive = newDia.length > 0 ? newDia[0].activo : true;
@@ -79,7 +84,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
   };
 
   const handleRemoveRange = (dia: number, index: number) => {
-    setLocalHorarios(prev => {
+    setLocalHorarios((prev) => {
       if (prev[dia].length <= 1) return prev; // Mínimo 1 rango por día
       const newDia = [...prev[dia]];
       newDia.splice(index, 1);
@@ -90,19 +95,19 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
   const handleSave = () => {
     // Formatear para el endpoint (solo enviamos los activos)
     const payload: Array<{ diaSemana: number; horaInicio: string; horaFin: string }> = [];
-    
+
     Object.entries(localHorarios).forEach(([diaStr, rangos]) => {
-      rangos.forEach(rango => {
+      rangos.forEach((rango) => {
         if (rango.activo) {
           payload.push({
             diaSemana: Number(diaStr),
             horaInicio: rango.horaInicio,
-            horaFin: rango.horaFin
+            horaFin: rango.horaFin,
           });
         }
       });
     });
-    
+
     onSave(payload);
   };
 
@@ -118,7 +123,8 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
     <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-6 space-y-6">
       <div className="flex justify-between items-start">
         <p className="text-sm text-txt-muted max-w-md">
-          Define el horario regular de atención de tu negocio. Puedes agregar múltiples rangos de horas por día.
+          Define el horario regular de atención de tu negocio. Puedes agregar múltiples rangos de
+          horas por día.
         </p>
         <button
           onClick={handleSave}
@@ -133,13 +139,15 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
       <div className="space-y-4">
         {DIAS_SEMANA.map((dia) => {
           const rangos = localHorarios[dia.value] || [];
-          const diaActivo = rangos.length > 0 && rangos.some(r => r.activo);
-          
+          const diaActivo = rangos.length > 0 && rangos.some((r) => r.activo);
+
           return (
-            <div 
-              key={dia.value} 
+            <div
+              key={dia.value}
               className={`flex items-start gap-6 p-4 rounded-xl border transition-colors ${
-                diaActivo ? 'border-primary/30 bg-primary/5' : 'border-border bg-surface-elevated/30'
+                diaActivo
+                  ? 'border-primary/30 bg-primary/5'
+                  : 'border-border bg-surface-elevated/30'
               }`}
             >
               {/* Toggle & Label */}
@@ -152,15 +160,21 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
                       checked={diaActivo}
                       onChange={() => handleToggle(dia.value)}
                     />
-                    <div className={`block w-10 h-6 rounded-full transition-colors ${
-                      diaActivo ? 'bg-primary' : 'bg-border-strong'
-                    }`}></div>
-                    <div className={`absolute left-1 top-1 bg-surface w-4 h-4 rounded-full transition-transform ${
-                      diaActivo ? 'transform translate-x-4' : ''
-                    }`}></div>
+                    <div
+                      className={`block w-10 h-6 rounded-full transition-colors ${
+                        diaActivo ? 'bg-primary' : 'bg-border-strong'
+                      }`}
+                    ></div>
+                    <div
+                      className={`absolute left-1 top-1 bg-surface w-4 h-4 rounded-full transition-transform ${
+                        diaActivo ? 'transform translate-x-4' : ''
+                      }`}
+                    ></div>
                   </div>
                 </label>
-                <span className={`text-sm font-medium ${diaActivo ? 'text-txt' : 'text-txt-muted'}`}>
+                <span
+                  className={`text-sm font-medium ${diaActivo ? 'text-txt' : 'text-txt-muted'}`}
+                >
                   {dia.label}
                 </span>
               </div>
@@ -184,7 +198,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
                       onChange={(e) => handleChange(dia.value, index, 'horaFin', e.target.value)}
                       className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary disabled:opacity-50 disabled:bg-surface-elevated font-mono"
                     />
-                    
+
                     {rangos.length > 1 && (
                       <button
                         onClick={() => handleRemoveRange(dia.value, index)}
@@ -197,7 +211,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
                     )}
                   </div>
                 ))}
-                
+
                 <button
                   onClick={() => handleAddRange(dia.value)}
                   disabled={!diaActivo}

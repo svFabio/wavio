@@ -1,5 +1,7 @@
 import type { ChatFlowStep } from './components/ChatFlowEditor';
 
+export type { ChatFlowStep };
+
 export interface Servicio {
   id: number;
   nombre: string;
@@ -25,13 +27,12 @@ export interface HorarioEspecial {
   horaFin: string | null;
 }
 
-export type Tab = 'asistente' | 'servicios' | 'horarios' | 'chatflow';
-
 export interface ConfigData {
   id: number;
   trigger: string;
   mensajeBienvenida: string;
   mensajeConfirmacion: string;
+  qrFotoUrl: string | null;
   cobrarAdelanto: boolean;
   porcentajeAdelanto: number;
   timezone: string;

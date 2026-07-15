@@ -95,7 +95,13 @@ export const procesarMensajeConIA = async (
     };
   }
   try {
-    const prompt = construirPrompt(mensaje, contexto, serviciosDisponibles, slotsDisponibles, chatFlow);
+    const prompt = construirPrompt(
+      mensaje,
+      contexto,
+      serviciosDisponibles,
+      slotsDisponibles,
+      chatFlow,
+    );
 
     const result = await model.generateContent(prompt);
     const response = result.response;
@@ -151,19 +157,23 @@ export const procesarMensajeConIA = async (
  * Construye el prompt contextual para Gemini
  */
 const construirPrompt = (
-  mensaje: string, 
+  mensaje: string,
   contexto: ContextoConversacion,
   serviciosDisponibles?: string[],
   slotsDisponibles?: string[],
   chatFlow?: ChatFlowStep[],
 ): string => {
-  const serviciosText = serviciosDisponibles?.length ? `\n- Servicios disponibles: ${serviciosDisponibles.join(', ')}` : '';
-  const slotsText = slotsDisponibles?.length ? `\n- Horarios disponibles (slots): ${slotsDisponibles.join(', ')}` : '';
+  const serviciosText = serviciosDisponibles?.length
+    ? `\n- Servicios disponibles: ${serviciosDisponibles.join(', ')}`
+    : '';
+  const slotsText = slotsDisponibles?.length
+    ? `\n- Horarios disponibles (slots): ${slotsDisponibles.join(', ')}`
+    : '';
 
   // Build custom messages from chatFlow if configured
   let chatFlowText = '';
   if (chatFlow && chatFlow.length > 0) {
-    const activeSteps = chatFlow.filter(s => s.activo);
+    const activeSteps = chatFlow.filter((s) => s.activo);
     if (activeSteps.length > 0) {
       chatFlowText = '\n**Mensajes personalizados del negocio:**\n';
       for (const step of activeSteps) {

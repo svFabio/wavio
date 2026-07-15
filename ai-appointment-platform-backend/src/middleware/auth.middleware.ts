@@ -4,7 +4,7 @@ import { env } from '../config/env';
 import { UnauthorizedError } from '../domain/errors';
 
 const JWT_SECRET = env.JWT_SECRET;
-// Extender el tipo Request de Express para incluir usuario con negocioId
+// Extender el tipo Request de Express para incluir usuario
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
@@ -13,9 +13,9 @@ declare global {
         id: number;
         email: string;
         rol: string;
-        negocioId: number;
       };
       negocioId?: number; // Inyectado por tenantMiddleware
+      negocioRole?: string; // Inyectado por tenantMiddleware
     }
   }
 }
@@ -34,7 +34,6 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction):
       id: number;
       email: string;
       rol: string;
-      negocioId: number;
     };
     req.usuario = decoded;
     next();
