@@ -1,21 +1,45 @@
 import type { Cita } from '../types';
 import { apiClient, ApiError } from '../lib/apiClient';
+import type {
+  Servicio,
+  HorarioNegocio,
+  HorarioEspecial,
+  ChatFlowStep,
+} from '../features/configuracion/types';
 
 export const api = {
   // --- AUTENTICACIÓN ---
   loginConGoogle: async (googleToken: string) => {
-    return apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
-      '/auth/google',
-      { googleToken }
-    );
+    return apiClient.post<{
+      token: string;
+      usuario: {
+        id: number;
+        nombre: string;
+        email: string;
+        rol: 'ADMIN' | 'STAFF';
+        fotoPerfil?: string;
+      };
+      negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
+      esNuevo?: boolean;
+    }>('/auth/google', {
+      googleToken,
+    });
   },
 
   register: async (email: string, password: string) => {
     try {
-      return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
-        '/auth/register',
-        { email, password }
-      );
+      return await apiClient.post<{
+        token: string;
+        usuario: {
+          id: number;
+          nombre: string;
+          email: string;
+          rol: 'ADMIN' | 'STAFF';
+          fotoPerfil?: string;
+        };
+        negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
+        esNuevo?: boolean;
+      }>('/auth/register', { email, password });
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw new Error('Error al registrarse');
@@ -24,10 +48,18 @@ export const api = {
 
   login: async (email: string, password: string) => {
     try {
-      return await apiClient.post<{ token: string; usuario: unknown; negocio: unknown }>(
-        '/auth/login',
-        { email, password }
-      );
+      return await apiClient.post<{
+        token: string;
+        usuario: {
+          id: number;
+          nombre: string;
+          email: string;
+          rol: 'ADMIN' | 'STAFF';
+          fotoPerfil?: string;
+        };
+        negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
+        esNuevo?: boolean;
+      }>('/auth/login', { email, password });
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw new Error('Credenciales incorrectas');
@@ -37,9 +69,15 @@ export const api = {
   me: async (token: string) => {
     try {
       return await apiClient.get<{
-        usuario: { id: number; nombre: string; email: string; rol: 'ADMIN' | 'STAFF'; fotoPerfil?: string };
-        negocio: { id: number; nombre: string; plan: 'FREE' | 'PRO' } | null;
-      }>('/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+        usuario: {
+          id: number;
+          nombre: string;
+          email: string;
+          rol: 'ADMIN' | 'STAFF';
+          fotoPerfil?: string;
+        };
+        negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
+      }>('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
     } catch {
       return null;
     }
@@ -60,11 +98,13 @@ export const api = {
   // --- CITAS ---
   obtenerCitas: async (fecha?: string): Promise<Cita[]> => {
     const url = fecha ? `/citas?fecha=${encodeURIComponent(fecha)}` : '/citas';
-    return apiClient.get<Cita[]>(url);
+    const res = await apiClient.get<{ data: Cita[]; pagination: unknown }>(url);
+    return res.data;
   },
 
   obtenerPendientes: async (): Promise<Cita[]> => {
-    return apiClient.get<Cita[]>('/citas/pendientes');
+    const res = await apiClient.get<{ data: Cita[]; pagination: unknown }>('/citas/pendientes');
+    return res.data;
   },
 
   validarPago: async (id: string, accion: 'APROBAR' | 'RECHAZAR'): Promise<boolean> => {
@@ -76,10 +116,12 @@ export const api = {
     }
   },
 
-  obtenerHorariosDisponibles: async (fecha: string): Promise<string[]> => {
-    const data = await apiClient.get<{ horarios?: string[] }>(
-      `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`
-    );
+  obtenerHorariosDisponibles: async (fecha: string, servicioId?: number): Promise<string[]> => {
+    let url = `/citas/horarios-disponibles?fecha=${encodeURIComponent(fecha)}`;
+    if (servicioId) {
+      url += `&servicioId=${servicioId}`;
+    }
+    const data = await apiClient.get<{ horarios?: string[] }>(url);
     return data.horarios || [];
   },
 
@@ -88,6 +130,7 @@ export const api = {
     clienteTelefono: string;
     fecha: string;
     horario: string;
+    servicioId?: number;
   }): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.post('/citas/admin', datos);
@@ -107,7 +150,11 @@ export const api = {
     }>('/citas/resumen');
   },
 
-  reprogramarCita: async (id: string, fecha: string, horario: string): Promise<{ success: boolean; error?: string }> => {
+  reprogramarCita: async (
+    id: string,
+    fecha: string,
+    horario: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.put(`/citas/${id}/reprogramar`, { fecha, horario });
       return { success: true };
@@ -137,7 +184,10 @@ export const api = {
     }
   },
 
-  actualizarDescripcion: async (id: string, descripcion: string): Promise<{ success: boolean; error?: string }> => {
+  actualizarDescripcion: async (
+    id: string,
+    descripcion: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.put(`/citas/${id}/descripcion`, { descripcion });
       return { success: true };
@@ -149,14 +199,25 @@ export const api = {
 
   // --- CHAT ---
   obtenerConversaciones: async () => {
-    return apiClient.get<import('../types').Conversacion[]>('/chat/conversaciones');
+    const res = await apiClient.get<{
+      data: import('../types').Conversacion[];
+      pagination: unknown;
+    }>('/chat/conversaciones');
+    return res.data;
   },
 
   obtenerMensajes: async (jid: string) => {
-    return apiClient.get<import('../types').MensajeChat[]>(`/chat/mensajes/${encodeURIComponent(jid)}`);
+    const res = await apiClient.get<{
+      data: import('../types').MensajeChat[];
+      pagination: unknown;
+    }>(`/chat/mensajes/${encodeURIComponent(jid)}`);
+    return res.data;
   },
 
-  enviarMensajeChat: async (jid: string, texto: string): Promise<{ success: boolean; error?: string }> => {
+  enviarMensajeChat: async (
+    jid: string,
+    texto: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.post(`/chat/enviar/${encodeURIComponent(jid)}`, { texto });
       return { success: true };
@@ -180,11 +241,16 @@ export const api = {
     return apiClient.get<{ connected: boolean; phone?: string } | null>('/whatsapp/status');
   },
 
-  guardarCredencialesWhatsApp: async (waAccessToken: string, waPhoneNumberId: string, waWabaId: string) => {
-    return apiClient.post<{ success?: boolean; error?: string }>(
-      '/whatsapp/save-credentials',
-      { waAccessToken, waPhoneNumberId, waWabaId }
-    );
+  guardarCredencialesWhatsApp: async (
+    waAccessToken: string,
+    waPhoneNumberId: string,
+    waWabaId: string,
+  ) => {
+    return apiClient.post<{ success?: boolean; error?: string }>('/whatsapp/save-credentials', {
+      waAccessToken,
+      waPhoneNumberId,
+      waWabaId,
+    });
   },
 
   desvincularWhatsApp: async () => {
@@ -198,10 +264,11 @@ export const api = {
       trigger: string;
       mensajeBienvenida: string;
       mensajeConfirmacion: string;
-      servicios: { nombre: string; precio: number }[];
-      horarios: Record<string, string[]>;
+      qrFotoUrl: string | null;
       cobrarAdelanto: boolean;
       porcentajeAdelanto: number;
+      timezone: string;
+      chatFlow: ChatFlowStep[];
     }>('/configuracion');
   },
 
@@ -209,12 +276,71 @@ export const api = {
     trigger?: string;
     mensajeBienvenida?: string;
     mensajeConfirmacion?: string;
-    servicios?: { nombre: string; precio: number }[];
-    horarios?: Record<string, string[]>;
+    qrFotoUrl?: string | null;
     cobrarAdelanto?: boolean;
     porcentajeAdelanto?: number;
+    timezone?: string;
+    chatFlow?: ChatFlowStep[];
   }) => {
     return apiClient.patch('/configuracion', data);
+  },
+
+  uploadQR: async (imagen: string) => {
+    return apiClient.post<{ qrFotoUrl: string }>('/configuracion/qr', { imagen });
+  },
+
+  // --- SERVICIOS ---
+  getServicios: async () => {
+    return apiClient.get<Servicio[]>('/servicios');
+  },
+  createServicio: async (data: {
+    nombre: string;
+    duracionMinutos: number;
+    bufferMinutos: number;
+    precio: number;
+  }) => {
+    return apiClient.post<Servicio>('/servicios', data);
+  },
+  updateServicio: async (
+    id: number,
+    data: Partial<{
+      nombre: string;
+      duracionMinutos: number;
+      bufferMinutos: number;
+      precio: number;
+      activo: boolean;
+    }>,
+  ) => {
+    return apiClient.patch<Servicio>(`/servicios/${id}`, data);
+  },
+  deleteServicio: async (id: number) => {
+    return apiClient.delete(`/servicios/${id}`);
+  },
+
+  // --- HORARIOS NEGOCIO ---
+  getHorariosNegocio: async () => {
+    return apiClient.get<HorarioNegocio[]>('/horarios');
+  },
+  updateHorariosNegocio: async (
+    horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>,
+  ) => {
+    return apiClient.put('/horarios', { horarios });
+  },
+
+  // --- HORARIOS ESPECIALES ---
+  getHorariosEspeciales: async () => {
+    return apiClient.get<HorarioEspecial[]>('/horarios/especiales');
+  },
+  createHorarioEspecial: async (data: {
+    fecha: string;
+    cerrado: boolean;
+    horaInicio?: string;
+    horaFin?: string;
+  }) => {
+    return apiClient.post<HorarioEspecial>('/horarios/especiales', data);
+  },
+  deleteHorarioEspecial: async (id: number) => {
+    return apiClient.delete(`/horarios/especiales/${id}`);
   },
 
   // --- STATISTICS ---
@@ -232,26 +358,38 @@ export const api = {
 
   getStatisticsRevenue: async (months: number = 6) => {
     return apiClient.get<{ revenue: Array<{ mes: string; total: number }> }>(
-      `/statistics/revenue?months=${months}`
+      `/statistics/revenue?months=${months}`,
     );
   },
 
   // --- USERS ---
   getUsers: async () => {
-    return apiClient.get<Array<{
-      id: number;
-      nombre: string;
-      email: string;
-      rol: 'ADMIN' | 'STAFF';
-      creadoEn: string;
-    }>>('/users');
+    const res = await apiClient.get<{
+      data: Array<{
+        id: number;
+        nombre: string;
+        email: string;
+        rol: 'ADMIN' | 'STAFF';
+        creadoEn: string;
+      }>;
+      pagination: unknown;
+    }>('/users');
+    return res.data;
   },
 
-  createUser: async (data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' }) => {
+  createUser: async (data: {
+    nombre: string;
+    email: string;
+    password: string;
+    rol: 'ADMIN' | 'STAFF';
+  }) => {
     return apiClient.post('/users', data);
   },
 
-  updateUser: async (id: number, data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' }) => {
+  updateUser: async (
+    id: number,
+    data: { nombre: string; email: string; password: string; rol: 'ADMIN' | 'STAFF' },
+  ) => {
     return apiClient.put(`/users/${id}`, data);
   },
 

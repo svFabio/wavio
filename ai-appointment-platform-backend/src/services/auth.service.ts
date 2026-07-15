@@ -6,14 +6,25 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Usuario, Negocio } from '../domain/types';
 import { usuariosRepository } from '../repositories/usuarios.repository';
-import { uploadBase64Image, deleteImage } from '../lib/cloudinary';
+import { prisma } from '../repositories/prisma';
+import { uploadBase64Image } from '../lib/cloudinary';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 const JWT_EXPIRES_IN = '7d';
 
+type NegocioSafe = Omit<Negocio, 'waAccessToken'>;
+type UsuarioSafe = Omit<Usuario, 'password'> & { fotoPerfil: string | null };
+
+const signToken = (user: { id: number; email: string; rol: string }): string =>
+  jwt.sign({ id: user.id, email: user.email, rol: user.rol }, env.JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
+
 export const authService = {
-  async loginConGoogle(googleToken: string) {
+  async loginConGoogle(
+    googleToken: string,
+  ): Promise<{ token: string; usuario: UsuarioSafe; negocios: NegocioSafe[]; esNuevo: boolean }> {
     let googleId: string;
     let email: string;
     let nombre: string;
@@ -35,7 +46,7 @@ export const authService = {
     } else {
       // Access Token (ya29...) — verify by calling Google's userinfo endpoint server-side
       const verifyRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${googleToken}` }
+        headers: { Authorization: `Bearer ${googleToken}` },
       });
       if (!verifyRes.ok) {
         throw new UnauthorizedError('Token de Google inválido');
@@ -56,21 +67,40 @@ export const authService = {
       negocio = await authRepository.createNegocioWithAdmin(googleId, email, nombre);
     }
 
-    const usuario = await authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
+    let usuario = await authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
     if (!usuario) {
-      throw new NotFoundError('Usuario del negocio');
+      // Safety net: user exists but has no junction record (e.g., after M:N migration)
+      const existingUser = await prisma.usuario.findFirst({ where: { googleId } });
+      if (existingUser) {
+        await prisma.usuarioNegocio.upsert({
+          where: {
+            usuarioId_negocioId: { usuarioId: existingUser.id, negocioId: negocio.id },
+          },
+          update: {},
+          create: { usuarioId: existingUser.id, negocioId: negocio.id, rol: 'ADMIN' },
+        });
+        usuario = await authRepository.findUsuarioById(existingUser.id);
+      }
+      if (!usuario) {
+        throw new NotFoundError('Usuario del negocio');
+      }
     }
 
-    const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, rol: usuario.rol, negocioId: negocio.id },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken({
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+    });
 
-    return { token, usuario, negocio, esNuevo };
+    const negocios = await authRepository.findNegociosByUsuarioId(usuario.id);
+
+    return { token, usuario, negocios, esNuevo };
   },
 
-  async registrarConEmail(email: string, password: string) {
+  async registrarConEmail(
+    email: string,
+    password: string,
+  ): Promise<{ token: string; usuario: UsuarioSafe; negocios: NegocioSafe[]; esNuevo: boolean }> {
     const existente = await authRepository.findUsuarioByEmail(email);
     if (existente) {
       throw new ConflictError('Ya existe una cuenta con ese email');
@@ -83,7 +113,7 @@ export const authService = {
       `email-${email}`,
       email,
       'Mi Negocio',
-      hashedPassword
+      hashedPassword,
     );
 
     const usuario = await authRepository.findUsuarioByNegocioId(negocio.id);
@@ -91,16 +121,26 @@ export const authService = {
       throw new NotFoundError('Usuario recién creado');
     }
 
-    const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, rol: usuario.rol, negocioId: negocio.id },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken({
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+    });
 
-    return { token, usuario, negocio, esNuevo: true };
+    const negocios = await authRepository.findNegociosByUsuarioId(usuario.id);
+
+    return { token, usuario, negocios, esNuevo: true };
   },
 
-  async loginConEmail(email: string, password: string) {
+  async loginConEmail(
+    email: string,
+    password: string,
+  ): Promise<{
+    token: string;
+    usuario: Pick<Usuario, 'id' | 'nombre' | 'email' | 'rol' | 'creadoEn'>;
+    negocios: NegocioSafe[];
+    esNuevo: boolean;
+  }> {
     const usuario = await authRepository.findUsuarioByEmail(email);
     if (!usuario || !usuario.password) {
       throw new UnauthorizedError('Credenciales incorrectas');
@@ -111,39 +151,67 @@ export const authService = {
       throw new UnauthorizedError('Credenciales incorrectas');
     }
 
-    const negocio = await authRepository.findNegocioById(usuario.negocioId);
-    if (!negocio) {
+    const negocios = await authRepository.findNegociosByUsuarioId(usuario.id);
+    if (negocios.length === 0) {
       throw new NotFoundError('Negocio');
     }
 
-    const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, rol: usuario.rol, negocioId: negocio.id },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken({
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+    });
 
-    return { token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, negocioId: usuario.negocioId, creadoEn: usuario.creadoEn }, negocio, esNuevo: false };
+    return {
+      token,
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        creadoEn: usuario.creadoEn,
+      },
+      negocios,
+      esNuevo: false,
+    };
   },
 
-  async obtenerUsuarioActual(userId: number, negocioId: number) {
+  async obtenerUsuarioActual(
+    userId: number,
+    negocioId: number,
+  ): Promise<{ usuario: UsuarioSafe; negocios: NegocioSafe[] }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    const negocio = await authRepository.findNegocioById(negocioId);
-
-    if (!usuario || !negocio) {
-      throw new NotFoundError('Usuario o negocio');
+    if (!usuario) {
+      throw new NotFoundError('Usuario');
     }
 
-    return { usuario, negocio };
+    const negocios = await authRepository.findNegociosByUsuarioId(userId);
+    if (negocios.length === 0) {
+      throw new NotFoundError('Negocio');
+    }
+
+    return { usuario, negocios };
   },
 
-  async updateAvatar(userId: number, negocioId: number, base64Image: string) {
+  async updateAvatar(
+    userId: number,
+    negocioId: number,
+    base64Image: string,
+  ): Promise<{ fotoPerfil: string }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    if (!usuario || usuario.negocioId !== negocioId) {
+    if (!usuario) {
+      throw new NotFoundError('Usuario');
+    }
+
+    const membership = await prisma.usuarioNegocio.findUnique({
+      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
+    });
+    if (!membership) {
       throw new NotFoundError('Usuario');
     }
 
     // Si ya tenía foto en Cloudinary, podríamos intentar borrarla (opcional, por brevedad lo omitimos o lo borramos si guardamos el public_id. Cloudinary URL no es el public_id, requeriría parseo).
-    
+
     // Subir a Cloudinary
     const fotoPerfil = await uploadBase64Image(base64Image, `wavio/users/${userId}`);
 
@@ -153,21 +221,41 @@ export const authService = {
     return { fotoPerfil };
   },
 
-  async deleteAvatar(userId: number, negocioId: number) {
+  async deleteAvatar(userId: number, negocioId: number): Promise<{ success: boolean }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    if (!usuario || usuario.negocioId !== negocioId) {
+    if (!usuario) {
       throw new NotFoundError('Usuario');
     }
+
+    const membership = await prisma.usuarioNegocio.findUnique({
+      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
+    });
+    if (!membership) {
+      throw new NotFoundError('Usuario');
+    }
+
     await usuariosRepository.update(userId, { fotoPerfil: null });
     return { success: true };
   },
 
-  async updateNombre(userId: number, negocioId: number, nombre: string) {
+  async updateNombre(
+    userId: number,
+    negocioId: number,
+    nombre: string,
+  ): Promise<{ nombre: string }> {
     const usuario = await authRepository.findUsuarioById(userId);
-    if (!usuario || usuario.negocioId !== negocioId) {
+    if (!usuario) {
       throw new NotFoundError('Usuario');
     }
+
+    const membership = await prisma.usuarioNegocio.findUnique({
+      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
+    });
+    if (!membership) {
+      throw new NotFoundError('Usuario');
+    }
+
     const updated = await usuariosRepository.update(userId, { nombre: nombre.trim() });
     return { nombre: updated.nombre };
-  }
+  },
 };

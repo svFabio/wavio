@@ -1,7 +1,9 @@
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { auth } from './auth';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+const SOCKET_URL =
+  import.meta.env.VITE_API_URL?.replace(/\/api(\/v1)?$/, '') || 'http://localhost:3000';
 
 class SocketManager {
   private static instance: Socket | null = null;

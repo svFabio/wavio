@@ -9,6 +9,6 @@ const logger = pino();
 // Para reactivar: implementar con Prisma + enviarMensaje.
 // ============================================================
 
-export const iniciarRecordatorios = () => {
-    logger.info('[Cron] Sistema de recordatorios DESACTIVADO por desarrollo.');
+export const iniciarRecordatorios = (): void => {
+  logger.info('[Cron] Sistema de recordatorios DESACTIVADO por desarrollo.');
 };

@@ -26,49 +26,65 @@ enum Plan {
 
 // ─── TENANT (el negocio que se registra) ─────────────────────────────────────
 model Negocio {
-  id              Int      @id @default(autoincrement())
-  googleId        String   @unique // ID de Google del dueño que se registró
-  email           String   @unique
-  nombre          String   @default("Mi Negocio")
-  plan            Plan     @default(FREE)
-  
+  id       Int    @id @default(autoincrement())
+  googleId String @unique
+  email    String @unique
+  nombre   String @default("Mi Negocio")
+  plan     Plan   @default(FREE)
+
   // ─── META CLOUD API FIELDS ───
   waAccessToken   String?
-  waPhoneNumberId String?  @unique
+  waPhoneNumberId String? @unique
   waWabaId        String?
   waAppId         String?
-  isWaConnected   Boolean  @default(false)
+  isWaConnected   Boolean @default(false)
 
-  creadoEn        DateTime @default(now())
+  creadoEn DateTime @default(now())
 
-  usuarios      Usuario[]
-  citas         Cita[]
-  sesionesChat  SesionChat[]
-  mensajesChat  MensajeChat[]
-  configuracion Configuracion?
+  usuarioNegocios   UsuarioNegocio[]
+  citas             Cita[]
+  sesionesChat      SesionChat[]
+  mensajesChat      MensajeChat[]
+  configuracion     Configuracion?
+  servicios         Servicio[]
+  horariosNegocio   HorarioNegocio[]
+  horariosEspeciales HorarioEspecial[]
+}
+
+// ─── USUARIO-NEGOCIO (M:N junction) ──────────────────────────────────────────
+model UsuarioNegocio {
+  usuarioId  Int
+  negocioId  Int
+  rol        Rol      @default(STAFF)
+  creadoEn   DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, negocioId])
+  @@index([negocioId])
 }
 
 // ─── USUARIO (staff/admin del negocio) ───────────────────────────────────────
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  email     String   @unique
-  password  String   @default("") // vacío para usuarios de Google; usado solo en dev seed
-  googleId    String?  // ID de Google del usuario (opcional)
-  fotoPerfil  String?  // URL de la foto en Cloudinary u otro
-  rol         Rol      @default(STAFF)
-  creadoEn    DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  nombre     String
+  email      String   @unique
+  password   String   @default("")
+  googleId   String?
+  fotoPerfil String?
+  rol        Rol      @default(STAFF)
+  creadoEn   DateTime @default(now())
 
-  negocioId Int
-  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  usuarioNegocios UsuarioNegocio[]
+
+  horarioStaff HorarioStaff[]
+  citas        Cita[]          @relation("StaffCitas")
 }
-
-// ─── SESIÓN BAILEYS (por negocio) ────────────────────────────────────────────
-// Eliminado: Ya no usamos Baileys. Las credenciales de Meta se guardan en el modelo Negocio.
 
 // ─── SESIÓN DE CHAT (por negocio) ────────────────────────────────────────────
 model SesionChat {
-  id            String   @id // remoteJid
+  id            String
   estado        String
   datos         Json
   ultimoMensaje DateTime @default(now())
@@ -76,7 +92,72 @@ model SesionChat {
   negocioId Int
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 
+  @@id([id, negocioId])
   @@index([negocioId, ultimoMensaje])
+}
+
+// ─── SERVICIO (catálogo de servicios del negocio) ────────────────────────────
+model Servicio {
+  id              Int      @id @default(autoincrement())
+  negocioId       Int
+  nombre          String
+  duracionMinutos Int      @default(60)
+  bufferMinutos   Int      @default(10)
+  precio          Float    @default(0)
+  activo          Boolean  @default(true)
+  creadoEn        DateTime @default(now())
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  citas   Cita[]
+
+  @@unique([negocioId, nombre])
+  @@index([negocioId])
+}
+
+// ─── HORARIO REGULAR DEL NEGOCIO ─────────────────────────────────────────────
+// Supports multiple blocks per day (e.g., 09:00-13:00 and 14:00-18:00)
+model HorarioNegocio {
+  id         Int     @id @default(autoincrement())
+  negocioId  Int
+  diaSemana  Int     // 0=domingo, 1=lunes, ..., 6=sabado
+  horaInicio String  // "09:00"
+  horaFin    String  // "13:00"
+  activo     Boolean @default(true)
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([negocioId, diaSemana, horaInicio])
+  @@index([negocioId])
+}
+
+// ─── HORARIO POR STAFF ───────────────────────────────────────────────────────
+model HorarioStaff {
+  id         Int     @id @default(autoincrement())
+  usuarioId  Int
+  diaSemana  Int     // 0=domingo, 1=lunes, ..., 6=sabado
+  horaInicio String
+  horaFin    String
+  activo     Boolean @default(true)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, diaSemana, horaInicio])
+  @@index([usuarioId])
+}
+
+// ─── HORARIO ESPECIAL (feriados, vacaciones, horario extendido) ──────────────
+model HorarioEspecial {
+  id         Int      @id @default(autoincrement())
+  negocioId  Int
+  fecha      DateTime @db.Date
+  cerrado    Boolean  @default(false)
+  horaInicio String?
+  horaFin    String?
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([negocioId, fecha])
+  @@index([negocioId])
 }
 
 // ─── CITA ─────────────────────────────────────────────────────────────────────
@@ -87,7 +168,11 @@ model Cita {
   clienteNombre   String?
   clienteTelefono String
   servicio        String   @default("Spa")
-  monto           Float
+  servicioId      Int?
+  duracionMinutos Int      @default(60)
+  staffId         Int?
+  estadoPago      String   @default("PENDIENTE")
+  monto           Decimal  @db.Decimal(10, 2)
   estado          String   @default("PENDIENTE")
   comprobanteUrl  String?
   descripcion     String?
@@ -102,17 +187,20 @@ model Cita {
   negocioId Int
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
 
+  servicioRef Servicio? @relation(fields: [servicioId], references: [id])
+  staff       Usuario?  @relation("StaffCitas", fields: [staffId], references: [id])
+
   @@index([negocioId, fecha])
 }
 
 // ─── HISTORIAL DE MENSAJES ───────────────────────────────────────────────────
 model MensajeChat {
   id            Int              @id @default(autoincrement())
-  waMessageId   String?          @unique // ID único del mensaje en Meta (wamid)
+  waMessageId   String?          @unique
   remoteJid     String
   contenido     String
-  direccion     DireccionMensaje // ENTRANTE | SALIENTE
-  estadoEntrega String           @default("enviado") // enviado, entregado, leido, fallido
+  direccion     DireccionMensaje
+  estadoEntrega String           @default("enviado")
   timestamp     DateTime         @default(now())
 
   negocioId Int
@@ -122,16 +210,19 @@ model MensajeChat {
 }
 
 // ─── CONFIGURACIÓN DEL BOT ────────────────────────────────────────────────────
+// NOTE: servicios and horarios fields were REMOVED.
+// They are now in their own tables: Servicio and HorarioNegocio.
 model Configuracion {
-  id                  Int    @id @default(autoincrement())
-  trigger             String @default("!cita")
-  mensajeBienvenida   String @default("Hola! Soy el asistente de citas. Cual es tu nombre completo?")
-  mensajeConfirmacion String @default("Comprobante recibido! Tu cita esta siendo revisada. Te confirmamos pronto.")
-  servicios           Json   @default("[{\"nombre\":\"Servicio\",\"precio\":0}]")
-  horarios            Json   @default("{\"lunes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"martes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"miercoles\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"jueves\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"viernes\":[\"09:00\",\"10:00\",\"11:00\",\"12:00\"],\"sabado\":[],\"domingo\":[]}")
+  id                  Int     @id @default(autoincrement())
+  trigger             String  @default("!cita")
+  mensajeBienvenida   String  @default("Hola! Soy el asistente de citas. Cual es tu nombre completo?")
+  mensajeConfirmacion String  @default("Comprobante recibido! Tu cita esta siendo revisada. Te confirmamos pronto.")
   qrContenido         String  @default("TU_CODIGO_QR_AQUI")
+  qrFotoUrl           String?
   cobrarAdelanto      Boolean @default(true)
   porcentajeAdelanto  Int     @default(50)
+  timezone            String  @default("America/La_Paz")
+  chatFlow            Json    @default("{}")
 
   negocioId Int     @unique
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)

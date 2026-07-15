@@ -6,9 +6,10 @@ interface CrearCitaParams {
   clienteTelefono: string;
   fecha: string;
   horario: string;
+  servicioId?: number;
 }
 
-export function useCrearCita() {
+export function useCrearCitaMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({

@@ -26,7 +26,9 @@ const envSchema = z.object({
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  process.stderr.write(`❌ Invalid environment variables: ${JSON.stringify(_env.error.format())}\n`);
+  process.stderr.write(
+    `❌ Invalid environment variables: ${JSON.stringify(_env.error.format())}\n`,
+  );
   process.exit(1);
 }
 

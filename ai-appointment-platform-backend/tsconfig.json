@@ -2,13 +2,8 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "lib": [
-      "es2020",
-      "dom"
-    ],
-    "types": [
-      "node"
-    ],
+    "lib": ["es2020", "dom"],
+    "types": ["node"],
     "rootDir": ".",
     "outDir": "./dist",
     "esModuleInterop": true,
@@ -16,9 +11,5 @@
     "verbatimModuleSyntax": false,
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*",
-    "prisma/**/*",
-    "scripts/**/*"
-  ]
+  "include": ["src/**/*", "prisma/**/*", "scripts/**/*"]
 }

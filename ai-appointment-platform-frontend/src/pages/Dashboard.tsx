@@ -8,9 +8,8 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-surface-alt overflow-hidden">
-
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-sidebar text-white z-40 flex items-center justify-between px-4 shadow-lg">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-sidebar text-txt z-40 flex items-center justify-between px-4 shadow-lg">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen(true)}
@@ -22,7 +21,7 @@ const Dashboard = () => {
             <div className="w-7 h-7 gradient-primary rounded-lg flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold text-base text-white">Citas WA</span>
+            <span className="font-bold text-base text-txt">Citas WA</span>
           </div>
         </div>
       </div>
@@ -36,10 +35,7 @@ const Dashboard = () => {
       )}
 
       {/* Sidebar */}
-      <Sidebar
-        isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-      />
+      <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
       {/* Main Content */}
       <main className="flex-1 w-full relative h-full overflow-auto pt-14 md:pt-0">
@@ -47,7 +43,6 @@ const Dashboard = () => {
           <Outlet />
         </div>
       </main>
-
     </div>
   );
 };

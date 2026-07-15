@@ -16,20 +16,48 @@ interface PagosViewProps {
 }
 
 export const PagosView = ({ citas, loading, onValidar }: PagosViewProps) => {
-  if (loading) return (
-    <div className="space-y-4">
-      <div className="skeleton h-20 rounded-theme-lg" />
-      <div className="skeleton h-36 rounded-theme-lg" />
-      <div className="skeleton h-36 rounded-theme-lg" />
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="card-modern overflow-hidden">
+        <div className="p-5 md:p-6 border-b border-border">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div className="space-y-2">
+              <div className="skeleton h-5 w-48 rounded" />
+              <div className="skeleton h-3 w-64 rounded" />
+            </div>
+            <div className="skeleton h-6 w-24 rounded-full" />
+          </div>
+        </div>
+        <div className="p-4 md:p-6 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 p-4 bg-surface-alt rounded-xl border border-border-light"
+            >
+              <div className="skeleton w-24 h-24 md:w-28 md:h-28 rounded-xl shrink-0" />
+              <div className="flex-1 space-y-3">
+                <div className="skeleton h-4 w-2/5 rounded" />
+                <div className="flex gap-4">
+                  <div className="skeleton h-3 w-16 rounded" />
+                  <div className="skeleton h-3 w-24 rounded" />
+                </div>
+              </div>
+              <div className="flex gap-2 md:flex-col md:items-end md:justify-center md:w-36 shrink-0">
+                <div className="skeleton h-10 flex-1 md:w-full rounded-xl" />
+                <div className="skeleton h-10 flex-1 md:w-full rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
 
   return (
     <div className="card-modern overflow-hidden">
       <div className="p-5 md:p-6 border-b border-border">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-txt">Validacion de Comprobantes</h2>
+            <h2 className="text-lg font-bold text-txt">Validacion de Comprobantes</h2>
             <p className="text-sm text-txt-muted mt-1">Revisa las fotos enviadas por WhatsApp</p>
           </div>
           <div className="badge badge-warning">
@@ -48,15 +76,26 @@ export const PagosView = ({ citas, loading, onValidar }: PagosViewProps) => {
           </div>
         ) : (
           <div className="space-y-3">
-            {citas.map(cita => (
-              <div key={cita.id} className="bg-surface-alt rounded-xl p-4 md:p-5 hover:bg-surface-elevated/50 transition-all border border-border-light group">
+            {citas.map((cita) => (
+              <div
+                key={cita.id}
+                className="bg-surface-alt rounded-xl p-4 md:p-5 hover:bg-surface-elevated/50 transition-all border border-border-light group"
+              >
                 <div className="flex flex-col md:flex-row gap-4 md:gap-5">
                   <div className="flex-shrink-0">
                     {cita.comprobanteUrl ? (
-                      <a href={cita.comprobanteUrl} target="_blank" rel="noreferrer" className="block">
+                      <a
+                        href={cita.comprobanteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block"
+                      >
                         <img
                           src={cita.comprobanteUrl}
                           alt="Comprobante"
+                          width={112}
+                          height={112}
+                          loading="lazy"
                           className="w-24 h-24 md:w-28 md:h-28 object-cover rounded-xl border-2 border-warning/30 hover:border-warning transition-all cursor-zoom-in shadow-sm"
                         />
                       </a>
@@ -64,7 +103,7 @@ export const PagosView = ({ citas, loading, onValidar }: PagosViewProps) => {
                       <div className="w-24 h-24 md:w-28 md:h-28 bg-surface-elevated rounded-xl flex items-center justify-center text-txt-muted border border-dashed border-border">
                         <div className="text-center">
                           <ImageOff className="w-6 h-6 mx-auto mb-1 text-txt-muted/50" />
-                          <p className="text-[10px] uppercase tracking-wider font-medium">Sin foto</p>
+                          <p className="text-xs uppercase tracking-wider font-medium">Sin foto</p>
                         </div>
                       </div>
                     )}
@@ -73,11 +112,10 @@ export const PagosView = ({ citas, loading, onValidar }: PagosViewProps) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
                       <p className="font-bold text-lg text-txt truncate">
-                        {cita.clienteNombre || (
-                          cita.clienteTelefono.length > 15
+                        {cita.clienteNombre ||
+                          (cita.clienteTelefono.length > 15
                             ? `ID: ${cita.clienteTelefono.substring(0, 5)}...`
-                            : `Tel: ${cita.clienteTelefono}`
-                        )}
+                            : `Tel: ${cita.clienteTelefono}`)}
                       </p>
                       <span className="badge badge-warning">{cita.estado}</span>
                     </div>
@@ -98,10 +136,11 @@ export const PagosView = ({ citas, loading, onValidar }: PagosViewProps) => {
                     <button
                       onClick={() => onValidar(cita.id, 'APROBAR')}
                       disabled={!cita.comprobanteUrl}
-                      className={`flex-1 md:w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${cita.comprobanteUrl
-                        ? 'bg-success text-white hover:opacity-90 shadow-sm active:scale-95'
-                        : 'bg-surface-elevated text-txt-muted cursor-not-allowed'
-                        }`}
+                      className={`flex-1 md:w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                        cita.comprobanteUrl
+                          ? 'bg-success text-white hover:opacity-90 shadow-sm active:scale-95'
+                          : 'bg-surface-elevated text-txt-muted cursor-not-allowed'
+                      }`}
                     >
                       <CheckCircle className="w-4 h-4" /> Aprobar
                     </button>

@@ -4,15 +4,19 @@ export const CustomEventMonth = ({ event }: { event: EventoCalendario }) => {
   const count = event.resource?.count || 1;
   return (
     <>
-      <span className="hidden md:inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-txt-secondary w-full">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 inline-block" />
-        <span>{event.title}</span>
+      <span className="hidden md:flex items-center justify-center gap-1.5 w-full">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-txt-secondary truncate leading-tight">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+          {event.title}
+        </span>
       </span>
-      <span className="md:hidden inline-flex items-center justify-center gap-0.5 w-full">
-        {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
-          <span key={i} className="w-[6px] h-[6px] rounded-full bg-primary inline-block" />
+      <span className="md:hidden flex items-center justify-center gap-[3px] w-full py-0.5">
+        {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
+          <span key={`dot-${i}`} className="w-[5px] h-[5px] rounded-full bg-primary" />
         ))}
-        {count > 4 && <span className="text-[9px] text-primary font-bold leading-none">+</span>}
+        {count > 5 && (
+          <span className="text-[9px] text-primary font-bold leading-none ml-0.5">+</span>
+        )}
       </span>
     </>
   );

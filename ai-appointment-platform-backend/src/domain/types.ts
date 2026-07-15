@@ -2,6 +2,10 @@ export type Rol = 'ADMIN' | 'STAFF';
 export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';
 export type Plan = 'FREE' | 'PRO';
 
+export type EstadoCita =
+  'PENDIENTE' | 'EN_PROCESO' | 'VALIDACION_PENDIENTE' | 'CONFIRMADA' | 'CANCELADA' | 'NO_ASISTIO';
+export type EstadoPago = 'PENDIENTE' | 'ESPERANDO_COMPROBANTE' | 'VERIFICADO' | 'RECHAZADO';
+
 export interface Negocio {
   id: number;
   googleId: string;
@@ -22,8 +26,15 @@ export interface Usuario {
   email: string;
   password?: string | null;
   googleId: string | null;
+  fotoPerfil: string | null;
   rol: Rol;
+  creadoEn: Date;
+}
+
+export interface UsuarioNegocio {
+  usuarioId: number;
   negocioId: number;
+  rol: string;
   creadoEn: Date;
 }
 
@@ -35,6 +46,44 @@ export interface SesionChat {
   negocioId: number;
 }
 
+export interface Servicio {
+  id: number;
+  negocioId: number;
+  nombre: string;
+  duracionMinutos: number;
+  bufferMinutos: number;
+  precio: number;
+  activo: boolean;
+  creadoEn: Date;
+}
+
+export interface HorarioNegocio {
+  id: number;
+  negocioId: number;
+  diaSemana: number; // 0=domingo, 1=lunes, ..., 6=sabado
+  horaInicio: string; // "09:00"
+  horaFin: string; // "13:00"
+  activo: boolean;
+}
+
+export interface HorarioStaff {
+  id: number;
+  usuarioId: number;
+  diaSemana: number;
+  horaInicio: string;
+  horaFin: string;
+  activo: boolean;
+}
+
+export interface HorarioEspecial {
+  id: number;
+  negocioId: number;
+  fecha: Date;
+  cerrado: boolean;
+  horaInicio: string | null;
+  horaFin: string | null;
+}
+
 export interface Cita {
   id: number;
   fecha: Date;
@@ -42,6 +91,10 @@ export interface Cita {
   clienteNombre: string | null;
   clienteTelefono: string;
   servicio: string;
+  servicioId: number | null;
+  duracionMinutos: number;
+  staffId: number | null;
+  estadoPago: string;
   monto: number;
   estado: string;
   comprobanteUrl: string | null;
@@ -67,15 +120,45 @@ export interface MensajeChat {
   negocioId: number;
 }
 
+export interface ChatFlowStep {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  tipoInput: 'texto' | 'lista' | 'boton';
+  opciones?: string[];
+  activo: boolean;
+}
+
 export interface Configuracion {
   id: number;
   trigger: string;
   mensajeBienvenida: string;
   mensajeConfirmacion: string;
-  servicios: Record<string, unknown> | unknown[]; // Prisma Json
-  horarios: Record<string, unknown>; // Prisma Json
   qrContenido: string;
+  qrFotoUrl: string | null;
   cobrarAdelanto: boolean;
   porcentajeAdelanto: number;
+  timezone: string;
+  chatFlow: ChatFlowStep[];
   negocioId: number;
+}
+
+// ─── Availability Engine Types ─────────────────────────────────────────────
+
+export interface Slot {
+  inicio: string; // "09:00"
+  fin: string; // "10:00"
+  staffId: number | null;
+}
+
+export interface DisponibilidadParams {
+  negocioId: number;
+  servicioId: number;
+  fecha: string; // "2025-07-15"
+  staffId?: number;
+}
+
+export interface RangoHorario {
+  horaInicio: string;
+  horaFin: string;
 }

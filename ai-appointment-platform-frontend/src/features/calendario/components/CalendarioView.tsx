@@ -10,10 +10,15 @@ import { ModalReprogramar } from './ModalReprogramar';
 import { CustomEventDay } from './CustomEventDay';
 import { CustomEventMonth } from './CustomEventMonth';
 import { CustomToolbar } from './CustomToolbar';
+import type { CustomToolbarProps } from './CustomToolbar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../../../index.css';
 
-const locales = { 'es': es };
+const locales = { es: es };
+
+const MemoizedToolbarWrapper = ({ onNuevaCita, ...toolbarProps }: CustomToolbarProps) => (
+  <CustomToolbar {...toolbarProps} onNuevaCita={onNuevaCita} />
+);
 const localizer = dateFnsLocalizer({
   format,
   parse,
@@ -34,7 +39,10 @@ interface CalendarioViewProps {
   vista: View;
   fecha: Date;
   scrollToTime: Date;
-  eventStyleGetter: (event: EventoCalendario) => { className?: string; style?: React.CSSProperties };
+  eventStyleGetter: (event: EventoCalendario) => {
+    className?: string;
+    style?: React.CSSProperties;
+  };
   onNavigateFecha: (date: Date) => void;
   onNavigateVista: (view: View) => void;
   onSelectSlot: (slot: { start: Date }) => void;
@@ -52,7 +60,11 @@ interface CalendarioViewProps {
   modalReprogramarAbierto: boolean;
   citaReprogramar: EventoCalendario;
   onCerrarReprogramar: () => void;
-  onReprogramarCita: (citaId: string, fecha: string, horario: string) => Promise<{ success: boolean; error?: string }>;
+  onReprogramarCita: (
+    citaId: string,
+    fecha: string,
+    horario: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const CalendarioView = ({
@@ -81,30 +93,25 @@ export const CalendarioView = ({
   onReprogramarCita,
 }: CalendarioViewProps) => {
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col space-y-4 p-4">
-      <div className="card-modern h-full p-4 flex flex-col shadow-xl">
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-4">
+      <div className="card-modern h-full p-5 flex flex-col">
         <Calendar
           localizer={localizer}
           events={eventos}
           startAccessor="start"
           endAccessor="end"
-          className="h-[calc(100vh-220px)]"
+          className="flex-1 min-h-0"
           view={vista}
           onView={onNavigateVista}
           date={fecha}
           onNavigate={onNavigateFecha}
-          culture='es'
+          culture="es"
           min={new Date(new Date().getFullYear(), 0, 1, 8, 0, 0)}
           max={new Date(new Date().getFullYear(), 0, 1, 20, 0, 0)}
           scrollToTime={scrollToTime}
           components={{
             event: vista === Views.MONTH ? CustomEventMonth : CustomEventDay,
-            toolbar: (props) => (
-              <CustomToolbar
-                {...props}
-                onNuevaCita={onNuevaCita}
-              />
-            )
+            toolbar: (props) => <MemoizedToolbarWrapper {...props} onNuevaCita={onNuevaCita} />,
           }}
           onSelectEvent={onSelectEvent}
           onSelectSlot={onSelectSlot}

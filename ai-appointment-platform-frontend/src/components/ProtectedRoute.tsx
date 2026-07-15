@@ -3,35 +3,35 @@ import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
-    requiredRole?: 'ADMIN' | 'STAFF';
+  children: React.ReactNode;
+  requiredRole?: 'ADMIN' | 'STAFF';
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-    const { isAuthenticated, isAdmin, loading } = useAuth();
-    const location = useLocation();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const location = useLocation();
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-surface-alt">
-                <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-                    <p className="mt-4 text-txt-secondary">Verificando sesión...</p>
-                </div>
-            </div>
-        );
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface-alt">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="mt-4 text-txt-secondary">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-    // Validar rol si es requerido
-    if (requiredRole === 'ADMIN' && !isAdmin) {
-        return <Navigate to="/" replace />;
-    }
+  // Validar rol si es requerido
+  if (requiredRole === 'ADMIN' && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
 
-    return <>{children}</>;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

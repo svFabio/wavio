@@ -3,104 +3,174 @@ import { api } from '../services/api';
 import { auth } from '../lib/auth';
 
 interface Usuario {
-    id: number;
-    nombre: string;
-    email: string;
-    rol: 'ADMIN' | 'STAFF';
-    fotoPerfil?: string;
+  id: number;
+  nombre: string;
+  email: string;
+  rol: 'ADMIN' | 'STAFF';
+  fotoPerfil?: string;
 }
 
 interface Negocio {
-    id: number;
-    nombre: string;
-    plan: 'FREE' | 'PRO';
+  id: number;
+  nombre: string;
+  plan: 'FREE' | 'PRO';
 }
 
 interface AuthContextType {
-    usuario: Usuario | null;
-    negocio: Negocio | null;
-    token: string | null;
-    loading: boolean;
-    login: (token: string, usuario: Usuario, negocio: Negocio) => void;
-    logout: () => void;
-    isAuthenticated: boolean;
-    isAdmin: boolean;
-    setFotoPerfil: (url: string | null) => void;
-    setNombre: (nombre: string) => void;
+  usuario: Usuario | null;
+  negocio: Negocio | null;
+  negocios: Negocio[];
+  activeNegocioId: number | null;
+  token: string | null;
+  loading: boolean;
+  login: (token: string, usuario: Usuario, negocios: Negocio[]) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  setFotoPerfil: (url: string | null) => void;
+  setNombre: (nombre: string) => void;
+  switchNegocio: (negocioId: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [usuario, setUsuario] = useState<Usuario | null>(null);
-    const [negocio, setNegocio] = useState<Negocio | null>(null);
-    const [token, setToken] = useState<string | null>(auth.getToken());
-    const [loading, setLoading] = useState(true);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [activeNegocioId, setActiveNegocioId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('activeNegocioId');
+    return stored ? Number(stored) : null;
+  });
+  const [token, setToken] = useState<string | null>(auth.getToken());
+  const [loading, setLoading] = useState(true);
 
-    const logout = useCallback(() => {
-        auth.clearToken();
-        setToken(null);
-        setUsuario(null);
-        setNegocio(null);
-    }, []);
+  const negocio = useMemo(
+    () => negocios.find((n) => n.id === activeNegocioId) || null,
+    [negocios, activeNegocioId],
+  );
 
-    const login = useCallback((newToken: string, newUser: Usuario, newNegocio: Negocio) => {
-        auth.setToken(newToken);
-        setToken(newToken);
-        setUsuario(newUser);
-        setNegocio(newNegocio);
-    }, []);
+  const logout = useCallback(() => {
+    auth.clearToken();
+    localStorage.removeItem('activeNegocioId');
+    setToken(null);
+    setUsuario(null);
+    setNegocios([]);
+    setActiveNegocioId(null);
+  }, []);
 
-    useEffect(() => {
-        let isMounted = true;
-        const initAuth = async () => {
-            const storedToken = auth.getToken();
-            if (storedToken) {
-                try {
-                    const data = await api.me(storedToken);
-                    if (!isMounted) return;
-                    if (data) {
-                        setUsuario({ id: data.usuario.id, nombre: data.usuario.nombre, email: data.usuario.email, rol: data.usuario.rol, fotoPerfil: data.usuario.fotoPerfil });
-                        setNegocio(data.negocio || null);
-                        setToken(storedToken);
-                    } else {
-                        logout();
-                    }
-                } catch {
-                    if (isMounted) logout();
-                }
+  const switchNegocio = useCallback((negocioId: number) => {
+    setActiveNegocioId(negocioId);
+    localStorage.setItem('activeNegocioId', String(negocioId));
+    window.location.reload();
+  }, []);
+
+  const login = useCallback((newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {
+    auth.setToken(newToken);
+    setToken(newToken);
+    setUsuario(newUser);
+    setNegocios(newNegocios);
+
+    if (newNegocios.length > 0) {
+      const stored = localStorage.getItem('activeNegocioId');
+      if (!stored || !newNegocios.find((n) => n.id === Number(stored))) {
+        setActiveNegocioId(newNegocios[0].id);
+        localStorage.setItem('activeNegocioId', String(newNegocios[0].id));
+      }
+    } else {
+      setActiveNegocioId(null);
+      localStorage.removeItem('activeNegocioId');
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const initAuth = async () => {
+      const storedToken = auth.getToken();
+      if (storedToken) {
+        try {
+          const data = await api.me(storedToken);
+          if (!isMounted) return;
+          if (data) {
+            setUsuario({
+              id: data.usuario.id,
+              nombre: data.usuario.nombre,
+              email: data.usuario.email,
+              rol: data.usuario.rol,
+              fotoPerfil: data.usuario.fotoPerfil,
+            });
+            setNegocios(data.negocios || []);
+            if (data.negocios && data.negocios.length > 0) {
+              const stored = localStorage.getItem('activeNegocioId');
+              if (!stored || !data.negocios.find((n) => n.id === Number(stored))) {
+                setActiveNegocioId(data.negocios[0].id);
+                localStorage.setItem('activeNegocioId', String(data.negocios[0].id));
+              }
+            } else {
+              setActiveNegocioId(null);
+              localStorage.removeItem('activeNegocioId');
             }
-            if (isMounted) setLoading(false);
-        };
-        initAuth();
-        return () => { isMounted = false; };
-    }, [logout]);
+            setToken(storedToken);
+          } else {
+            logout();
+          }
+        } catch {
+          if (isMounted) logout();
+        }
+      }
+      if (isMounted) setLoading(false);
+    };
+    initAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, [logout]);
 
-    const setFotoPerfil = useCallback((url: string | null) => {
-        setUsuario(prev => prev ? { ...prev, fotoPerfil: url || undefined } : null);
-    }, []);
-    const setNombre = useCallback((nombre: string) => {
-        setUsuario(prev => prev ? { ...prev, nombre } : null);
-    }, []);
+  const setFotoPerfil = useCallback((url: string | null) => {
+    setUsuario((prev) => (prev ? { ...prev, fotoPerfil: url || undefined } : null));
+  }, []);
+  const setNombre = useCallback((nombre: string) => {
+    setUsuario((prev) => (prev ? { ...prev, nombre } : null));
+  }, []);
 
-    const isAdmin = useMemo(() => usuario?.rol === 'ADMIN', [usuario]);
+  const isAdmin = useMemo(() => usuario?.rol === 'ADMIN', [usuario]);
 
-    const value = useMemo(() => ({
-        usuario, negocio, token, loading,
-        login, logout,
-        isAuthenticated: !!usuario,
-        isAdmin, setFotoPerfil, setNombre
-    }), [usuario, negocio, token, loading, login, logout, isAdmin, setFotoPerfil, setNombre]);
+  const value = useMemo(
+    () => ({
+      usuario,
+      negocio,
+      negocios,
+      activeNegocioId,
+      token,
+      loading,
+      login,
+      logout,
+      isAuthenticated: !!usuario,
+      isAdmin,
+      setFotoPerfil,
+      setNombre,
+      switchNegocio,
+    }),
+    [
+      usuario,
+      negocio,
+      negocios,
+      activeNegocioId,
+      token,
+      loading,
+      login,
+      logout,
+      isAdmin,
+      setFotoPerfil,
+      setNombre,
+      switchNegocio,
+    ],
+  );
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
-    return context;
+  const context = useContext(AuthContext);
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
+  return context;
 };

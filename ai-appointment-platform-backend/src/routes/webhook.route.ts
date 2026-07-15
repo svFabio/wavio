@@ -7,14 +7,18 @@ const router = Router();
 router.get('/', verifyWebhook);
 
 // POST para recibir mensajes y eventos — capture raw body for HMAC
-router.post('/', (req, _res, next) => {
+router.post(
+  '/',
+  (req, _res, next) => {
     const chunks: Buffer[] = [];
     req.on('data', (chunk: Buffer) => chunks.push(chunk));
     req.on('end', () => {
-        (req as any).rawBody = Buffer.concat(chunks);
-        next();
+      (req as any).rawBody = Buffer.concat(chunks);
+      next();
     });
     req.on('error', next);
-}, handleWebhook);
+  },
+  handleWebhook,
+);
 
 export default router;

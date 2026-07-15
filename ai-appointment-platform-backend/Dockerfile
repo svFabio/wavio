@@ -1,5 +1,5 @@
-# Node.js 20 slim
-FROM node:20-slim
+# Node.js 22 slim
+FROM node:22-slim
 
 # Baileys needs openssl for crypto operations
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
@@ -7,12 +7,15 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 # Working directory
 WORKDIR /usr/src/app
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@11 --activate
+
 # Copy config files first (layer cache)
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -21,10 +24,10 @@ RUN npx prisma generate
 COPY . .
 
 # Compile TypeScript
-RUN npm run build
+RUN pnpm run build
 
 # Expose port
 EXPOSE 3000
 
 # Run migrations then start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]

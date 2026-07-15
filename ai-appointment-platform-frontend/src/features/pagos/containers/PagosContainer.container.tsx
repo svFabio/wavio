@@ -6,7 +6,9 @@ export const PagosContainer = () => {
   const { mutateAsync: validarPago } = useValidarPago();
 
   const manejarValidacion = async (id: string, accion: 'APROBAR' | 'RECHAZAR') => {
-    const confirmacion = window.confirm(`¿Estás seguro de ${accion === 'APROBAR' ? 'APROBAR' : 'RECHAZAR'} este pago?`);
+    const confirmacion = window.confirm(
+      `¿Estás seguro de ${accion === 'APROBAR' ? 'APROBAR' : 'RECHAZAR'} este pago?`,
+    );
     if (!confirmacion) return;
 
     await validarPago({ id, accion });

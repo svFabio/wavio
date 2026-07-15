@@ -1,16 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
-import { ValidationError } from '../domain/errors';
 
-export const validateBody = (schema: ZodSchema): ((req: Request, res: Response, next: NextFunction) => void) => {
+interface ValidationIssue {
+  field: string;
+  message: string;
+}
+
+export class StructuredValidationError extends Error {
+  public readonly statusCode = 400;
+  public readonly code = 'VALIDATION_ERROR';
+  public readonly errors: ValidationIssue[];
+
+  constructor(errors: ValidationIssue[]) {
+    super('Validation failed');
+    this.name = 'StructuredValidationError';
+    this.errors = errors;
+    Object.setPrototypeOf(this, StructuredValidationError.prototype);
+  }
+}
+
+export const validateBody = (
+  schema: ZodSchema,
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
       req.body = schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const issues = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-        next(new ValidationError(`Invalid request body: ${issues}`));
+        const errors: ValidationIssue[] = error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        }));
+        next(new StructuredValidationError(errors));
       } else {
         next(error);
       }
@@ -18,15 +40,23 @@ export const validateBody = (schema: ZodSchema): ((req: Request, res: Response, 
   };
 };
 
-export const validateQuery = (schema: ZodSchema): ((req: Request, res: Response, next: NextFunction) => void) => {
+export const validateQuery = (
+  schema: ZodSchema,
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
-      req.query = schema.parse(req.query) as typeof req.query;
+      // Express 5 makes req.query a getter-only property — cannot reassign.
+      // Store parsed result on (req as any) so downstream handlers read validated data.
+      const parsed = schema.parse(req.query);
+      (req as any).validatedQuery = parsed;
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const issues = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-        next(new ValidationError(`Invalid request query: ${issues}`));
+        const errors: ValidationIssue[] = error.issues.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        }));
+        next(new StructuredValidationError(errors));
       } else {
         next(error);
       }

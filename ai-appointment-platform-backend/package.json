@@ -6,6 +6,10 @@
     "dev": "nodemon",
     "build": "tsc",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/src/server.js"
   },
   "keywords": [],
@@ -44,6 +48,7 @@
     "eslint": "^9.39.2",
     "globals": "^17.2.0",
     "nodemon": "^3.1.11",
+    "prettier": "^3.9.5",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",

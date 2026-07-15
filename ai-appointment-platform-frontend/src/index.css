@@ -1,7 +1,6 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ============================================
    DESIGN SYSTEM — TOKENS (Cambiar colores aquí)
@@ -12,20 +11,23 @@
    ============================================ */
 :root {
   /* --- Colores principales --- */
-  --color-primary: #6366f1;
-  /* Indigo — botones, links activos, accent */
-  --color-primary-light: #e0e7ff;
-  /* Indigo claro — badges, fondos suaves */
-  --color-primary-dark: #4338ca;
-  /* Indigo oscuro — hover de botones */
-  --color-primary-glow: rgba(99, 102, 241, 0.25);
+  --color-primary: #171717;
+  /* Black — botones, links activos, accent */
+  --color-primary-light: #f1f5f9;
+  /* Gray claro — badges, fondos suaves */
+  --color-primary-dark: #030712;
+  /* Near black — hover de botones */
+  --color-primary-glow: rgba(0, 0, 0, 0.1);
+  --color-on-primary: #ffffff;
+  /* Texto sobre primary */
+  --color-surface-overlay: rgba(0, 0, 0, 0.03);
   --color-warning-glow: rgba(245, 158, 11, 0.3);
   --color-success-glow: rgba(16, 185, 129, 0.3);
   /* Sombra/glow de primary */
 
-  --color-secondary: #8b5cf6;
-  /* Violet — gradientes, acentos secundarios */
-  --color-secondary-light: #ede9fe;
+  --color-secondary: #525252;
+  /* Neutral — gradientes, acentos secundarios */
+  --color-secondary-light: #f5f5f5;
 
   /* --- Sidebar --- */
   --color-sidebar-bg: #ffffff;
@@ -64,12 +66,28 @@
   /* Títulos, texto principal */
   --color-text-secondary: #475569;
   /* Texto secundario */
-  --color-text-muted: #94a3b8;
+  --color-text-muted: #64748b;
   /* Placeholders, hints */
+
+  /* --- Event Colors (Calendario) --- */
+  --color-event-1-bg: #3b82f6;
+  --color-event-1-border: #2563eb;
+  --color-event-2-bg: #8b5cf6;
+  --color-event-2-border: #7c3aed;
+  --color-event-3-bg: #ec4899;
+  --color-event-3-border: #db2777;
+  --color-event-4-bg: #f59e0b;
+  --color-event-4-border: #d97706;
+  --color-event-5-bg: #10b981;
+  --color-event-5-border: #059669;
+  --color-event-6-bg: #06b6d4;
+  --color-event-6-border: #0891b2;
+  --color-event-text: #ffffff;
 
   /* --- Bordes --- */
   --color-border: #e2e8f0;
   --color-border-light: #f1f5f9;
+  --color-border-strong: #cbd5e1;
 
   /* --- Radios y sombras --- */
   --radius-sm: 0.5rem;
@@ -79,6 +97,9 @@
 
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-event: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-event-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-overlay: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
   --shadow-glow: 0 0 20px var(--color-primary-glow);
 
   /* --- Gradientes (stat cards, onboarding) --- */
@@ -86,8 +107,8 @@
   --gradient-warm-to: #f97316;
   --gradient-cool-from: #10b981;
   --gradient-cool-to: #14b8a6;
-  --gradient-purple-from: #8b5cf6;
-  --gradient-purple-to: #a855f7;
+  --gradient-purple-from: #525252;
+  --gradient-purple-to: #737373;
   --gradient-dark-from: #0f172a;
   --gradient-dark-via: #1e293b;
   --gradient-dark-to: #0f172a;
@@ -101,28 +122,53 @@
    DARK MODE TOKENS
    ============================================ */
 .dark {
+  color-scheme: dark;
   /* --- Colores principales --- */
-  --color-primary: #818cf8;
-  --color-primary-light: #312e81;
-  --color-primary-dark: #a5b4fc;
-  --color-primary-glow: rgba(129, 140, 248, 0.3);
+  --color-primary: #ffffff;
+  --color-primary-light: #262626;
+  --color-primary-dark: #d4d4d4;
+  --color-primary-glow: rgba(255, 255, 255, 0.1);
+  --color-on-primary: #000000;
+  --color-surface-overlay: rgba(255, 255, 255, 0.05);
   --color-warning-glow: rgba(251, 191, 36, 0.3);
   --color-success-glow: rgba(52, 211, 153, 0.3);
 
-  --color-secondary: #a78bfa;
-  --color-secondary-light: #2e1065;
+  --color-secondary: #a3a3a3;
+  --color-secondary-light: #1a1a1a;
 
   /* --- Sidebar --- */
-  --color-sidebar-bg: #0f172a;
-  --color-sidebar-hover: #1e293b;
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-hover: #171717;
   --color-sidebar-active: var(--color-primary);
-  --color-sidebar-text: #64748b;
+  --color-sidebar-text: #737373;
   --color-sidebar-text-active: #ffffff;
 
   /* --- Superficies --- */
-  --color-surface: #1e293b;
-  --color-surface-alt: #0f172a;
-  --color-surface-elevated: #334155;
+  --color-surface: #171717;
+  --color-surface-alt: #0a0a0a;
+  --color-surface-elevated: #262626;
+
+  /* --- Gradientes (stat cards, onboarding) --- */
+  --gradient-warm-from: #f59e0b;
+  --gradient-warm-to: #f97316;
+  --gradient-cool-from: #10b981;
+  --gradient-cool-to: #14b8a6;
+  --gradient-purple-from: #525252;
+  --gradient-purple-to: #737373;
+  --gradient-dark-from: #0f172a;
+  --gradient-dark-via: #1e293b;
+  --gradient-dark-to: #0f172a;
+
+  /* --- Superficies oscuras (onboarding, login) --- */
+  --surface-dark-glass: rgba(30, 41, 59, 0.6);
+  --surface-dark-input: rgba(15, 23, 42, 0.5);
+
+  /* --- Sombras (dark mode uses lighter shadows) --- */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  --shadow-event: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-event-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
 
   /* --- Semánticos --- */
   --color-success: #34d399;
@@ -135,17 +181,33 @@
   --color-info-light: #1e3a5f;
 
   /* --- Texto --- */
-  --color-text: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  --color-text: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #9ca3af;
+
+  /* --- Event Colors (Calendario) --- */
+  --color-event-1-bg: #2563eb;
+  --color-event-1-border: #1d4ed8;
+  --color-event-2-bg: #7c3aed;
+  --color-event-2-border: #6d28d9;
+  --color-event-3-bg: #db2777;
+  --color-event-3-border: #be185d;
+  --color-event-4-bg: #fbbf24;
+  --color-event-4-border: #d97706;
+  --color-event-5-bg: #059669;
+  --color-event-5-border: #047857;
+  --color-event-6-bg: #0891b2;
+  --color-event-6-border: #0e7490;
+  --color-event-text: #ffffff;
 
   /* --- Bordes --- */
-  --color-border: #334155;
-  --color-border-light: #1e293b;
+  --color-border: #262626;
+  --color-border-light: #171717;
+  --color-border-strong: #525252;
 
   /* --- Sombras --- */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
 }
 
 /* ============================================
@@ -214,7 +276,6 @@
 }
 
 @keyframes gradientShift {
-
   0%,
   100% {
     background-position: 0% 50%;
@@ -236,10 +297,13 @@
   }
 
   body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family:
+      'Inter',
+      system-ui,
+      -apple-system,
+      sans-serif;
     background-color: var(--color-surface-alt);
     color: var(--color-text);
-    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* Scrollbar personalizado */
@@ -266,7 +330,6 @@
    COMPONENT CLASSES (Reutilizables)
    ============================================ */
 @layer components {
-
   /* Card con hover premium */
   .card-modern {
     background: var(--color-surface);
@@ -282,12 +345,11 @@
     border-color: var(--color-border);
   }
 
-
-
   /* Botón principal */
+  /* Botón primario (texto se adapta al tema) */
   .btn-primary {
     background-color: var(--color-primary);
-    color: white;
+    color: var(--color-on-primary);
     font-weight: 600;
     padding: 0.75rem 1.25rem;
     border-radius: var(--radius-xl);
@@ -358,10 +420,10 @@
 
   /* Glass card — para modales y overlays */
   .glass-card {
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--color-surface-overlay);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--color-border-light);
     border-radius: var(--radius-xl);
   }
 
@@ -376,7 +438,12 @@
 
   /* Skeleton loader */
   .skeleton {
-    background: linear-gradient(90deg, var(--color-surface-elevated) 25%, var(--color-border-light) 50%, var(--color-surface-elevated) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-elevated) 25%,
+      var(--color-border-light) 50%,
+      var(--color-surface-elevated) 75%
+    );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: var(--radius-sm);
@@ -474,35 +541,403 @@
 }
 
 /* ============================================
-   REACT BIG CALENDAR OVERRIDES
+   REACT BIG CALENDAR — PROFESSIONAL OVERRIDES
    ============================================ */
 
-/* Clean month-view summary events: no outline, no bg, no border */
-.rbc-event.rbc-event-clean,
-.rbc-event.rbc-event-clean:focus {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  padding: 0 2px !important;
+/* --- Base reset --- */
+.rbc-calendar {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--color-text);
 }
 
-/* Ensure month event rows are tall enough for dots */
+.rbc-calendar *,
+.rbc-calendar *::before,
+.rbc-calendar *::after {
+  box-sizing: border-box;
+}
+
+/* --- Toolbar --- */
+.rbc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0;
+}
+
+.rbc-toolbar button {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rbc-toolbar button:hover {
+  color: var(--color-text);
+  background: var(--color-surface-elevated);
+}
+
+.rbc-toolbar button.rbc-active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  font-weight: 600;
+}
+
+.rbc-toolbar .rbc-toolbar-label {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+  flex: 1;
+  text-align: center;
+}
+
+/* Hide default RBC toolbar — we use CustomToolbar */
+.rbc-toolbar {
+  display: none !important;
+}
+
+/* --- Header row (day names + day numbers) --- */
+.rbc-header {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.rbc-header + .rbc-header {
+  border-left: 1px solid var(--color-border);
+}
+
+/* Day number in month header */
+.rbc-header .rbc-date-text {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* --- Month view grid --- */
+.rbc-month-view {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Override RBC default #ddd between month rows — single direction */
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.rbc-month-view .rbc-row > .rbc-row-bg {
+  border-right: 1px solid var(--color-border);
+}
+
+.rbc-month-view .rbc-row > .rbc-row-bg > .rbc-day-bg:last-child {
+  border-right: none;
+}
+
+/* Override RBC default #ddd between day backgrounds */
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid var(--color-border);
+}
+
+/* Month cells */
+.rbc-day-bg {
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.rbc-day-bg:hover {
+  background: var(--color-surface-elevated);
+}
+
+.rbc-day-bg.rbc-today {
+  background: var(--color-primary-light);
+  box-shadow: inset 0 0 0 2px var(--color-text);
+}
+
+.rbc-day-bg.rbc-off-range {
+  background: var(--color-surface-alt);
+}
+
+.rbc-date-cell {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  text-align: right;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.rbc-date-cell.rbc-now {
+  font-weight: 700;
+}
+
+.rbc-date-cell.rbc-now .rbc-date-text {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+
+.rbc-date-cell.rbc-off-range .rbc-date-text {
+  color: var(--color-text-muted);
+}
+
+/* --- Month event cells --- */
 .rbc-month-view .rbc-row-segment {
-  min-height: 18px;
+  min-height: 22px;
+  padding: 0 2px;
 }
 
-/* Strip default RBC styles from clean summary events */
-.rbc-event.rbc-event-clean,
-.rbc-event.rbc-event-clean:focus {
+/* Default event styling (month view) */
+.rbc-month-view .rbc-event {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
-  padding: 1px 2px !important;
+  padding: 1px 3px !important;
+  border-radius: 0 !important;
 }
 
-/* Allow event content to overflow (needed for dots on mobile) */
-.rbc-event-content {
+.rbc-month-view .rbc-event:focus {
+  outline: none !important;
+}
+
+.rbc-month-view .rbc-event .rbc-event-content {
   overflow: visible;
+}
+
+.rbc-month-view .rbc-row-content {
+  border: none !important;
+}
+
+/* --- Day/Week view grid --- */
+.rbc-time-view {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+/* Time gutter */
+.rbc-time-gutter {
+  border-right: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.rbc-time-gutter .rbc-slot {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding-right: 0.75rem;
+  border-top: none;
+}
+
+/* Time slots row lines — scoped to time content only, not header rows */
+.rbc-time-content .rbc-row {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.rbc-time-content .rbc-row:last-child {
+  border-bottom: none;
+}
+
+/* Day columns */
+.rbc-day-column {
+  border-right: 1px solid var(--color-border);
+}
+
+.rbc-day-column:last-child {
+  border-right: none;
+}
+
+/* Time content area */
+.rbc-time-content {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Internal time slot lines — override RBC default #ddd */
+.rbc-timeslot-group {
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Remove 'today' background highlight in day/week view */
+.rbc-time-content .rbc-today {
+  background: transparent !important;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* Current time line */
+.rbc-current-time-indicator {
+  background: var(--color-danger);
+  height: 2px;
+}
+
+/* --- Day view header (date label) --- */
+.rbc-time-header .rbc-header {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rbc-allday-cell {
+  display: none !important;
+}
+
+.rbc-time-header .rbc-header.rbc-today {
+  color: var(--color-primary);
+}
+
+/* Time header gutter — inherits border-right from .rbc-time-gutter, no duplicate */
+
+/* --- Event cards (day/week view) --- */
+.rbc-time-view .rbc-event {
+  border-radius: var(--radius-sm);
+  border: none;
+  box-shadow: var(--shadow-event);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  overflow: hidden;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.rbc-time-view .rbc-event:hover {
+  box-shadow: var(--shadow-event-hover);
+  transform: translateY(-1px);
+  z-index: 10;
+}
+
+.rbc-time-view .rbc-event .rbc-event-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Selectable slot highlight --- */
+.rbc-slot-selection {
+  background: var(--color-primary-light);
+  opacity: 0.5;
+}
+
+.rbc-month-view .rbc-slot-selection {
+  background: var(--color-primary-light);
+  opacity: 0.3;
+  border-radius: var(--radius-sm);
+}
+
+/* --- Agenda view --- */
+.rbc-agenda-view table {
+  border-collapse: collapse;
+}
+
+.rbc-agenda-view .rbc-header {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.rbc-agenda-view td {
+  border-top: 1px solid var(--color-border);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.rbc-agenda-view .rbc-agenda-date-cell {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  width: 120px;
+}
+
+.rbc-agenda-view .rbc-agenda-time-cell {
+  color: var(--color-text-muted);
+  width: 100px;
+}
+
+.rbc-agenda-view .rbc-agenda-event-cell {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* --- Off range cells in day/week --- */
+.rbc-off-range-bg {
+  background: var(--color-surface-alt);
+}
+
+/* --- Overlay (popups) --- */
+.rbc-overlay {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  padding: 0.25rem;
+}
+
+.rbc-overlay-header {
+  background: transparent;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* --- Dark mode overrides --- */
+.dark .rbc-today {
+  background-color: var(--color-surface-overlay) !important;
+}
+
+.dark .rbc-day-bg.rbc-today {
+  background: var(--color-surface-overlay);
+}
+
+.dark .rbc-date-cell.rbc-now .rbc-date-text {
+  background: var(--color-primary-glow);
+  color: var(--color-primary);
+}
+
+.dark .rbc-time-header .rbc-header.rbc-today {
+  background: var(--color-surface-overlay);
+}
+
+.dark .rbc-time-view .rbc-day-bg.rbc-today {
+  background: var(--color-surface-overlay);
+}
+
+.dark .rbc-current-time-indicator {
+  background: var(--color-danger);
+  height: 1px;
+  opacity: 0.6;
+}
+
+.dark .rbc-slot-selection {
+  background: var(--color-primary-glow);
+}
+
+.dark .rbc-month-view .rbc-slot-selection {
+  background: var(--color-surface-overlay);
 }

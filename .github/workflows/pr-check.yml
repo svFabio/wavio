@@ -1,0 +1,365 @@
+# ============================================================================
+# PR Checks — Wavio
+# ============================================================================
+# Runs on pull request events (opened, synchronize, reopened).
+# Mirrors ci.yml quality gates plus PR-specific validations:
+#   - PR size label (warns on >400 lines for reviewability)
+#   - PR description check (enforces body content)
+#
+# Status badges (add to README.md):
+#   ![PR Check](https://github.com/<owner>/<repo>/actions/workflows/pr-check.yml/badge.svg)
+# ============================================================================
+
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [dev, main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "11"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Type checking
+  # ---------------------------------------------------------------------------
+
+  typecheck-backend:
+    name: Typecheck — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: npx prisma generate
+
+      - run: pnpm run typecheck
+
+  typecheck-frontend:
+    name: Typecheck — Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run typecheck
+
+  # ---------------------------------------------------------------------------
+  # Linting
+  # ---------------------------------------------------------------------------
+
+  lint-backend:
+    name: Lint — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+  lint-frontend:
+    name: Lint — Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+  # ---------------------------------------------------------------------------
+  # Formatting
+  # ---------------------------------------------------------------------------
+
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            ai-appointment-platform-backend/pnpm-lock.yaml
+            ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: ai-appointment-platform-backend
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: ai-appointment-platform-frontend
+
+      - run: pnpm run format:check
+        working-directory: ai-appointment-platform-backend
+
+      - run: pnpm run format:check
+        working-directory: ai-appointment-platform-frontend
+
+  # ---------------------------------------------------------------------------
+  # Build
+  # ---------------------------------------------------------------------------
+
+  build-backend:
+    name: Build — Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: npx prisma generate
+
+      - run: pnpm run build
+
+  build-frontend:
+    name: Build — Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run build
+
+  # ---------------------------------------------------------------------------
+  # Prisma validation
+  # ---------------------------------------------------------------------------
+
+  prisma-validate:
+    name: Prisma Validate
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: npx prisma validate
+
+  # ---------------------------------------------------------------------------
+  # Security audit
+  # ---------------------------------------------------------------------------
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            ai-appointment-platform-backend/pnpm-lock.yaml
+            ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - name: Audit backend
+        working-directory: ai-appointment-platform-backend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level=high
+
+      - name: Audit frontend
+        working-directory: ai-appointment-platform-frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # PR size label — flags large PRs for reviewability
+  # ---------------------------------------------------------------------------
+
+  pr-size-label:
+    name: PR Size Label
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Label PR by size
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: "size/xs"
+          xs_max_size: 10
+          s_label: "size/small"
+          s_max_size: 100
+          m_label: "size/medium"
+          m_max_size: 300
+          l_label: "size/large"
+          l_max_size: 500
+          fail_if_xl: false
+          files_to_ignore: |
+            "*.lock"
+            "pnpm-lock.yaml"
+
+  # ---------------------------------------------------------------------------
+  # PR description check — ensures reviewers have context
+  # ---------------------------------------------------------------------------
+
+  pr-description-check:
+    name: PR Description Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const trimmed = body.trim();
+
+            if (trimmed.length < 20) {
+              core.setFailed(
+                'PR description is too short. Please add at least 20 characters of context for reviewers.'
+              );
+              return;
+            }
+
+            core.info(`PR description is ${trimmed.length} characters long. ✓`);
+
+  # ---------------------------------------------------------------------------
+  # NOTE: The CodeQL security scan (security.yml) and dependency review
+  # (dependency-review.yml) also run on PRs. Add them as required status
+  # checks in branch protection rules if you want to enforce them before merge.
+  # ---------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------------
+  # Commitlint
+  # ---------------------------------------------------------------------------
+
+  commitlint:
+    name: Commitlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate PR commits
+        run: pnpm commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose

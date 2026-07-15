@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
     extend: {
@@ -14,6 +11,7 @@ module.exports = {
           light: 'var(--color-primary-light)',
           dark: 'var(--color-primary-dark)',
         },
+        'on-primary': 'var(--color-on-primary)',
         secondary: {
           DEFAULT: 'var(--color-secondary)',
           light: 'var(--color-secondary-light)',
@@ -83,15 +81,15 @@ module.exports = {
         'theme-xl': 'var(--radius-xl)',
       },
       boxShadow: {
-        'card': 'var(--shadow-card)',
+        card: 'var(--shadow-card)',
         'card-hover': 'var(--shadow-card-hover)',
-        'glow': 'var(--shadow-glow)',
+        glow: 'var(--shadow-glow)',
       },
       zIndex: {
-        'sidebar': '40',
-        'modal': '50',
-        'overlay': '60',
-        'toast': '9999',
+        sidebar: '40',
+        modal: '50',
+        overlay: '60',
+        toast: '9999',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
@@ -99,4 +97,4 @@ module.exports = {
     },
   },
   plugins: [],
-}
+};

@@ -4,16 +4,20 @@ import pino from 'pino';
 
 const logger = pino();
 
-export const configurarNegocio = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        const negocioId = req.negocioId!;
-        const { nombre } = req.body;
+export const configurarNegocio = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const negocioId = req.negocioId!;
+    const { nombre } = req.body;
 
-        const negocio = await negocioService.configurarNegocio(negocioId, nombre);
+    const negocio = await negocioService.configurarNegocio(negocioId, nombre);
 
-        res.json({ success: true, negocio });
-    } catch (error) {
-        logger.error({ err: error }, '[Negocio] Error configurando negocio');
-        next(error);
-    }
+    res.json({ success: true, negocio });
+  } catch (error) {
+    logger.error({ err: error }, '[Negocio] Error configurando negocio');
+    next(error);
+  }
 };

@@ -27,5 +27,5 @@ jobs:
       # Intentamos hacer el build de producción para ver si React explota
       - name: Test Build
         env:
-          VITE_API_URL: "http://check-dummy-url"
+          VITE_API_URL: 'http://check-dummy-url'
         run: npm run build

@@ -1,10 +1,10 @@
 # Backend - WhatsApp Spa Appointment System
+
 Backend service for managing spa appointments via WhatsApp with AI-powered conversational interface and administrative panel.
+
 ## System Architecture
 
 <img width="1219" height="651" alt="image" src="https://github.com/user-attachments/assets/19d75cbf-06c9-496e-9813-15dea1e0fcdf" />
-
-
 
 ## Table of Contents
 
@@ -177,6 +177,7 @@ model Cita {
 ```
 
 **Appointment States:**
+
 - `PENDIENTE_PAGO` - Waiting for payment receipt
 - `VALIDACION_PENDIENTE` - Receipt received, pending validation
 - `CONFIRMADO` - Appointment confirmed
@@ -205,6 +206,7 @@ enum Rol {
 ### WhatsApp Client (whatsappClient.ts)
 
 Manages WhatsApp connection using Baileys:
+
 - Session initialization and recovery
 - QR code generation for pairing
 - Message reception and processing
@@ -214,6 +216,7 @@ Manages WhatsApp connection using Baileys:
 ### AI Service (aiService.ts)
 
 Google Gemini integration for intelligent processing:
+
 - Intent detection (book, cancel, query)
 - Data extraction (name, date, time)
 - Natural response generation
@@ -222,6 +225,7 @@ Google Gemini integration for intelligent processing:
 ### Date Parser (dateParser.ts)
 
 Intelligent date parsing using chrono-node:
+
 - Natural language interpretation ("tomorrow", "Friday", "January 30")
 - Ambiguity handling (multiple date options)
 - Availability validation
@@ -230,6 +234,7 @@ Intelligent date parsing using chrono-node:
 ### Baileys Auth (baileysAuth.ts)
 
 WhatsApp authentication management:
+
 - Credential storage in PostgreSQL
 - Session recovery
 - Token updates
@@ -245,6 +250,7 @@ WhatsApp authentication management:
 4. Start Command: `npm start`
 
 The `start` script automatically:
+
 - Runs migrations: `npx prisma migrate deploy`
 - Seeds data: `npx tsx prisma/seed.ts`
 - Starts server: `node dist/src/server.js`
@@ -266,6 +272,7 @@ docker run -p 3000:3000 \
 ### Production Environment Variables
 
 Required variables for production:
+
 - DATABASE_URL
 - JWT_SECRET
 - ADMIN_EMAIL

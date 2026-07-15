@@ -6,7 +6,7 @@ export interface Cita {
   clienteNombre: string;
   clienteTelefono: string;
   fecha: string; // ISO String 2025-12-20
-  horario: string;  // "14:00"
+  horario: string; // "14:00"
   servicio: string;
   estado: EstadoCita;
   comprobanteUrl?: string; // URL de la imagen del pago
