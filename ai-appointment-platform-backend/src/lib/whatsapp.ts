@@ -121,7 +121,10 @@ export const enviarImagen = async (
 
     const data = await response.json();
     if (data.error) {
-      logger.error({ err: data.error }, `[MetaGraph] Error enviando imagen a ${sanitizeForLog(numero)}`);
+      logger.error(
+        { err: data.error, numero: sanitizeForLog(numero) },
+        '[MetaGraph] Error enviando imagen',
+      );
       throw new ExternalServiceError(data.error.message || 'Meta API error', 'WHATSAPP_ERROR', 502);
     }
 
