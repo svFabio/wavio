@@ -87,14 +87,15 @@ export const CalendarioContainer = () => {
     return dataRaw.map((cita) => {
       const datePart = cita.fecha.toString().split('T')[0];
       const start = new Date(`${datePart}T${cita.horario}:00`);
-      return {
-        id: cita.id.toString(),
-        title: cita.clienteNombre || `Cita sin nombre`,
+    return {
+      id: cita.id.toString(),
+      title: `${cita.clienteNombre || 'Cita sin nombre'}${(cita as any).estadoPago === 'PENDIENTE' ? ' 💰' : ' ✅'}`,
         start,
         end: new Date(start.getTime() + 60 * 60000),
         resource: {
           tipo: 'cita' as const,
           estado: cita.estado,
+          estadoPago: (cita as any).estadoPago || 'PENDIENTE',
           telefono: cita.clienteTelefono,
           servicio: cita.servicio || 'Spa',
           servicioId: (cita as any).servicioId,

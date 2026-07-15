@@ -3,6 +3,7 @@
 export interface RecursoEvento {
   tipo: 'resumen' | 'cita';
   estado: string;
+  estadoPago?: string;
   telefono?: string;
   servicio?: string;
   servicioId?: number;

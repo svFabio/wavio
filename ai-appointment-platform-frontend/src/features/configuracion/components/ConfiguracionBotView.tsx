@@ -3,6 +3,7 @@ import { HeaderCard } from './HeaderCard';
 import { AsistenteTab } from './AsistenteTab';
 import { ServiciosTab } from './ServiciosTab';
 import { HorariosTab } from './HorariosTab';
+import { ChatFlowEditor, type ChatFlowStep } from './ChatFlowEditor';
 
 interface ConfiguracionBotViewProps {
   tab: Tab;
@@ -22,6 +23,9 @@ interface ConfiguracionBotViewProps {
   onSaveGeneral: () => void;
   isGeneralPending: boolean;
   isGeneralSuccess: boolean;
+  
+  chatFlow: ChatFlowStep[];
+  onChangeChatFlow: (flow: ChatFlowStep[]) => void;
   
   servicios: Servicio[];
   onAddServicio: (data: { nombre: string; duracionMinutos: number; bufferMinutos: number; precio: number }) => void;
@@ -70,6 +74,7 @@ const LoadingSkeleton = () => (
 
 const TAB_LABELS: Record<Tab, string> = {
   asistente: 'Asistente',
+  chatflow: 'Chat Flow',
   servicios: 'Servicios',
   horarios: 'Horarios',
 };
@@ -100,6 +105,8 @@ export const ConfiguracionBotView = ({
   onSaveHorarios,
   isHorariosSaving,
   isPendingAny,
+  chatFlow,
+  onChangeChatFlow,
 }: ConfiguracionBotViewProps) => {
   if (loading) {
     return <LoadingSkeleton />;
@@ -107,12 +114,12 @@ export const ConfiguracionBotView = ({
 
   return (
     <div className="space-y-6">
-      {tab === 'asistente' && (
+      {(tab === 'asistente' || tab === 'chatflow') && (
         <HeaderCard isPending={isGeneralPending} isSuccess={isGeneralSuccess} onSave={onSaveGeneral} />
       )}
       
       {/* For other tabs, we no longer need the HeaderCard since they save individually or we can hide it */}
-      {tab !== 'asistente' && (
+      {tab !== 'asistente' && tab !== 'chatflow' && (
         <div className="card-modern overflow-hidden">
           <div className="p-5 md:p-6 border-b border-border bg-surface flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -132,7 +139,7 @@ export const ConfiguracionBotView = ({
       )}
 
       <div className="flex bg-surface-elevated p-1 rounded-xl w-fit">
-        {(['asistente', 'servicios', 'horarios'] as Tab[]).map((t) => (
+        {(['asistente', 'chatflow', 'servicios', 'horarios'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => onTabChange(t)}
@@ -157,6 +164,13 @@ export const ConfiguracionBotView = ({
           onCobrarAdelantoChange={onCobrarAdelantoChange}
           porcentajeAdelanto={porcentajeAdelanto}
           onPorcentajeAdelantoChange={onPorcentajeAdelantoChange}
+        />
+      )}
+
+      {tab === 'chatflow' && (
+        <ChatFlowEditor
+          chatFlow={chatFlow}
+          onChange={onChangeChatFlow}
         />
       )}
 

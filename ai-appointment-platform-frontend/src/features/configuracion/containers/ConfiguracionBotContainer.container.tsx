@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { ConfiguracionBotView } from '../components/ConfiguracionBotView';
 import type { ConfigData, Tab, Servicio, HorarioNegocio } from '../types';
+import type { ChatFlowStep } from '../components/ChatFlowEditor';
 
 export const ConfiguracionBotContainer = () => {
   const [tab, setTab] = useState<Tab>('asistente');
@@ -35,6 +36,7 @@ export const ConfiguracionBotContainer = () => {
   const [mensajeConfirmacion, setMensajeConfirmacion] = useState('');
   const [cobrarAdelanto, setCobrarAdelanto] = useState(true);
   const [porcentajeAdelanto, setPorcentajeAdelanto] = useState(50);
+  const [chatFlow, setChatFlow] = useState<ChatFlowStep[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   if (config && !initialized) {
@@ -43,6 +45,7 @@ export const ConfiguracionBotContainer = () => {
     setMensajeConfirmacion(config.mensajeConfirmacion);
     setCobrarAdelanto(config.cobrarAdelanto);
     setPorcentajeAdelanto(config.porcentajeAdelanto);
+    setChatFlow(config.chatFlow || []);
     setInitialized(true);
   }
 
@@ -55,6 +58,7 @@ export const ConfiguracionBotContainer = () => {
         mensajeConfirmacion,
         cobrarAdelanto,
         porcentajeAdelanto,
+        chatFlow,
       });
     },
     onSuccess: () => {
@@ -114,6 +118,8 @@ export const ConfiguracionBotContainer = () => {
       onSaveGeneral={handleSaveGeneral}
       isGeneralPending={saveGeneralMutation.isPending}
       isGeneralSuccess={saveGeneralMutation.isSuccess}
+      chatFlow={chatFlow}
+      onChangeChatFlow={setChatFlow}
       
       // Servicios
       servicios={serviciosData || []}

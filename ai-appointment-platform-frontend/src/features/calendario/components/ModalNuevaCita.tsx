@@ -45,6 +45,11 @@ export const ModalNuevaCita = ({
     queryFn: api.getServicios,
   });
 
+  const { data: config } = useQuery({
+    queryKey: ['configuracion'],
+    queryFn: api.getConfiguracion,
+  });
+
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
     formData.fecha,
     isOpen && !!formData.fecha,
@@ -265,12 +270,31 @@ export const ModalNuevaCita = ({
                 >
                   {servicios.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.nombre} ({s.duracionMinutos} min)
+                      {s.nombre} — ${s.precio} ({s.duracionMinutos} min)
                     </option>
                   ))}
                 </select>
               </div>
             </div>
+
+            {formData.servicioId && (
+              <div className="col-span-2 bg-surface-elevated p-3 rounded-xl border border-border-light shadow-sm">
+                <div className="flex justify-between text-sm items-center">
+                  <span className="text-txt-muted">Precio del servicio:</span>
+                  <span className="font-semibold text-txt">
+                    ${servicios.find((s) => s.id === formData.servicioId)?.precio || 0}
+                  </span>
+                </div>
+                {config?.cobrarAdelanto && (
+                  <div className="flex justify-between text-sm mt-2 pt-2 border-t border-border-light items-center">
+                    <span className="text-txt-muted">Adelanto requerido ({config.porcentajeAdelanto}%):</span>
+                    <span className="font-bold text-primary">
+                      ${((servicios.find((s) => s.id === formData.servicioId)?.precio || 0) * (config.porcentajeAdelanto || 0)) / 100}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

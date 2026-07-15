@@ -13,7 +13,12 @@ import {
   Settings,
   Moon,
   Sun,
+  Briefcase,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ProfileModal } from './ProfileModal';
@@ -28,6 +33,13 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { isAdmin, logout, usuario } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [serviciosOpen, setServiciosOpen] = useState(false);
+
+  const { data: serviciosData } = useQuery({
+    queryKey: ['servicios'],
+    queryFn: api.getServicios,
+    enabled: isAdmin,
+  });
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -154,6 +166,32 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 <Users size={16} />
                 <span className="text-sm">Usuarios</span>
               </Link>
+
+              <div>
+                <button
+                  onClick={() => setServiciosOpen(!serviciosOpen)}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-lg transition-all duration-150 text-txt-secondary hover:text-txt hover:bg-surface-elevated`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Briefcase size={16} />
+                    <span className="text-sm">Servicios</span>
+                  </div>
+                  {serviciosOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                {serviciosOpen && (
+                  <div className="pl-11 pr-4 py-1 space-y-2 mt-1">
+                    {serviciosData?.map(s => (
+                      <div key={s.id} className="flex justify-between items-center text-xs">
+                        <span className="text-txt-muted truncate pr-2">{s.nombre}</span>
+                        <span className="font-medium text-success whitespace-nowrap">${s.precio}</span>
+                      </div>
+                    ))}
+                    {!serviciosData?.length && (
+                      <span className="text-xs text-txt-muted">Sin servicios</span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Link
                 to="/dashboard/configuracion-bot"

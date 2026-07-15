@@ -1,6 +1,6 @@
 import type { Cita } from '../types';
 import { apiClient, ApiError } from '../lib/apiClient';
-import type { Servicio, HorarioNegocio, HorarioEspecial } from '../features/configuracion/types';
+import type { Servicio, HorarioNegocio, HorarioEspecial, ChatFlowStep } from '../features/configuracion/types';
 
 export const api = {
   // --- AUTENTICACIÓN ---
@@ -272,6 +272,7 @@ export const api = {
     cobrarAdelanto?: boolean;
     porcentajeAdelanto?: number;
     timezone?: string;
+    chatFlow?: ChatFlowStep[];
   }) => {
     return apiClient.patch('/configuracion', data);
   },
