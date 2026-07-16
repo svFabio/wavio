@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
-import type { HorarioSlot } from '../../types';
-import { api } from '../../services/api';
+import type { HorarioSlot } from '../../../types';
+import { api } from '../../../services/api';
 
 export function useHorariosDisponiblesQuery(
   fecha: string,
