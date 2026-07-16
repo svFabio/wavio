@@ -66,7 +66,7 @@ export const api = {
     }
   },
 
-  me: async (token: string) => {
+  me: async () => {
     try {
       return await apiClient.get<{
         usuario: {
@@ -77,7 +77,7 @@ export const api = {
           fotoPerfil?: string;
         };
         negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
-      }>('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+      }>('/auth/me');
     } catch {
       return null;
     }

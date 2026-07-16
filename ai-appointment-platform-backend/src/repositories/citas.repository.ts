@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { Cita } from '../domain/types';
+import { ConflictError } from '../domain/errors';
 
 type CitaCountWhere = {
   estado?: string | { not: string } | { notIn: string[] };
@@ -108,7 +109,7 @@ export const citasRepository = {
         where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' } },
       });
       if (occupied) {
-        throw new Error('SLOT_OCCUPIED');
+        throw new ConflictError('Este horario ya está ocupado');
       }
       const cita = await tx.cita.create({
         data: { ...data, negocioId, fecha, horario },
@@ -138,5 +139,28 @@ export const citasRepository = {
       if (occupied) return null;
       return tx.cita.update({ where: { id }, data: { fecha, horario } }) as unknown as Cita;
     });
+  },
+
+  async getSumaIngresosHoy(negocioId: number, inicio: Date, fin: Date): Promise<number> {
+    const result = await prisma.cita.aggregate({
+      _sum: { monto: true },
+      where: {
+        negocioId,
+        fecha: { gte: inicio, lte: fin },
+        estado: 'CONFIRMADA',
+      },
+    });
+    return Number(result._sum.monto ?? 0);
+  },
+
+  async cancelExpiredInProgress(olderThan: Date): Promise<number> {
+    const { count } = await prisma.cita.updateMany({
+      where: {
+        estado: 'EN_PROCESO',
+        creadoEn: { lt: olderThan },
+      },
+      data: { estado: 'CANCELADA' },
+    });
+    return count;
   },
 };

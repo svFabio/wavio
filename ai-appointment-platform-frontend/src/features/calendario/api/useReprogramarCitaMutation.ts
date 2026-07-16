@@ -1,7 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 
-export function useReprogramarCitaMutation() {
+export function useReprogramarCitaMutation(): UseMutationResult<
+  { success: boolean; error?: string },
+  Error,
+  { citaId: string; fecha: string; horario: string }
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

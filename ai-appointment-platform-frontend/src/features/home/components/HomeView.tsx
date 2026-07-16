@@ -3,13 +3,14 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import type { ResumenData } from '../types';
+import type { Cita } from '../../../types';
 import { AgendaTable } from './AgendaTable';
 import { StatCard } from './StatCard';
 
 interface HomeViewProps {
   data: ResumenData | null | undefined;
   loading: boolean;
-  citas: any[];
+  citas: Cita[];
   citasLoading: boolean;
 }
 

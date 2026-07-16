@@ -3,12 +3,12 @@ import { useCallback, Suspense, lazy } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './shared/components/ProtectedRoute';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import { useSocketEvent } from './shared/hooks/useSocketEvent';
 
 // NotificationToast is eagerly loaded — small component used on every page
-import { NotificationToast } from './components/NotificationToast';
+import { NotificationToast } from './shared/components/NotificationToast';
 const Pagos = lazy(() => import('./pages/Pagos'));
 const Calendario = lazy(() => import('./pages/Calendario'));
 const Home = lazy(() => import('./pages/Home'));
@@ -192,18 +192,20 @@ function App() {
                 <Route
                   path="*"
                   element={
-                    <div className="flex items-center justify-center min-h-screen bg-surface-alt">
-                      <div className="text-center">
-                        <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
-                        <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
-                        <a
-                          href="/dashboard"
-                          className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors"
-                        >
-                          Volver al Dashboard
-                        </a>
+                    <ErrorBoundary>
+                      <div className="flex items-center justify-center min-h-screen bg-surface-alt">
+                        <div className="text-center">
+                          <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
+                          <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
+                          <a
+                            href="/dashboard"
+                            className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors"
+                          >
+                            Volver al Dashboard
+                          </a>
+                        </div>
                       </div>
-                    </div>
+                    </ErrorBoundary>
                   }
                 />
               </Routes>

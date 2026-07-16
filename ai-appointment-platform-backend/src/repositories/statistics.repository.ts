@@ -99,10 +99,19 @@ export const statisticsRepository = {
   async getCitasIngresos(
     negocioId: number,
     startDate: Date,
-  ): Promise<{ fecha: Date; monto: Prisma.Decimal }[]> {
-    return prisma.cita.findMany({
-      where: { negocioId, fecha: { gte: startDate }, estado: 'CONFIRMADA' },
-      select: { fecha: true, monto: true },
-    });
+  ): Promise<{ mes: string; total: number }[]> {
+    const rows = await prisma.$queryRaw<{ mes: string; total: number }[]>`
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', fecha), 'YYYY-MM') AS mes,
+        COALESCE(SUM(monto), 0)::float                 AS total
+      FROM "Cita"
+      WHERE
+        "negocioId" = ${negocioId}
+        AND fecha >= ${startDate}
+        AND estado = 'CONFIRMADA'
+      GROUP BY DATE_TRUNC('month', fecha)
+      ORDER BY DATE_TRUNC('month', fecha)
+    `;
+    return rows;
   },
 };

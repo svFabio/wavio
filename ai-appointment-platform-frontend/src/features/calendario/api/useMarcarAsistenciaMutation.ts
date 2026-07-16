@@ -1,7 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 
-export function useMarcarAsistenciaMutation() {
+export function useMarcarAsistenciaMutation(): UseMutationResult<
+  { success: boolean; error?: string },
+  Error,
+  { citaId: string; noAsistio: boolean }
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

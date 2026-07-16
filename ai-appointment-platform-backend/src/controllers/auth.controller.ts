@@ -18,14 +18,13 @@ export const loginConGoogle = async (
 export const me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.usuario?.id;
-    const negocioId = req.negocioId;
 
-    if (!userId || !negocioId) {
+    if (!userId) {
       res.status(401).json({ error: 'No autenticado' });
       return;
     }
 
-    const result = await authService.obtenerUsuarioActual(userId, negocioId);
+    const result = await authService.obtenerUsuarioActual(userId);
     res.json({ usuario: result.usuario, negocios: result.negocios });
   } catch (error) {
     next(error);

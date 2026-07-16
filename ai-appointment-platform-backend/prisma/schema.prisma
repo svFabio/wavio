@@ -41,23 +41,23 @@ model Negocio {
 
   creadoEn DateTime @default(now())
 
-  usuarioNegocios   UsuarioNegocio[]
-  citas             Cita[]
-  sesionesChat      SesionChat[]
-  mensajesChat      MensajeChat[]
-  configuracion     Configuracion?
-  servicios         Servicio[]
-  horariosNegocio   HorarioNegocio[]
+  usuarioNegocios    UsuarioNegocio[]
+  citas              Cita[]
+  sesionesChat       SesionChat[]
+  mensajesChat       MensajeChat[]
+  configuracion      Configuracion?
+  servicios          Servicio[]
+  horariosNegocio    HorarioNegocio[]
   horariosEspeciales HorarioEspecial[]
-  clientes          Cliente[]
+  clientes           Cliente[]
 }
 
 // ─── USUARIO-NEGOCIO (M:N junction) ──────────────────────────────────────────
 model UsuarioNegocio {
-  usuarioId  Int
-  negocioId  Int
-  rol        Rol      @default(STAFF)
-  creadoEn   DateTime @default(now())
+  usuarioId Int
+  negocioId Int
+  rol       Rol      @default(STAFF)
+  creadoEn  DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
@@ -80,7 +80,9 @@ model Usuario {
   usuarioNegocios UsuarioNegocio[]
 
   horarioStaff HorarioStaff[]
-  citas        Cita[]          @relation("StaffCitas")
+  citas        Cita[]         @relation("StaffCitas")
+
+  @@index([googleId])
 }
 
 // ─── SESIÓN DE CHAT (por negocio) ────────────────────────────────────────────
@@ -120,9 +122,9 @@ model Servicio {
 model HorarioNegocio {
   id         Int     @id @default(autoincrement())
   negocioId  Int
-  diaSemana  Int     // 0=domingo, 1=lunes, ..., 6=sabado
-  horaInicio String  // "09:00"
-  horaFin    String  // "13:00"
+  diaSemana  Int // 0=domingo, 1=lunes, ..., 6=sabado
+  horaInicio String // "09:00"
+  horaFin    String // "13:00"
   activo     Boolean @default(true)
 
   negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
@@ -135,7 +137,7 @@ model HorarioNegocio {
 model HorarioStaff {
   id         Int     @id @default(autoincrement())
   usuarioId  Int
-  diaSemana  Int     // 0=domingo, 1=lunes, ..., 6=sabado
+  diaSemana  Int // 0=domingo, 1=lunes, ..., 6=sabado
   horaInicio String
   horaFin    String
   activo     Boolean @default(true)
@@ -203,12 +205,12 @@ model Cita {
   comentario      String?
   creadoEn        DateTime @default(now())
 
-  negocioId Int
-  negocio   Negocio  @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  negocioId   Int
+  negocio     Negocio   @relation(fields: [negocioId], references: [id], onDelete: Cascade)
   servicioRef Servicio? @relation(fields: [servicioId], references: [id])
   staff       Usuario?  @relation("StaffCitas", fields: [staffId], references: [id])
 
-  @@index([negocioId, fecha])
+  @@index([negocioId, fecha, estado])
 }
 
 // ─── HISTORIAL DE MENSAJES ───────────────────────────────────────────────────

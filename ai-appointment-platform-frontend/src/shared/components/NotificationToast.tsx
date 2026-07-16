@@ -27,8 +27,7 @@ export const NotificationToast = ({
 
   const handleClose = () => {
     setIsVisible(false);
-    const t = setTimeout(() => onDismiss(id), 300);
-    return () => clearTimeout(t);
+    setTimeout(() => onDismiss(id), 300);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {

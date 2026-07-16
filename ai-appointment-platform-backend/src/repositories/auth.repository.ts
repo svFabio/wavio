@@ -26,24 +26,25 @@ export const authRepository = {
     nombre: string,
     hashedPassword?: string,
   ): Promise<NegocioSafe> {
-    const negocio = await prisma.negocio.create({
-      data: {
-        googleId,
-        email,
-        nombre,
-      },
-      select: NEGOCIO_SAFE_SELECT,
-    });
-
-    const usuario = await prisma.usuario.create({
-      data: {
-        nombre,
-        email,
-        googleId: hashedPassword ? null : googleId,
-        password: hashedPassword || '',
-        rol: 'ADMIN',
-      },
-    });
+    const [negocio, usuario] = await prisma.$transaction([
+      prisma.negocio.create({
+        data: {
+          googleId,
+          email,
+          nombre,
+        },
+        select: NEGOCIO_SAFE_SELECT,
+      }),
+      prisma.usuario.create({
+        data: {
+          nombre,
+          email,
+          googleId: hashedPassword ? null : googleId,
+          password: hashedPassword || '',
+          rol: 'ADMIN',
+        },
+      }),
+    ]);
 
     await prisma.usuarioNegocio.create({
       data: {

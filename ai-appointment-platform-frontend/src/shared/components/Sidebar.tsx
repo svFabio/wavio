@@ -15,10 +15,10 @@ import {
   Sun,
   Bot,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { ProfileModal } from './ProfileModal';
-import { NegocioSelector } from '../shared/components/NegocioSelector';
+import { NegocioSelector } from './NegocioSelector';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -30,9 +30,9 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { isAdmin, logout, usuario } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [profileOpen, setProfileOpen] = useState(false);
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string): boolean => location.pathname === path;
 
-  const linkClass = (path: string) => `
+  const linkClass = (path: string): string => `
     flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-150
     ${
       isActive(path)

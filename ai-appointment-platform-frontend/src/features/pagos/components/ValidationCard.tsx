@@ -1,4 +1,4 @@
-import type { Cita } from '../types';
+import type { Cita } from '../../../types';
 import { Check, X } from 'lucide-react';
 
 interface Props {

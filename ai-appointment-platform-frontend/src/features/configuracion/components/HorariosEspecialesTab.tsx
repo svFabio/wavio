@@ -16,12 +16,16 @@ interface HorariosEspecialesTabProps {
   isLoading: boolean;
 }
 
-export const HorariosEspecialesTab = ({
-  horariosEspeciales,
-  onCreate,
-  onDelete,
-  isLoading,
-}: HorariosEspecialesTabProps) => {
+interface FormFechaEspecialProps {
+  onCreate: (data: {
+    fecha: string;
+    cerrado: boolean;
+    horaInicio: string | null;
+    horaFin: string | null;
+  }) => void;
+}
+
+const FormFechaEspecial = ({ onCreate }: FormFechaEspecialProps) => {
   const [fecha, setFecha] = useState('');
   const [cerrado, setCerrado] = useState(true);
   const [horaInicio, setHoraInicio] = useState('09:00');
@@ -41,6 +45,76 @@ export const HorariosEspecialesTab = ({
     setHoraFin('18:00');
   };
 
+  return (
+    <div className="bg-surface-elevated/30 border border-border p-4 rounded-xl space-y-4">
+      <h3 className="text-sm font-semibold text-txt flex items-center gap-2">
+        <Calendar className="w-4 h-4" /> Agregar fecha especial
+      </h3>
+      <div className="flex flex-col sm:flex-row gap-4 items-end">
+        <div className="flex-1 space-y-1.5 w-full">
+          <label className="text-xs font-medium text-txt-muted">Fecha</label>
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-txt focus:outline-none focus:border-primary"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="checkbox"
+            id="cerrado"
+            checked={cerrado}
+            onChange={(e) => setCerrado(e.target.checked)}
+            className="rounded border-border text-primary focus:ring-primary"
+          />
+          <label htmlFor="cerrado" className="text-sm text-txt font-medium cursor-pointer">
+            Cerrado todo el día
+          </label>
+        </div>
+
+        {!cerrado && (
+          <>
+            <div className="w-full sm:w-32 space-y-1.5">
+              <label className="text-xs font-medium text-txt-muted">Inicio</label>
+              <input
+                type="time"
+                value={horaInicio}
+                onChange={(e) => setHoraInicio(e.target.value)}
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-txt focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div className="w-full sm:w-32 space-y-1.5">
+              <label className="text-xs font-medium text-txt-muted">Fin</label>
+              <input
+                type="time"
+                value={horaFin}
+                onChange={(e) => setHoraFin(e.target.value)}
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-txt focus:outline-none focus:border-primary"
+              />
+            </div>
+          </>
+        )}
+
+        <button
+          onClick={handleCreate}
+          disabled={!fecha}
+          className="w-full sm:w-auto px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <Plus className="w-4 h-4" /> Agregar
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export const HorariosEspecialesTab = ({
+  horariosEspeciales,
+  onCreate,
+  onDelete,
+  isLoading,
+}: HorariosEspecialesTabProps) => {
   if (isLoading) {
     return (
       <div className="bg-surface rounded-2xl border border-border-light shadow-sm p-12 flex justify-center">
@@ -58,66 +132,7 @@ export const HorariosEspecialesTab = ({
         </p>
       </div>
 
-      <div className="bg-surface-elevated/30 border border-border p-4 rounded-xl space-y-4">
-        <h3 className="text-sm font-semibold text-txt flex items-center gap-2">
-          <Calendar className="w-4 h-4" /> Agregar fecha especial
-        </h3>
-        <div className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1 space-y-1.5 w-full">
-            <label className="text-xs font-medium text-txt-muted">Fecha</label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-txt focus:outline-none focus:border-primary"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              type="checkbox"
-              id="cerrado"
-              checked={cerrado}
-              onChange={(e) => setCerrado(e.target.checked)}
-              className="rounded border-border text-primary focus:ring-primary"
-            />
-            <label htmlFor="cerrado" className="text-sm text-txt font-medium cursor-pointer">
-              Cerrado todo el día
-            </label>
-          </div>
-
-          {!cerrado && (
-            <>
-              <div className="w-full sm:w-32 space-y-1.5">
-                <label className="text-xs font-medium text-txt-muted">Inicio</label>
-                <input
-                  type="time"
-                  value={horaInicio}
-                  onChange={(e) => setHoraInicio(e.target.value)}
-                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-txt focus:outline-none focus:border-primary"
-                />
-              </div>
-              <div className="w-full sm:w-32 space-y-1.5">
-                <label className="text-xs font-medium text-txt-muted">Fin</label>
-                <input
-                  type="time"
-                  value={horaFin}
-                  onChange={(e) => setHoraFin(e.target.value)}
-                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-txt focus:outline-none focus:border-primary"
-                />
-              </div>
-            </>
-          )}
-
-          <button
-            onClick={handleCreate}
-            disabled={!fecha}
-            className="w-full sm:w-auto px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" /> Agregar
-          </button>
-        </div>
-      </div>
+      <FormFechaEspecial onCreate={onCreate} />
 
       <div className="space-y-3">
         {horariosEspeciales.length === 0 ? (

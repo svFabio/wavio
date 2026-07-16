@@ -91,7 +91,7 @@ export const chatService = {
     logger.info({ negocioId, jid, count }, '[Chat] 🗑 Conversación eliminada');
 
     try {
-      getSocket().emit('conversacion-eliminada', { remoteJid: jid });
+      getSocket().to(negocioId.toString()).emit('conversacion-eliminada', { remoteJid: jid });
     } catch (e) {
       logger.warn({ err: e }, 'Socket error on deleteConversacion');
     }

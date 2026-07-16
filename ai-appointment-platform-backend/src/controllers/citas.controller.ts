@@ -35,14 +35,17 @@ export const validarCita = async (
 export const getAgenda = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { page, limit } = req.pagination!;
-    const query = (req as any).validatedQuery || req.query;
-    const result = await citasService.getAgenda(
-      req.negocioId!,
-      query.desde as string,
-      query.hasta as string,
-      page,
-      limit,
-    );
+    const query = req.validatedQuery ?? req.query;
+
+    let desde = query.desde as string | undefined;
+    let hasta = query.hasta as string | undefined;
+
+    if (query.fecha && !desde && !hasta) {
+      desde = `${query.fecha}T00:00:00.000Z`;
+      hasta = `${query.fecha}T23:59:59.999Z`;
+    }
+
+    const result = await citasService.getAgenda(req.negocioId!, desde, hasta, page, limit);
     res.json(result);
   } catch (error) {
     next(error);

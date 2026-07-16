@@ -29,4 +29,8 @@ export const auth = {
   setActiveNegocioId(id: number): void {
     localStorage.setItem(ACTIVE_NEGOCIO_KEY, String(id));
   },
+
+  clearActiveNegocioId(): void {
+    localStorage.removeItem(ACTIVE_NEGOCIO_KEY);
+  },
 };

@@ -5,8 +5,8 @@ export class AppError extends Error {
     public readonly code: string,
   ) {
     super(message);
-    this.name = 'AppError';
-    Object.setPrototypeOf(this, AppError.prototype);
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 

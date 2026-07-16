@@ -2,11 +2,13 @@ import { citasRepository } from '../repositories/citas.repository';
 import { configuracionRepository } from '../repositories/configuracion.repository';
 import { chatRepository } from '../repositories/chat.repository';
 import { negocioRepository } from '../repositories/negocio.repository';
+import { availabilityRepository } from '../repositories/availability.repository';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita } from '../domain/types';
 import { enviarMensaje } from '../lib/whatsapp';
 import { getSocket } from '../lib/socket';
 import { getSlotsDisponibles } from './availability.service';
+import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 import pino from 'pino';
 
 const logger = pino({ name: 'citas-service' });
@@ -113,10 +115,10 @@ export const citasService = {
   }> {
     const fechaDesde = queryDesde
       ? new Date(queryDesde)
-      : new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      : new Date(Date.now() - AGENDA_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
     const fechaHasta = queryHasta
       ? new Date(queryHasta)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      : new Date(Date.now() + AGENDA_LOOKAHEAD_DAYS * 24 * 60 * 60 * 1000);
     const p = page || 1;
     const l = limit || 20;
     const result = await citasRepository.getAgenda(negocioId, fechaDesde, fechaHasta, p, l);
@@ -142,7 +144,7 @@ export const citasService = {
     const finHoy = new Date();
     finHoy.setHours(23, 59, 59, 999);
 
-    const [totalHoy, pendientes, completadas] = await Promise.all([
+    const [totalHoy, pendientes, completadas, ingresos] = await Promise.all([
       citasRepository.getCitasCount(negocioId, {
         fecha: { gte: inicioHoy, lte: finHoy },
         estado: { notIn: ['CANCELADA'] },
@@ -152,9 +154,10 @@ export const citasService = {
         fecha: { gte: inicioHoy, lte: finHoy },
         estado: 'CONFIRMADA',
       }),
+      citasRepository.getSumaIngresosHoy(negocioId, inicioHoy, finHoy),
     ]);
 
-    return { totalHoy, pendientes, completadas, ingresos: 0 };
+    return { totalHoy, pendientes, completadas, ingresos };
   },
 
   /**
@@ -172,11 +175,7 @@ export const citasService = {
     // Si no se especifica servicio, buscar el primero activo del negocio
     let resolvedServicioId = servicioId;
     if (!resolvedServicioId) {
-      const { prisma } = await import('../repositories/prisma');
-      const primerServicio = await prisma.servicio.findFirst({
-        where: { negocioId, activo: true },
-        orderBy: { id: 'asc' },
-      });
+      const primerServicio = await availabilityRepository.findPrimerServicioActivo(negocioId);
       if (!primerServicio) {
         throw new ValidationError('No hay servicios configurados para este negocio');
       }
@@ -195,24 +194,32 @@ export const citasService = {
     return slots.map((s) => s.inicio);
   },
 
-  async crearCitaAdmin(negocioId: number, data: Record<string, unknown>): Promise<Cita> {
-    const clienteNombre = String(data.clienteNombre);
-    const clienteTelefono = String(data.clienteTelefono);
-    const fecha = String(data.fecha);
-    const horario = String(data.horario);
-    const monto = typeof data.monto === 'number' ? data.monto : 0;
-    const servicioId = typeof data.servicioId === 'number' ? data.servicioId : null;
-    const staffId = typeof data.staffId === 'number' ? data.staffId : null;
-    const duracionMinutos = typeof data.duracionMinutos === 'number' ? data.duracionMinutos : 60;
+  async crearCitaAdmin(
+    negocioId: number,
+    data: {
+      clienteNombre: string;
+      clienteTelefono: string;
+      fecha: string;
+      horario: string;
+      monto?: number;
+      servicioId?: number | null;
+      staffId?: number | null;
+      duracionMinutos?: number;
+      estado?: string;
+      origen?: string;
+    },
+  ): Promise<Cita> {
+    const { clienteNombre, clienteTelefono, fecha, horario } = data;
+    const monto = data.monto ?? 0;
+    const servicioId = data.servicioId ?? null;
+    const staffId = data.staffId ?? null;
+    const duracionMinutos = data.duracionMinutos ?? 60;
 
     // Auto-calculate monto from servicio precio if not provided
     let montoFinal = monto;
-    let estadoPago = 'PENDIENTE';
+    const estadoPago = 'PENDIENTE';
     if (servicioId && montoFinal === 0) {
-      const { prisma } = await import('../repositories/prisma');
-      const servicio = await prisma.servicio.findFirst({
-        where: { id: servicioId, negocioId, activo: true },
-      });
+      const servicio = await availabilityRepository.findServicio(servicioId, negocioId);
       if (servicio) {
         montoFinal = servicio.precio;
       }
@@ -239,25 +246,17 @@ export const citasService = {
     const [horas, minutos] = horario.split(':').map(Number);
     fechaCita.setHours(horas, minutos, 0, 0);
 
-    let nuevaCita;
-    try {
-      nuevaCita = await citasRepository.createIfSlotAvailable(negocioId, fechaCita, horario, {
-        clienteNombre,
-        clienteTelefono,
-        monto: montoFinal,
-        estado: 'CONFIRMADA',
-        estadoPago,
-        origen: 'presencial',
-        servicioId: servicioId ?? undefined,
-        duracionMinutos,
-        staffId: staffId ?? undefined,
-      });
-    } catch (err) {
-      if (err instanceof Error && err.message === 'SLOT_OCCUPIED') {
-        throw new ConflictError('Este horario ya está ocupado. Por favor selecciona otro.');
-      }
-      throw err;
-    }
+    const nuevaCita = await citasRepository.createIfSlotAvailable(negocioId, fechaCita, horario, {
+      clienteNombre,
+      clienteTelefono,
+      monto: montoFinal,
+      estado: data.estado ?? 'CONFIRMADA',
+      estadoPago,
+      origen: data.origen ?? 'presencial',
+      servicioId: servicioId ?? undefined,
+      duracionMinutos,
+      staffId: staffId ?? undefined,
+    });
 
     try {
       const io = getSocket();
@@ -316,7 +315,7 @@ export const citasService = {
     if (!citaActualizada) throw new ConflictError('Ese horario ya está ocupado.');
 
     try {
-      getSocket().emit('cambio-citas');
+      getSocket().to(negocioId.toString()).emit('cambio-citas');
     } catch (e) {
       logger.warn({ err: e }, 'Socket error on reprogramar');
     }
@@ -352,7 +351,7 @@ export const citasService = {
 
     const actualizada = await citasRepository.update(id, { estado });
     try {
-      getSocket().emit('cambio-citas');
+      getSocket().to(negocioId.toString()).emit('cambio-citas');
     } catch (e) {
       logger.warn({ err: e }, 'Socket error on cambiarEstado');
     }

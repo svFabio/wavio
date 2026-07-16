@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 
 interface CrearCitaParams {
@@ -9,7 +10,11 @@ interface CrearCitaParams {
   servicioId?: number;
 }
 
-export function useCrearCitaMutation() {
+export function useCrearCitaMutation(): UseMutationResult<
+  { success: boolean; error?: string },
+  Error,
+  CrearCitaParams
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

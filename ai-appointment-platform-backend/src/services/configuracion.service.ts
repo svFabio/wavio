@@ -1,6 +1,18 @@
 import { configuracionRepository } from '../repositories/configuracion.repository';
 import { ValidationError } from '../domain/errors';
+import { uploadBase64Image } from '../lib/cloudinary';
 import type { Configuracion } from '../domain/types';
+
+interface UpdateConfiguracionInput {
+  trigger?: string;
+  mensajeBienvenida?: string;
+  mensajeConfirmacion?: string;
+  qrFotoUrl?: string | null;
+  cobrarAdelanto?: boolean;
+  porcentajeAdelanto?: number;
+  timezone?: string;
+  chatFlow?: Record<string, unknown>;
+}
 
 export const configuracionService = {
   async getConfiguracion(negocioId: number): Promise<Configuracion> {
@@ -9,59 +21,32 @@ export const configuracionService = {
 
   async updateConfiguracion(
     negocioId: number,
-    data: Record<string, unknown>,
+    data: UpdateConfiguracionInput,
   ): Promise<Configuracion> {
-    const {
-      trigger,
-      mensajeBienvenida,
-      mensajeConfirmacion,
-      qrFotoUrl,
-      cobrarAdelanto,
-      porcentajeAdelanto,
-      timezone,
-      chatFlow,
-    } = data;
-
-    if (trigger !== undefined && (typeof trigger !== 'string' || trigger.trim().length === 0)) {
-      throw new ValidationError('El trigger no puede estar vacio');
-    }
-    if (
-      porcentajeAdelanto !== undefined &&
-      (typeof porcentajeAdelanto !== 'number' || porcentajeAdelanto < 1 || porcentajeAdelanto > 100)
-    ) {
-      throw new ValidationError('porcentajeAdelanto debe ser un numero entre 1 y 100');
-    }
-    if (timezone !== undefined && typeof timezone !== 'string') {
-      throw new ValidationError('timezone debe ser un string válido (ej: America/La_Paz)');
-    }
-    if (chatFlow !== undefined && typeof chatFlow !== 'object') {
-      throw new ValidationError('chatFlow debe ser un objeto JSON válido');
-    }
-    if (qrFotoUrl !== undefined && qrFotoUrl !== null && typeof qrFotoUrl !== 'string') {
-      throw new ValidationError('qrFotoUrl debe ser un string URL o null');
-    }
-
-    const updateData: Partial<{
-      trigger: string;
-      mensajeBienvenida: string;
-      mensajeConfirmacion: string;
-      qrFotoUrl: string | null;
-      cobrarAdelanto: boolean;
-      porcentajeAdelanto: number;
-      timezone: string;
-      chatFlow: unknown;
-    }> = {};
-    if (trigger !== undefined) updateData.trigger = (trigger as string).trim();
-    if (mensajeBienvenida !== undefined) updateData.mensajeBienvenida = mensajeBienvenida as string;
-    if (mensajeConfirmacion !== undefined)
-      updateData.mensajeConfirmacion = mensajeConfirmacion as string;
-    if (qrFotoUrl !== undefined) updateData.qrFotoUrl = qrFotoUrl as string | null;
-    if (cobrarAdelanto !== undefined) updateData.cobrarAdelanto = Boolean(cobrarAdelanto);
-    if (porcentajeAdelanto !== undefined)
-      updateData.porcentajeAdelanto = Number(porcentajeAdelanto);
-    if (timezone !== undefined) updateData.timezone = timezone as string;
-    if (chatFlow !== undefined) updateData.chatFlow = chatFlow;
+    const updateData: Record<string, unknown> = {};
+    if (data.trigger !== undefined) updateData.trigger = data.trigger.trim();
+    if (data.mensajeBienvenida !== undefined) updateData.mensajeBienvenida = data.mensajeBienvenida;
+    if (data.mensajeConfirmacion !== undefined)
+      updateData.mensajeConfirmacion = data.mensajeConfirmacion;
+    if (data.qrFotoUrl !== undefined) updateData.qrFotoUrl = data.qrFotoUrl;
+    if (data.cobrarAdelanto !== undefined) updateData.cobrarAdelanto = data.cobrarAdelanto;
+    if (data.porcentajeAdelanto !== undefined)
+      updateData.porcentajeAdelanto = data.porcentajeAdelanto;
+    if (data.timezone !== undefined) updateData.timezone = data.timezone;
+    if (data.chatFlow !== undefined) updateData.chatFlow = data.chatFlow;
 
     return configuracionRepository.upsert(negocioId, updateData);
+  },
+
+  async uploadQR(negocioId: number, imagen: string): Promise<{ qrFotoUrl: string }> {
+    if (!imagen || typeof imagen !== 'string') {
+      throw new ValidationError('imagen es requerida y debe ser un string base64');
+    }
+
+    const qrFotoUrl = await uploadBase64Image(imagen, `wavio/qr/${negocioId}`);
+
+    await configuracionRepository.upsert(negocioId, { qrFotoUrl });
+
+    return { qrFotoUrl };
   },
 };

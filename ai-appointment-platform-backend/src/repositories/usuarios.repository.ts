@@ -88,20 +88,37 @@ export const usuariosRepository = {
     fotoPerfil: string | null;
   }> {
     const { negocioId, ...userData } = data;
+
+    if (negocioId) {
+      return prisma.$transaction(async (tx) => {
+        const usuario = await tx.usuario.create({
+          data: userData,
+          select: {
+            id: true,
+            nombre: true,
+            email: true,
+            rol: true,
+            creadoEn: true,
+            fotoPerfil: true,
+          },
+        });
+
+        await tx.usuarioNegocio.create({
+          data: {
+            usuarioId: usuario.id,
+            negocioId,
+            rol: userData.rol || 'STAFF',
+          },
+        });
+
+        return usuario;
+      });
+    }
+
     const usuario = await prisma.usuario.create({
       data: userData,
       select: { id: true, nombre: true, email: true, rol: true, creadoEn: true, fotoPerfil: true },
     });
-
-    if (negocioId) {
-      await prisma.usuarioNegocio.create({
-        data: {
-          usuarioId: usuario.id,
-          negocioId,
-          rol: userData.rol || 'STAFF',
-        },
-      });
-    }
 
     return usuario;
   },
@@ -119,5 +136,12 @@ export const usuariosRepository = {
 
   async delete(id: number): Promise<void> {
     await prisma.usuario.delete({ where: { id } });
+  },
+
+  async findFirstByGoogleId(googleId: string): Promise<{ id: number } | null> {
+    return prisma.usuario.findFirst({
+      where: { googleId },
+      select: { id: true },
+    });
   },
 };

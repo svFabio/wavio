@@ -48,6 +48,10 @@ const actualizarDescripcionSchema = z.object({
 });
 
 const agendaQuerySchema = z.object({
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   desde: z.string().datetime().optional(),
   hasta: z.string().datetime().optional(),
 });

@@ -8,31 +8,41 @@ import { citasService } from '../services/citas.service';
 import { getSlotsDisponibles } from '../services/availability.service';
 import { serviciosRepository } from '../repositories/servicios.repository';
 import { getSocket } from '../lib/socket';
+import type { Servicio, Negocio, ChatFlowStep } from '../domain/types';
 import pino from 'pino';
 
 const logger = pino({ name: 'webhook-service' });
+
+type NegocioConCreds = Negocio;
+
+interface NegocioCache {
+  servicios: Servicio[];
+  config: Record<string, unknown>;
+}
 
 export const webhookService = {
   async processWebhookPayload(body: Record<string, unknown>): Promise<void> {
     if (body.object !== 'whatsapp_business_account') return;
     if (!Array.isArray(body.entry) || body.entry.length === 0) return;
 
+    const negocioCache = new Map<number, NegocioCache>();
+
     for (const entry of body.entry) {
       if (!Array.isArray(entry.changes)) continue;
 
       for (const change of entry.changes) {
-        const value = change.value as Record<string, any>;
-        const metadata = value.metadata as Record<string, any> | undefined;
+        const value = change.value as Record<string, unknown>;
+        const metadata = value.metadata as Record<string, unknown> | undefined;
         const phoneNumberId = metadata?.phone_number_id as string | undefined;
 
-        const messages = value.messages as Array<Record<string, any>> | undefined;
+        const messages = value.messages as Array<Record<string, unknown>> | undefined;
         if (messages && messages.length > 0) {
           for (const message of messages) {
             try {
               const from = message.from as string;
 
               if (message.type !== 'text') continue;
-              const textBody = (message.text as Record<string, any>)?.body as string;
+              const textBody = (message.text as Record<string, unknown>)?.body as string;
               const waMessageId = message.id as string;
 
               if (!phoneNumberId || !from || !textBody) continue;
@@ -64,6 +74,16 @@ export const webhookService = {
 
               logger.info({ negocio: negocio.nombre, from }, '[Webhook] Mensaje recibido');
 
+              let cached = negocioCache.get(negocio.id);
+              if (!cached) {
+                const [servicios, config] = await Promise.all([
+                  serviciosRepository.findByNegocioId(negocio.id),
+                  configuracionRepository.getOrCreateByNegocioId(negocio.id),
+                ]);
+                cached = { servicios, config: config as unknown as Record<string, unknown> };
+                negocioCache.set(negocio.id, cached);
+              }
+
               const sessionJid = `${from}`;
               const sesion = await sesionChatRepository.findByJid(sessionJid, negocio.id);
               const contexto: ContextoConversacion = sesion
@@ -74,22 +94,28 @@ export const webhookService = {
                   }
                 : { estado: 'INICIO', datos: {}, intentosAclaracion: 0 };
 
-              const servicios = await serviciosRepository.findByNegocioId(negocio.id);
-              const serviciosDisponibles = servicios.map((s) => `${s.nombre} ($${s.precio})`);
+              const serviciosDisponibles = cached.servicios.map(
+                (s) => `${s.nombre} ($${s.precio})`,
+              );
 
-              // Load chatFlow from config
-              const config = await configuracionRepository.getOrCreateByNegocioId(negocio.id);
-              const chatFlow = config.chatFlow || [];
+              const chatFlow = (cached.config.chatFlow ?? []) as ChatFlowStep[];
 
               let slotsDisponibles: string[] = [];
               if (contexto.datos.fecha) {
                 try {
-                  const slots = await getSlotsDisponibles({
-                    negocioId: negocio.id,
-                    servicioId: (contexto.datos as any).servicioId || 1, // Default to 1 if unknown
-                    fecha: contexto.datos.fecha as unknown as string,
-                  });
-                  slotsDisponibles = slots.map((s) => s.inicio);
+                  const servicioId = cached.servicios[0]?.id;
+                  if (servicioId) {
+                    const fechaStr =
+                      contexto.datos.fecha instanceof Date
+                        ? contexto.datos.fecha.toISOString().split('T')[0]
+                        : String(contexto.datos.fecha);
+                    const slots = await getSlotsDisponibles({
+                      negocioId: negocio.id,
+                      servicioId,
+                      fecha: fechaStr,
+                    });
+                    slotsDisponibles = slots.map((s) => s.inicio);
+                  }
                 } catch (e) {
                   logger.warn({ err: e }, 'Error obteniendo slots para contexto de IA');
                 }
@@ -108,7 +134,7 @@ export const webhookService = {
                 datos: contexto.datos,
               });
 
-              await manejarRespuestaIA(negocio, from, resultadoIA, contexto);
+              await manejarRespuestaIA(negocio, from, resultadoIA, contexto, cached);
             } catch (msgErr) {
               logger.error(
                 { err: msgErr, message },
@@ -118,7 +144,7 @@ export const webhookService = {
           }
         }
 
-        const statuses = value.statuses as Array<Record<string, any>> | undefined;
+        const statuses = value.statuses as Array<Record<string, unknown>> | undefined;
         if (statuses && statuses.length > 0) {
           for (const status of statuses) {
             await chatRepository.updateEstadoEntrega(status.id as string, status.status as string);
@@ -130,7 +156,7 @@ export const webhookService = {
 };
 
 async function manejarRespuestaIA(
-  negocio: { id: number; waAccessToken: string | null; waPhoneNumberId: string | null },
+  negocio: NegocioConCreds,
   from: string,
   resultadoIA: {
     intencion: string;
@@ -138,6 +164,7 @@ async function manejarRespuestaIA(
     entidades?: Record<string, string | undefined>;
   },
   contexto: ContextoConversacion,
+  cached: NegocioCache,
 ): Promise<void> {
   const waCreds = {
     waAccessToken: negocio.waAccessToken ?? '',
@@ -145,39 +172,46 @@ async function manejarRespuestaIA(
   };
 
   if (resultadoIA.intencion === 'AGENDAR' && contexto.estado === 'CONFIRMANDO_FECHA') {
-    const { fecha, horario, nombre, servicioId } = contexto.datos as any as {
-      fecha?: string;
-      horario?: string;
-      nombre?: string;
-      servicioId?: number;
-    };
+    const fechaRaw = contexto.datos.fecha;
+    const fechaStr =
+      fechaRaw instanceof Date
+        ? fechaRaw.toISOString().split('T')[0]
+        : fechaRaw
+          ? String(fechaRaw)
+          : undefined;
+    const horario = contexto.datos.horario;
+    const nombre = contexto.datos.nombre;
+    const servicio = contexto.datos.servicio;
 
-    if (fecha && horario && nombre) {
+    if (fechaStr && horario && nombre) {
       try {
         const nuevaCita = await citasService.crearCitaAdmin(negocio.id, {
           clienteNombre: nombre,
           clienteTelefono: from,
-          fecha,
+          fecha: fechaStr,
           horario,
-          servicioId: servicioId ?? undefined,
+          servicioId: undefined,
           monto: 0,
           estado: 'VALIDACION_PENDIENTE',
           origen: 'whatsapp',
         });
 
-        // Check if advance payment is required
-        const config = await configuracionRepository.getOrCreateByNegocioId(negocio.id);
+        const config = cached.config;
+        const cobrarAdelanto = config.cobrarAdelanto as boolean;
+        const porcentajeAdelanto = config.porcentajeAdelanto as number;
+        const qrFotoUrl = config.qrFotoUrl as string | null;
+
         let confirmationMsg =
           `¡Tu cita ha sido creada! 🎉\n\n` +
           `📋 *Detalles:*\n` +
-          `📅 Fecha: ${fecha}\n` +
+          `📅 Fecha: ${fechaStr}\n` +
           `⏰ Hora: ${horario}\n` +
           `👤 Nombre: ${nombre}\n\n`;
 
-        if (config.cobrarAdelanto && nuevaCita.monto > 0) {
-          const anticipo = Math.round((nuevaCita.monto * config.porcentajeAdelanto) / 100);
+        if (cobrarAdelanto && nuevaCita.monto > 0) {
+          const anticipo = Math.round((nuevaCita.monto * porcentajeAdelanto) / 100);
           confirmationMsg +=
-            `💰 *Adelanto requerido:* $${anticipo} (${config.porcentajeAdelanto}% de $${nuevaCita.monto})\n` +
+            `💰 *Adelanto requerido:* $${anticipo} (${porcentajeAdelanto}% de $${nuevaCita.monto})\n` +
             `Por favor envía tu comprobante de pago para confirmar tu cita.`;
         } else {
           confirmationMsg += `Estado: Pendiente de validación. Te notificaremos cuando sea confirmada.`;
@@ -185,12 +219,12 @@ async function manejarRespuestaIA(
 
         await enviarMensaje(waCreds, from, confirmationMsg);
 
-        if (config.cobrarAdelanto && nuevaCita.monto > 0 && config.qrFotoUrl) {
-          const anticipo = Math.round((nuevaCita.monto * config.porcentajeAdelanto) / 100);
+        if (cobrarAdelanto && nuevaCita.monto > 0 && qrFotoUrl) {
+          const anticipo = Math.round((nuevaCita.monto * porcentajeAdelanto) / 100);
           await enviarImagen(
             waCreds,
             from,
-            config.qrFotoUrl,
+            qrFotoUrl,
             `Escanea este QR para pagar tu adelanto de $${anticipo}`,
           );
         }
@@ -205,22 +239,28 @@ async function manejarRespuestaIA(
           'Lo siento, hubo un problema al agendar tu cita. ¿Podrías intentar con otro horario?',
         );
       }
-    } else if (fecha && horario) {
+    } else if (fechaStr && horario) {
       await enviarMensaje(waCreds, from, '¿Cuál es tu nombre para completar la reserva?');
       contexto.estado = 'ESPERANDO_NOMBRE';
-    } else if (fecha) {
+    } else if (fechaStr) {
       try {
+        const fallbackServicioId = cached.servicios[0]?.id;
+        if (!fallbackServicioId) {
+          await enviarMensaje(waCreds, from, '¿Qué servicio deseas agendar?');
+          contexto.estado = 'ESPERANDO_SERVICIO';
+          return;
+        }
         const slots = await getSlotsDisponibles({
           negocioId: negocio.id,
-          servicioId: servicioId ?? 1,
-          fecha,
+          servicioId: fallbackServicioId,
+          fecha: fechaStr,
         });
 
         if (slots.length === 0) {
           await enviarMensaje(
             waCreds,
             from,
-            `Lo siento, no hay horarios disponibles para el ${fecha}. ¿Te gustaría probar con otra fecha?`,
+            `Lo siento, no hay horarios disponibles para el ${fechaStr}. ¿Te gustaría probar con otra fecha?`,
           );
         } else {
           const horariosStr = slots
@@ -230,7 +270,7 @@ async function manejarRespuestaIA(
           await enviarMensaje(
             waCreds,
             from,
-            `Horarios disponibles para el ${fecha}:\n\n${horariosStr}\n\n¿Cuál prefieres?`,
+            `Horarios disponibles para el ${fechaStr}:\n\n${horariosStr}\n\n¿Cuál prefieres?`,
           );
           contexto.estado = 'ESPERANDO_HORA';
         }
@@ -239,8 +279,7 @@ async function manejarRespuestaIA(
         await enviarMensaje(waCreds, from, '¿Para qué hora te gustaría tu cita?');
       }
     } else {
-      const servicios = await serviciosRepository.findByNegocioId(negocio.id);
-      const listaServicios = servicios.map((s) => `• ${s.nombre} ($${s.precio})`).join('\n');
+      const listaServicios = cached.servicios.map((s) => `• ${s.nombre} ($${s.precio})`).join('\n');
       await enviarMensaje(
         waCreds,
         from,

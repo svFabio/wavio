@@ -1,7 +1,10 @@
 // Sonido de notificación usando Web Audio API
-export const playNotificationSound = () => {
+export const playNotificationSound = (): void => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    )();
 
     // Crear oscilador para el tono
     const oscillator = audioContext.createOscillator();

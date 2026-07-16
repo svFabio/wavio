@@ -4,14 +4,13 @@ import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import { JWT_EXPIRES_IN, BCRYPT_SALT_ROUNDS } from '../config';
 import { Usuario, Negocio } from '../domain/types';
 import { usuariosRepository } from '../repositories/usuarios.repository';
-import { prisma } from '../repositories/prisma';
+import { usuarioNegocioRepository } from '../repositories/usuarioNegocio.repository';
 import { uploadBase64Image } from '../lib/cloudinary';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
-
-const JWT_EXPIRES_IN = '7d';
 
 type NegocioSafe = Omit<Negocio, 'waAccessToken'>;
 type UsuarioSafe = Omit<Usuario, 'password'> & { fotoPerfil: string | null };
@@ -70,15 +69,9 @@ export const authService = {
     let usuario = await authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
     if (!usuario) {
       // Safety net: user exists but has no junction record (e.g., after M:N migration)
-      const existingUser = await prisma.usuario.findFirst({ where: { googleId } });
+      const existingUser = await usuariosRepository.findFirstByGoogleId(googleId);
       if (existingUser) {
-        await prisma.usuarioNegocio.upsert({
-          where: {
-            usuarioId_negocioId: { usuarioId: existingUser.id, negocioId: negocio.id },
-          },
-          update: {},
-          create: { usuarioId: existingUser.id, negocioId: negocio.id, rol: 'ADMIN' },
-        });
+        await usuarioNegocioRepository.upsertMembership(existingUser.id, negocio.id, 'ADMIN');
         usuario = await authRepository.findUsuarioById(existingUser.id);
       }
       if (!usuario) {
@@ -106,7 +99,7 @@ export const authService = {
       throw new ConflictError('Ya existe una cuenta con ese email');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     const nombre = email.split('@')[0];
 
     const negocio = await authRepository.createNegocioWithAdmin(
@@ -178,7 +171,6 @@ export const authService = {
 
   async obtenerUsuarioActual(
     userId: number,
-    negocioId: number,
   ): Promise<{ usuario: UsuarioSafe; negocios: NegocioSafe[] }> {
     const usuario = await authRepository.findUsuarioById(userId);
     if (!usuario) {
@@ -203,9 +195,10 @@ export const authService = {
       throw new NotFoundError('Usuario');
     }
 
-    const membership = await prisma.usuarioNegocio.findUnique({
-      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
-    });
+    const membership = await usuarioNegocioRepository.findByUsuarioIdAndNegocioId(
+      userId,
+      negocioId,
+    );
     if (!membership) {
       throw new NotFoundError('Usuario');
     }
@@ -227,9 +220,10 @@ export const authService = {
       throw new NotFoundError('Usuario');
     }
 
-    const membership = await prisma.usuarioNegocio.findUnique({
-      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
-    });
+    const membership = await usuarioNegocioRepository.findByUsuarioIdAndNegocioId(
+      userId,
+      negocioId,
+    );
     if (!membership) {
       throw new NotFoundError('Usuario');
     }
@@ -248,9 +242,10 @@ export const authService = {
       throw new NotFoundError('Usuario');
     }
 
-    const membership = await prisma.usuarioNegocio.findUnique({
-      where: { usuarioId_negocioId: { usuarioId: userId, negocioId } },
-    });
+    const membership = await usuarioNegocioRepository.findByUsuarioIdAndNegocioId(
+      userId,
+      negocioId,
+    );
     if (!membership) {
       throw new NotFoundError('Usuario');
     }

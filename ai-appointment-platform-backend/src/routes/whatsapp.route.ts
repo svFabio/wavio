@@ -6,6 +6,7 @@ import {
 } from '../controllers/whatsapp.controller';
 import { verificarToken } from '../middleware/auth.middleware';
 import { tenantMiddleware } from '../middleware/tenant.middleware';
+import { requireAdmin } from '../middleware/permissions.middleware';
 
 const router = Router();
 
@@ -13,7 +14,7 @@ const router = Router();
 router.use(verificarToken, tenantMiddleware);
 
 router.get('/status', getWhatsappStatus);
-router.post('/save-credentials', saveWhatsappCredentials);
-router.post('/disconnect', disconnectWhatsapp);
+router.post('/save-credentials', requireAdmin, saveWhatsappCredentials);
+router.post('/disconnect', requireAdmin, disconnectWhatsapp);
 
 export default router;

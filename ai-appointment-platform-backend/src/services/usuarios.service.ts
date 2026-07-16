@@ -1,6 +1,7 @@
 import { usuariosRepository } from '../repositories/usuarios.repository';
 import { ValidationError, ConflictError, NotFoundError } from '../domain/errors';
 import { Rol } from '../domain/types';
+import { BCRYPT_SALT_ROUNDS } from '../config';
 import bcrypt from 'bcryptjs';
 
 export const getAllUsers = async (
@@ -63,7 +64,7 @@ export const createUser = async (
     throw new ConflictError('El email ya está registrado');
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
   return usuariosRepository.create({
     negocioId,
     nombre,
@@ -112,7 +113,7 @@ export const updateUser = async (
     }
     updateData.email = email;
   }
-  if (password) updateData.password = await bcrypt.hash(password, 10);
+  if (password) updateData.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
   if (rol) {
     if (!['ADMIN', 'STAFF'].includes(rol)) {
       throw new ValidationError('Rol inválido');

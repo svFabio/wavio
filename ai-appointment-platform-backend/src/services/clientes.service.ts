@@ -3,8 +3,12 @@ import { NotFoundError, ConflictError } from '../domain/errors';
 import { Cliente } from '../domain/types';
 
 export const clientesService = {
-  async listarClientes(negocioId: number): Promise<Cliente[]> {
-    return clientesRepository.findByNegocioId(negocioId);
+  async listarClientes(
+    negocioId: number,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{ data: Cliente[]; total: number; page: number; limit: number; totalPages: number }> {
+    return clientesRepository.findByNegocioId(negocioId, page, limit);
   },
 
   async obtenerCliente(negocioId: number, clienteId: number): Promise<Cliente> {

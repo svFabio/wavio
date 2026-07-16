@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 import { AvatarSection } from './AvatarSection';
 import { NameEditSection } from './NameEditSection';
 

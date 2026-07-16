@@ -1,4 +1,4 @@
-import { prisma } from '../repositories/prisma';
+import { availabilityRepository } from '../repositories/availability.repository';
 import { ValidationError } from '../domain/errors';
 
 export interface Slot {
@@ -40,9 +40,7 @@ export async function getSlotsDisponibles(params: DisponibilidadParams): Promise
   const diaSemana = fechaDate.getDay();
 
   // ── 1. Cargar servicio ────────────────────────────────────────────────
-  const servicio = await prisma.servicio.findFirst({
-    where: { id: servicioId, negocioId, activo: true },
-  });
+  const servicio = await availabilityRepository.findServicio(servicioId, negocioId);
 
   if (!servicio) {
     throw new ValidationError('Servicio no encontrado o inactivo');
@@ -52,9 +50,7 @@ export async function getSlotsDisponibles(params: DisponibilidadParams): Promise
   const bufferMin = servicio.bufferMinutos;
 
   // ── 2. Verificar horario especial ─────────────────────────────────────
-  const especial = await prisma.horarioEspecial.findFirst({
-    where: { negocioId, fecha: fechaDate },
-  });
+  const especial = await availabilityRepository.findHorarioEspecial(negocioId, fechaDate);
 
   if (especial?.cerrado) {
     return [];
@@ -69,9 +65,7 @@ export async function getSlotsDisponibles(params: DisponibilidadParams): Promise
     rangos = [{ horaInicio: especial.horaInicio, horaFin: especial.horaFin }];
   } else {
     // Horarios regulares del negocio
-    const horariosNegocio = await prisma.horarioNegocio.findMany({
-      where: { negocioId, diaSemana, activo: true },
-    });
+    const horariosNegocio = await availabilityRepository.findHorariosNegocio(negocioId, diaSemana);
 
     rangos = horariosNegocio.map((h) => ({
       horaInicio: h.horaInicio,
@@ -85,9 +79,7 @@ export async function getSlotsDisponibles(params: DisponibilidadParams): Promise
 
   // ── 4. Intersectar con horario de staff (si se especifica) ───────────
   if (staffId) {
-    const horarioStaff = await prisma.horarioStaff.findFirst({
-      where: { usuarioId: staffId, diaSemana, activo: true },
-    });
+    const horarioStaff = await availabilityRepository.findHorarioStaff(staffId, diaSemana);
 
     if (!horarioStaff) {
       return [];
@@ -134,20 +126,12 @@ export async function getSlotsDisponibles(params: DisponibilidadParams): Promise
   const inicioDia = new Date(year, month - 1, day, 0, 0, 0, 0);
   const finDia = new Date(year, month - 1, day, 23, 59, 59, 999);
 
-  const whereCitas: Record<string, unknown> = {
+  const citasExistentes = await availabilityRepository.findCitasDelDia(
     negocioId,
-    fecha: { gte: inicioDia, lte: finDia },
-    estado: { notIn: ['CANCELADA'] },
-  };
-
-  if (staffId) {
-    whereCitas.staffId = staffId;
-  }
-
-  const citasExistentes = await prisma.cita.findMany({
-    where: whereCitas,
-    select: { horario: true, duracionMinutos: true },
-  });
+    inicioDia,
+    finDia,
+    staffId,
+  );
 
   // Construir mapa de minutos ocupados por cada staff (o global)
   const minutosOcupados = new Set<number>();

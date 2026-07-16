@@ -24,6 +24,7 @@ import negocioRoutes from './routes/negocio.route';
 import serviciosRoutes from './routes/servicios.route';
 import horariosRoutes from './routes/horarios.route';
 import clientesRoutes from './routes/clientes.route';
+import healthRoutes from './routes/health.route';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -54,7 +55,15 @@ app.use(
 
 app.use(helmet());
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-app.use(express.json({ limit: '10mb' }));
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (req as any).rawBody = buf;
+    },
+  }),
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -64,15 +73,24 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.', code: 'RATE_LIMITED' },
+});
+
 // Rutas de salud
 app.get('/', (_req, res) => res.send('Backend funcionando 🚀'));
 app.get('/ping', (_req, res) => res.send('pong'));
+app.use('/health', healthRoutes);
 
 // ─── Rutas Meta Cloud API Webhook (no versioning) ───────────────────────────
-app.use('/api/webhooks/whatsapp', webhookRoutes);
+app.use('/api/webhooks/whatsapp', authLimiter, webhookRoutes);
 
 // ─── API v1 Routes ─────────────────────────────────────────────────────────
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/citas', citasRoutes);
 app.use('/api/v1/configuracion', configuracionRoutes);
 app.use('/api/v1/whatsapp', whatsappRoutes);

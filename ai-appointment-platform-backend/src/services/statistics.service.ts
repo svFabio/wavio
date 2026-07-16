@@ -76,17 +76,7 @@ export const getRevenue = async (
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
 
-  const citas = await statisticsRepository.getCitasIngresos(negocioId, startDate);
-
-  const revenueByMonth: Record<string, number> = {};
-  citas.forEach((cita) => {
-    const monthKey = `${cita.fecha.getFullYear()}-${String(cita.fecha.getMonth() + 1).padStart(2, '0')}`;
-    revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + Number(cita.monto);
-  });
-
-  const revenue = Object.entries(revenueByMonth)
-    .map(([mes, total]) => ({ mes, total }))
-    .sort((a, b) => a.mes.localeCompare(b.mes));
+  const revenue = await statisticsRepository.getCitasIngresos(negocioId, startDate);
 
   return { revenue };
 };

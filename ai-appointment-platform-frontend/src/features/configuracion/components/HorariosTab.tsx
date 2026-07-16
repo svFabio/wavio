@@ -161,13 +161,17 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
                       onChange={() => handleToggle(dia.value)}
                     />
                     <div
-                      className={`block w-10 h-6 rounded-full transition-colors ${
-                        diaActivo ? 'bg-primary' : 'bg-border-strong'
+                      className={`block w-10 h-6 rounded-full transition-colors border ${
+                        diaActivo
+                          ? 'bg-primary border-primary'
+                          : 'bg-surface-elevated border-border-strong'
                       }`}
                     ></div>
                     <div
-                      className={`absolute left-1 top-1 bg-surface w-4 h-4 rounded-full transition-transform ${
-                        diaActivo ? 'transform translate-x-4' : ''
+                      className={`absolute left-1 top-1 w-4 h-4 rounded-full transition-transform ${
+                        diaActivo
+                          ? 'bg-surface transform translate-x-4'
+                          : 'bg-surface-elevated border border-border-strong'
                       }`}
                     ></div>
                   </div>
@@ -188,7 +192,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
                       disabled={!diaActivo}
                       value={config.horaInicio}
                       onChange={(e) => handleChange(dia.value, index, 'horaInicio', e.target.value)}
-                      className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary disabled:opacity-50 disabled:bg-surface-elevated font-mono"
+                      className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary disabled:text-txt-muted font-mono"
                     />
                     <span className="text-txt-muted text-sm font-medium">hasta</span>
                     <input
@@ -196,7 +200,7 @@ export const HorariosTab = ({ horarios, onSave, isLoading, isSaving }: HorariosT
                       disabled={!diaActivo}
                       value={config.horaFin}
                       onChange={(e) => handleChange(dia.value, index, 'horaFin', e.target.value)}
-                      className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary disabled:opacity-50 disabled:bg-surface-elevated font-mono"
+                      className="border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary disabled:text-txt-muted font-mono"
                     />
 
                     {rangos.length > 1 && (

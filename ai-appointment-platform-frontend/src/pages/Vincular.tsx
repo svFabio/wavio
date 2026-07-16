@@ -1,4 +1,4 @@
-import AdminWhatsapp from '../components/AdminWhatsapp';
+import AdminWhatsapp from '../features/configuracion/components/AdminWhatsapp';
 
 const Vincular = () => {
   return (

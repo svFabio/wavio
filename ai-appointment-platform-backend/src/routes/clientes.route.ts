@@ -1,9 +1,10 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { verificarToken } from '../middleware/auth.middleware';
 import { tenantMiddleware } from '../middleware/tenant.middleware';
 import { validateBody } from '../middleware/validate';
-import { clientesService } from '../services/clientes.service';
+import { paginate } from '../middleware/pagination';
+import { clientesController } from '../controllers/clientes.controller';
 
 const router = Router();
 router.use(verificarToken, tenantMiddleware);
@@ -21,58 +22,10 @@ const updateClienteSchema = z.object({
   notas: z.string().optional(),
 });
 
-const getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const clientes = await clientesService.listarClientes(req.negocioId!);
-    res.json(clientes);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const id = Number(req.params.id);
-    const cliente = await clientesService.obtenerCliente(req.negocioId!, id);
-    res.json(cliente);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const cliente = await clientesService.crearCliente(req.negocioId!, req.body);
-    res.status(201).json(cliente);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const id = Number(req.params.id);
-    const cliente = await clientesService.actualizarCliente(req.negocioId!, id, req.body);
-    res.json(cliente);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const remove = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const id = Number(req.params.id);
-    await clientesService.eliminarCliente(req.negocioId!, id);
-    res.status(204).send();
-  } catch (error) {
-    next(error);
-  }
-};
-
-router.get('/', getAll);
-router.get('/:id', getById);
-router.post('/', validateBody(createClienteSchema), create);
-router.put('/:id', validateBody(updateClienteSchema), update);
-router.delete('/:id', remove);
+router.get('/', paginate, clientesController.getAll);
+router.get('/:id', clientesController.getById);
+router.post('/', validateBody(createClienteSchema), clientesController.create);
+router.put('/:id', validateBody(updateClienteSchema), clientesController.update);
+router.delete('/:id', clientesController.remove);
 
 export default router;

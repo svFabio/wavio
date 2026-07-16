@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { api } from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 import { CheckCircle2, AlertCircle, Unplug } from 'lucide-react';
 import { DevCredentialsForm } from './DevCredentialsForm';
-
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    FB: any;
-    fbAsyncInit: () => void;
-  }
-}
 
 export const AdminWhatsapp = () => {
   useAuth();
@@ -72,8 +64,7 @@ export const AdminWhatsapp = () => {
     }
     setError('');
     window.FB.login(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (response: any) => {
+      (response: FBLoginResponse) => {
         if (response.authResponse) {
           setError(
             'Autenticacion exitosa. Sin embargo, para completar el Embedded Signup en produccion, se requiere configurar el Facebook Login for Business en el panel de Meta.',

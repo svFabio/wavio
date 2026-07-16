@@ -38,8 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [negocios, setNegocios] = useState<Negocio[]>([]);
   const [activeNegocioId, setActiveNegocioId] = useState<number | null>(() => {
-    const stored = localStorage.getItem('activeNegocioId');
-    return stored ? Number(stored) : null;
+    return auth.getActiveNegocioId();
   });
   const [token, setToken] = useState<string | null>(auth.getToken());
   const [loading, setLoading] = useState(true);
@@ -51,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(() => {
     auth.clearToken();
-    localStorage.removeItem('activeNegocioId');
+    auth.clearActiveNegocioId();
     setToken(null);
     setUsuario(null);
     setNegocios([]);
@@ -60,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const switchNegocio = useCallback((negocioId: number) => {
     setActiveNegocioId(negocioId);
-    localStorage.setItem('activeNegocioId', String(negocioId));
+    auth.setActiveNegocioId(negocioId);
     window.location.reload();
   }, []);
 
@@ -71,14 +70,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setNegocios(newNegocios);
 
     if (newNegocios.length > 0) {
-      const stored = localStorage.getItem('activeNegocioId');
-      if (!stored || !newNegocios.find((n) => n.id === Number(stored))) {
+      const stored = auth.getActiveNegocioId();
+      if (!stored || !newNegocios.find((n) => n.id === stored)) {
         setActiveNegocioId(newNegocios[0].id);
-        localStorage.setItem('activeNegocioId', String(newNegocios[0].id));
+        auth.setActiveNegocioId(newNegocios[0].id);
       }
     } else {
       setActiveNegocioId(null);
-      localStorage.removeItem('activeNegocioId');
+      auth.clearActiveNegocioId();
     }
   }, []);
 
@@ -88,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const storedToken = auth.getToken();
       if (storedToken) {
         try {
-          const data = await api.me(storedToken);
+          const data = await api.me();
           if (!isMounted) return;
           if (data) {
             setUsuario({
@@ -100,14 +99,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
             setNegocios(data.negocios || []);
             if (data.negocios && data.negocios.length > 0) {
-              const stored = localStorage.getItem('activeNegocioId');
-              if (!stored || !data.negocios.find((n) => n.id === Number(stored))) {
+              const stored = auth.getActiveNegocioId();
+              if (!stored || !data.negocios.find((n) => n.id === stored)) {
                 setActiveNegocioId(data.negocios[0].id);
-                localStorage.setItem('activeNegocioId', String(data.negocios[0].id));
+                auth.setActiveNegocioId(data.negocios[0].id);
               }
             } else {
               setActiveNegocioId(null);
-              localStorage.removeItem('activeNegocioId');
+              auth.clearActiveNegocioId();
             }
             setToken(storedToken);
           } else {
@@ -169,7 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
