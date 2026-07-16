@@ -46,9 +46,9 @@ export const validateQuery = (
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
       // Express 5 makes req.query a getter-only property — cannot reassign.
-      // Store parsed result on (req as any) so downstream handlers read validated data.
+      // Store parsed result so downstream handlers read validated data.
       const parsed = schema.parse(req.query);
-      (req as any).validatedQuery = parsed;
+      req.validatedQuery = parsed as Record<string, unknown>;
       next();
     } catch (error) {
       if (error instanceof ZodError) {

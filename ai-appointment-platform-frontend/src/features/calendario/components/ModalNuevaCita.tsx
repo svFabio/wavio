@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
-import { useHorariosDisponibles } from '../../../shared/hooks/useHorariosDisponibles';
+import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
+import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import {
@@ -14,6 +15,7 @@ import {
   Scissors,
 } from 'lucide-react';
 import { HorariosGrid } from './HorariosGrid';
+import { ResumenPrecio } from './ResumenPrecio';
 
 interface DatosNuevaCita {
   clienteNombre: string;
@@ -59,30 +61,15 @@ export const ModalNuevaCita = ({
     queryFn: api.getConfiguracion,
   });
 
-  const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
-    formData.fecha,
-    isOpen && !!formData.fecha,
-    formData.servicioId,
-  );
+  const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
+    useHorariosDisponiblesQuery(formData.fecha, isOpen && !!formData.fecha, formData.servicioId);
 
-  useEffect(() => {
-    if (isOpen) {
-      triggerRef.current = document.activeElement as HTMLElement;
-      const timer = setTimeout(() => {
-        const modal = modalRef.current;
-        if (modal) {
-          const focusable = modal.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-          );
-          if (focusable.length > 0) focusable[0].focus();
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    } else if (triggerRef.current) {
-      triggerRef.current.focus();
-      triggerRef.current = null;
-    }
-  }, [isOpen]);
+  const { handleKeyDown } = useModalAccessibility({
+    isOpen,
+    onClose,
+    modalRef,
+    triggerRef,
+  });
 
   useEffect(() => {
     if (isOpen && fechaInicial) {
@@ -155,35 +142,6 @@ export const ModalNuevaCita = ({
     const valor = e.target.value.replace(/\D/g, '');
     setFormData((prev) => ({ ...prev, clienteTelefono: valor }));
   };
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    },
-    [onClose],
-  );
 
   if (!isOpen) return null;
 
@@ -288,29 +246,7 @@ export const ModalNuevaCita = ({
               </div>
             </div>
 
-            {formData.servicioId && (
-              <div className="col-span-2 bg-surface-elevated p-3 rounded-xl border border-border-light shadow-sm">
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-txt-muted">Precio del servicio:</span>
-                  <span className="font-semibold text-txt">
-                    ${servicios.find((s) => s.id === formData.servicioId)?.precio || 0}
-                  </span>
-                </div>
-                {config?.cobrarAdelanto && (
-                  <div className="flex justify-between text-sm mt-2 pt-2 border-t border-border-light items-center">
-                    <span className="text-txt-muted">
-                      Adelanto requerido ({config.porcentajeAdelanto}%):
-                    </span>
-                    <span className="font-bold text-primary">
-                      $
-                      {((servicios.find((s) => s.id === formData.servicioId)?.precio || 0) *
-                        (config.porcentajeAdelanto || 0)) /
-                        100}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+            <ResumenPrecio servicioId={formData.servicioId} servicios={servicios} config={config} />
           </div>
 
           <div>

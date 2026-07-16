@@ -59,6 +59,7 @@ app.use(
   express.json({
     limit: '10mb',
     verify: (req, _res, buf) => {
+      // IncomingMessage in verify callback — cast to attach rawBody
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (req as any).rawBody = buf;
     },

@@ -21,6 +21,10 @@ declare global {
   namespace Express {
     interface Request {
       pagination?: PaginationParams;
+      validatedQuery?: Record<string, unknown>;
+      negocioId?: number;
+      rawBody?: Buffer;
+      negocioRole?: string;
     }
   }
 }

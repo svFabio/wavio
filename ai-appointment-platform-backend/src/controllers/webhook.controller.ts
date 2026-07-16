@@ -21,7 +21,7 @@ const verifyWebhookSignature = (req: Request): boolean => {
   if (!signature) return false;
 
   const expectedSig = signature.replace('sha256=', '');
-  const rawBody = (req as any).rawBody;
+  const rawBody = req.rawBody;
   if (!rawBody) {
     logger.error('Raw body not available for HMAC verification');
     return false;

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useModalAccessibility } from '../hooks/useModalAccessibility';
 import { api } from '../../services/api';
 import { AvatarSection } from './AvatarSection';
 import { NameEditSection } from './NameEditSection';
@@ -32,53 +33,12 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
     if (editingNombre) nombreInputRef.current?.focus();
   }, [editingNombre]);
 
-  useEffect(() => {
-    if (isOpen) {
-      triggerRef.current = document.activeElement as HTMLElement;
-      const timer = setTimeout(() => {
-        const modal = modalRef.current;
-        if (modal) {
-          const focusable = modal.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-          );
-          if (focusable.length > 0) focusable[0].focus();
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    } else if (triggerRef.current) {
-      triggerRef.current.focus();
-      triggerRef.current = null;
-    }
-  }, [isOpen]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    },
-    [onClose],
-  );
+  const { handleKeyDown } = useModalAccessibility({
+    isOpen,
+    onClose,
+    modalRef,
+    triggerRef,
+  });
 
   if (!isOpen || !usuario) return null;
 
