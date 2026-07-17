@@ -16,5 +16,6 @@ import { HorariosEspecialesRepository } from '../repositories/horariosEspeciales
     HorariosNegocioRepository,
     HorariosEspecialesRepository,
   ],
+  exports: [ServiciosRepository],
 })
 export class ServiciosModule {}

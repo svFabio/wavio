@@ -5,16 +5,19 @@ import { CitasRepository } from '../repositories/citas.repository';
 import { AvailabilityRepository } from '../repositories/availability.repository';
 import { ChatRepository } from '../repositories/chat.repository';
 import { NegocioModule } from '../negocio/negocio.module';
+import { ChatModule } from '../chat/chat.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [NegocioModule],
+  imports: [NegocioModule, ChatModule, EventsModule],
   controllers: [CitasController],
   providers: [
     CitasService,
     CitasRepository,
     AvailabilityRepository,
-    // TODO: ChatRepository moves to ChatModule in Phase 3
+    // ChatRepository provided via ChatModule export — kept here for CitasService injection
     ChatRepository,
   ],
+  exports: [CitasService],
 })
 export class CitasModule {}

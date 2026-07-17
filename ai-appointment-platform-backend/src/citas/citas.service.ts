@@ -4,10 +4,10 @@ import { AvailabilityRepository } from '../repositories/availability.repository'
 import { ConfiguracionRepository } from '../repositories/configuracion.repository';
 import { NegocioRepository } from '../repositories/negocio.repository';
 import { ChatRepository } from '../repositories/chat.repository';
+import { EventsService } from '../events/events.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita } from '../domain/types';
 import { enviarMensaje } from '../lib/whatsapp';
-import { getSocket } from '../lib/socket';
 import { getSlotsDisponibles } from '../services/availability.service';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 import pino from 'pino';
@@ -22,6 +22,7 @@ export class CitasService {
     private readonly configuracionRepository: ConfiguracionRepository,
     private readonly negocioRepository: NegocioRepository,
     private readonly chatRepository: ChatRepository,
+    private readonly eventsService: EventsService,
   ) {}
 
   async getPendientes(
@@ -63,14 +64,7 @@ export class CitasService {
 
     const citaActualizada = await this.citasRepository.update(id, dataUpdate);
 
-    // TODO: inject via EventsModule when available
-    const io = getSocket();
-
-    try {
-      io.to(negocioId.toString()).emit('cambio-citas');
-    } catch (_e) {
-      logger.warn('Socket no inicializado o error al emitir cambio-citas');
-    }
+    this.eventsService.emitCambioCitas(negocioId);
 
     try {
       let mensaje = '';
@@ -267,20 +261,14 @@ export class CitasService {
       staffId: staffId ?? undefined,
     });
 
-    try {
-      // TODO: inject via EventsModule when available
-      const io = getSocket();
-      io.to(negocioId.toString()).emit('cambio-citas');
-      io.to(negocioId.toString()).emit('nueva-cita', {
-        id: nuevaCita.id,
-        clienteNombre,
-        clienteTelefono,
-        fecha: fechaCita,
-        horario,
-      });
-    } catch (e) {
-      logger.warn({ err: e }, 'Socket error on create');
-    }
+    this.eventsService.emitCambioCitas(negocioId);
+    this.eventsService.emitNuevaCita(negocioId, {
+      id: nuevaCita.id,
+      clienteNombre,
+      clienteTelefono,
+      fecha: fechaCita,
+      horario,
+    });
 
     return nuevaCita;
   }
@@ -323,12 +311,7 @@ export class CitasService {
     );
     if (!citaActualizada) throw new ConflictError('Ese horario ya está ocupado.');
 
-    try {
-      // TODO: inject via EventsModule when available
-      getSocket().to(negocioId.toString()).emit('cambio-citas');
-    } catch (e) {
-      logger.warn({ err: e }, 'Socket error on reprogramar');
-    }
+    this.eventsService.emitCambioCitas(negocioId);
 
     return citaActualizada;
   }
@@ -360,12 +343,7 @@ export class CitasService {
     }
 
     const actualizada = await this.citasRepository.update(id, { estado });
-    try {
-      // TODO: inject via EventsModule when available
-      getSocket().to(negocioId.toString()).emit('cambio-citas');
-    } catch (e) {
-      logger.warn({ err: e }, 'Socket error on cambiarEstado');
-    }
+    this.eventsService.emitCambioCitas(negocioId);
     return actualizada;
   }
 

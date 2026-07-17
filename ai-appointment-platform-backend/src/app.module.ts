@@ -9,10 +9,13 @@ import { ServiciosModule } from './servicios/servicios.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { NegocioModule } from './negocio/negocio.module';
 import { CitasModule } from './citas/citas.module';
+import { EventsModule } from './events/events.module';
+import { ChatModule } from './chat/chat.module';
+import { WebhookModule } from './webhooks/webhook.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 @Module({
-  imports: [PrismaModule, AppConfigModule, HealthModule, AuthModule, UsuariosModule, ServiciosModule, ClientesModule, NegocioModule, CitasModule],
+  imports: [PrismaModule, AppConfigModule, HealthModule, AuthModule, UsuariosModule, ServiciosModule, ClientesModule, NegocioModule, CitasModule, EventsModule, ChatModule, WebhookModule],
   providers: [
     {
       provide: APP_FILTER,
