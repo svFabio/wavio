@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { prisma } from './prisma';
 import { MensajeChat } from '../domain/types';
 
@@ -10,12 +12,15 @@ export interface ConversacionRaw {
   clienteNombre: string | null;
 }
 
-export const chatRepository = {
+@Injectable()
+export class ChatRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getUltimoMensajeEntrantePorTelefono(
     negocioId: number,
     telefono: string,
   ): Promise<Partial<MensajeChat> | null> {
-    const msg = await prisma.mensajeChat.findFirst({
+    const msg = await this.prisma.mensajeChat.findFirst({
       where: {
         negocioId,
         remoteJid: { contains: telefono },
@@ -25,21 +30,21 @@ export const chatRepository = {
       select: { remoteJid: true },
     });
     return msg as unknown as Partial<MensajeChat>;
-  },
+  }
 
   async getConversaciones(
     negocioId: number,
     page: number,
     limit: number,
   ): Promise<{ data: ConversacionRaw[]; total: number; page: number; limit: number }> {
-    const countResult = await prisma.$queryRaw<[{ total: number }]>`
+    const countResult = await this.prisma.$queryRaw<[{ total: number }]>`
         SELECT COUNT(*)::int as total
         FROM (SELECT "remoteJid" FROM "MensajeChat" WHERE "negocioId" = ${negocioId} GROUP BY "remoteJid") sub
     `;
     const total = countResult[0]?.total ?? 0;
 
     const offset = (page - 1) * limit;
-    const data = await prisma.$queryRaw<ConversacionRaw[]>`
+    const data = await this.prisma.$queryRaw<ConversacionRaw[]>`
         SELECT 
             "remoteJid",
             MAX("timestamp") as "ultimoMensaje",
@@ -60,7 +65,7 @@ export const chatRepository = {
         LIMIT ${limit} OFFSET ${offset}
     `;
     return { data, total, page, limit };
-  },
+  }
 
   async getMensajes(
     negocioId: number,
@@ -70,16 +75,16 @@ export const chatRepository = {
   ): Promise<{ data: MensajeChat[]; total: number; page: number; limit: number }> {
     const where = { negocioId, remoteJid: jid };
     const [data, total] = await Promise.all([
-      prisma.mensajeChat.findMany({
+      this.prisma.mensajeChat.findMany({
         where,
         orderBy: { timestamp: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.mensajeChat.count({ where }),
+      this.prisma.mensajeChat.count({ where }),
     ]);
     return { data: data as unknown as MensajeChat[], total, page, limit };
-  },
+  }
 
   async createMensaje(data: {
     remoteJid: string;
@@ -89,22 +94,25 @@ export const chatRepository = {
     estadoEntrega: string;
     negocioId: number;
   }): Promise<MensajeChat> {
-    const msg = await prisma.mensajeChat.create({ data });
+    const msg = await this.prisma.mensajeChat.create({ data });
     return msg as unknown as MensajeChat;
-  },
+  }
 
   async updateEstadoEntrega(waMessageId: string, estado: string): Promise<void> {
-    await prisma.mensajeChat.updateMany({
+    await this.prisma.mensajeChat.updateMany({
       where: { waMessageId },
       data: { estadoEntrega: estado },
     });
-  },
+  }
 
   async deleteConversacion(negocioId: number, jid: string): Promise<number> {
-    const [, resultado] = await prisma.$transaction([
-      prisma.mensajeChat.deleteMany({ where: { negocioId, remoteJid: jid } }),
-      prisma.sesionChat.deleteMany({ where: { id: jid, negocioId } }),
+    const [, resultado] = await this.prisma.$transaction([
+      this.prisma.mensajeChat.deleteMany({ where: { negocioId, remoteJid: jid } }),
+      this.prisma.sesionChat.deleteMany({ where: { id: jid, negocioId } }),
     ]);
     return resultado.count;
-  },
-};
+  }
+}
+
+// Backward-compatible singleton for Express routes
+export const chatRepository = new ChatRepository(prisma as never);

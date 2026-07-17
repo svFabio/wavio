@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { prisma } from './prisma';
 import { Configuracion, ChatFlowStep } from '../domain/types';
 
@@ -17,21 +19,28 @@ function mapConfig(raw: Record<string, unknown>): Configuracion {
   };
 }
 
-export const configuracionRepository = {
+@Injectable()
+export class ConfiguracionRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getOrCreateByNegocioId(negocioId: number): Promise<Configuracion> {
-    const config = await prisma.configuracion.upsert({
+    const config = await this.prisma.configuracion.upsert({
       where: { negocioId },
       update: {},
       create: { negocioId },
     });
     return mapConfig(config as unknown as Record<string, unknown>);
-  },
+  }
+
   async upsert(negocioId: number, data: Record<string, unknown>): Promise<Configuracion> {
-    const config = await prisma.configuracion.upsert({
+    const config = await this.prisma.configuracion.upsert({
       where: { negocioId },
       update: data,
       create: { negocioId, ...data },
     });
     return mapConfig(config as unknown as Record<string, unknown>);
-  },
-};
+  }
+}
+
+// Backward-compatible singleton for Express routes
+export const configuracionRepository = new ConfiguracionRepository(prisma as never);

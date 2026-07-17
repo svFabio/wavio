@@ -1,4 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { prisma } from './prisma';
 import { Cita } from '../domain/types';
 import { ConflictError } from '../domain/errors';
@@ -8,7 +10,10 @@ type CitaCountWhere = {
   fecha?: { gte?: Date; lte?: Date } | { gte?: Date };
 };
 
-export const citasRepository = {
+@Injectable()
+export class CitasRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getPendientes(
     negocioId: number,
     page: number,
@@ -16,16 +21,16 @@ export const citasRepository = {
   ): Promise<{ data: Cita[]; total: number; page: number; limit: number }> {
     const where = { negocioId, estado: 'VALIDACION_PENDIENTE' as const };
     const [data, total] = await Promise.all([
-      prisma.cita.findMany({
+      this.prisma.cita.findMany({
         where,
         orderBy: { creadoEn: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.cita.count({ where }),
+      this.prisma.cita.count({ where }),
     ]);
     return { data: data as unknown as Cita[], total, page, limit };
-  },
+  }
 
   async getAgenda(
     negocioId: number,
@@ -40,20 +45,20 @@ export const citasRepository = {
       estado: { not: 'CANCELADA' },
     };
     const [data, total] = await Promise.all([
-      prisma.cita.findMany({
+      this.prisma.cita.findMany({
         where,
         orderBy: { fecha: 'asc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.cita.count({ where }),
+      this.prisma.cita.count({ where }),
     ]);
     return { data: data as unknown as Cita[], total, page, limit };
-  },
+  }
 
   async getCitasCount(negocioId: number, query: CitaCountWhere): Promise<number> {
-    return prisma.cita.count({ where: { negocioId, ...query } });
-  },
+    return this.prisma.cita.count({ where: { negocioId, ...query } });
+  }
 
   async getProximasCitas(
     negocioId: number,
@@ -61,25 +66,25 @@ export const citasRepository = {
     fin: Date,
     take: number,
   ): Promise<Cita[]> {
-    const citas = await prisma.cita.findMany({
+    const citas = await this.prisma.cita.findMany({
       where: { negocioId, fecha: { gte: inicio, lte: fin }, estado: { not: 'CANCELADA' } },
       orderBy: { horario: 'asc' },
       take,
     });
     return citas as unknown as Cita[];
-  },
+  }
 
   async getOcupadas(negocioId: number, inicio: Date, fin: Date): Promise<{ horario: string }[]> {
-    return prisma.cita.findMany({
+    return this.prisma.cita.findMany({
       where: { negocioId, fecha: { gte: inicio, lte: fin }, estado: { notIn: ['CANCELADA'] } },
       select: { horario: true },
     });
-  },
+  }
 
   async getByIdAndNegocio(id: number, negocioId: number): Promise<Cita | null> {
-    const cita = await prisma.cita.findFirst({ where: { id, negocioId } });
+    const cita = await this.prisma.cita.findFirst({ where: { id, negocioId } });
     return cita as unknown as Cita;
-  },
+  }
 
   async checkOcupado(
     negocioId: number,
@@ -94,9 +99,9 @@ export const citasRepository = {
       estado: { not: 'CANCELADA' },
     };
     if (excludeId) where.NOT = { id: excludeId };
-    const cita = await prisma.cita.findFirst({ where });
+    const cita = await this.prisma.cita.findFirst({ where });
     return !!cita;
-  },
+  }
 
   async createIfSlotAvailable(
     negocioId: number,
@@ -104,7 +109,7 @@ export const citasRepository = {
     horario: string,
     data: Omit<Prisma.CitaUncheckedCreateInput, 'negocioId' | 'fecha' | 'horario'>,
   ): Promise<Cita> {
-    return prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const occupied = await tx.cita.findFirst({
         where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' } },
       });
@@ -116,15 +121,15 @@ export const citasRepository = {
       });
       return cita as unknown as Cita;
     });
-  },
+  }
 
   async update(
     id: number,
     data: Partial<Omit<Cita, 'id' | 'creadoEn' | 'negocioId'>>,
   ): Promise<Cita> {
-    const cita = await prisma.cita.update({ where: { id }, data });
+    const cita = await this.prisma.cita.update({ where: { id }, data });
     return cita as unknown as Cita;
-  },
+  }
 
   async reprogramarIfSlotAvailable(
     id: number,
@@ -132,17 +137,17 @@ export const citasRepository = {
     fecha: Date,
     horario: string,
   ): Promise<Cita | null> {
-    return prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const occupied = await tx.cita.findFirst({
         where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' }, NOT: { id } },
       });
       if (occupied) return null;
       return tx.cita.update({ where: { id }, data: { fecha, horario } }) as unknown as Cita;
     });
-  },
+  }
 
   async getSumaIngresosHoy(negocioId: number, inicio: Date, fin: Date): Promise<number> {
-    const result = await prisma.cita.aggregate({
+    const result = await this.prisma.cita.aggregate({
       _sum: { monto: true },
       where: {
         negocioId,
@@ -151,10 +156,10 @@ export const citasRepository = {
       },
     });
     return Number(result._sum.monto ?? 0);
-  },
+  }
 
   async cancelExpiredInProgress(olderThan: Date): Promise<number> {
-    const { count } = await prisma.cita.updateMany({
+    const { count } = await this.prisma.cita.updateMany({
       where: {
         estado: 'EN_PROCESO',
         creadoEn: { lt: olderThan },
@@ -162,5 +167,8 @@ export const citasRepository = {
       data: { estado: 'CANCELADA' },
     });
     return count;
-  },
-};
+  }
+}
+
+// Backward-compatible singleton for Express routes
+export const citasRepository = new CitasRepository(prisma as never);

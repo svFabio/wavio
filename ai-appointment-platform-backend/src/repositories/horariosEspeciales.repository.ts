@@ -1,28 +1,33 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { prisma } from './prisma';
 import type { HorarioEspecial } from '../domain/types';
 
-export const horariosEspecialesRepository = {
+@Injectable()
+export class HorariosEspecialesRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
   async findByNegocioId(negocioId: number): Promise<HorarioEspecial[]> {
-    const records = await prisma.horarioEspecial.findMany({
+    const records = await this.prisma.horarioEspecial.findMany({
       where: { negocioId },
       orderBy: { fecha: 'asc' },
     });
     return records as unknown as HorarioEspecial[];
-  },
+  }
 
   async findByNegocioIdYFecha(negocioId: number, fecha: Date): Promise<HorarioEspecial | null> {
-    const record = await prisma.horarioEspecial.findFirst({
+    const record = await this.prisma.horarioEspecial.findFirst({
       where: { negocioId, fecha },
     });
     return record as unknown as HorarioEspecial | null;
-  },
+  }
 
   async findByNegocioIdRange(
     negocioId: number,
     desde: Date,
     hasta: Date,
   ): Promise<HorarioEspecial[]> {
-    const records = await prisma.horarioEspecial.findMany({
+    const records = await this.prisma.horarioEspecial.findMany({
       where: {
         negocioId,
         fecha: {
@@ -33,7 +38,7 @@ export const horariosEspecialesRepository = {
       orderBy: { fecha: 'asc' },
     });
     return records as unknown as HorarioEspecial[];
-  },
+  }
 
   async create(data: {
     negocioId: number;
@@ -42,25 +47,28 @@ export const horariosEspecialesRepository = {
     horaInicio?: string;
     horaFin?: string;
   }): Promise<HorarioEspecial> {
-    const record = await prisma.horarioEspecial.create({
+    const record = await this.prisma.horarioEspecial.create({
       data: {
         ...data,
       },
     });
     return record as unknown as HorarioEspecial;
-  },
+  }
 
   async findById(id: number): Promise<HorarioEspecial | null> {
-    const record = await prisma.horarioEspecial.findUnique({
+    const record = await this.prisma.horarioEspecial.findUnique({
       where: { id },
     });
     return record as unknown as HorarioEspecial | null;
-  },
+  }
 
   async deleteById(id: number): Promise<HorarioEspecial> {
-    const record = await prisma.horarioEspecial.delete({
+    const record = await this.prisma.horarioEspecial.delete({
       where: { id },
     });
     return record as unknown as HorarioEspecial;
-  },
-};
+  }
+}
+
+// Backward-compatible singleton for Express routes
+export const horariosEspecialesRepository = new HorariosEspecialesRepository(prisma as never);
