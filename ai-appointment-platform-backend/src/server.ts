@@ -6,7 +6,6 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { env } from './config/env';
 import { initSocket } from './lib/socket';
-import { bootstrap } from './config/bootstrap';
 import { errorHandler } from './middleware/errorHandler';
 import pino from 'pino';
 
@@ -116,7 +115,6 @@ app.use(errorHandler);
 
 httpServer.listen(Number(env.PORT), '0.0.0.0', () => {
   logger.info({ port: env.PORT }, 'Servidor listo');
-  bootstrap();
 });
 
 export default app;

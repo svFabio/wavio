@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Req, Res, HttpCode, Inject } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { WebhookService } from './webhook.service';
@@ -11,6 +12,7 @@ const logger = pino({ name: 'whatsapp-controller' });
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
 @Controller('api/v1/webhooks')
+@Throttle({ default: { limit: 100, ttl: 60000 } })
 export class WhatsAppController {
   constructor(
     private readonly webhookService: WebhookService,

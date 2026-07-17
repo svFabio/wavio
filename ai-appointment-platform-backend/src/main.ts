@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -29,6 +30,16 @@ async function bootstrap(): Promise<void> {
   app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
   app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Swagger / OpenAPI
+  const config = new DocumentBuilder()
+    .setTitle('Wavio API')
+    .setDescription('AI-powered appointment management platform API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(Number(env.PORT), '0.0.0.0');
 }

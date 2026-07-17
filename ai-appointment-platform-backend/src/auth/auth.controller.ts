@@ -8,6 +8,8 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,10 +18,12 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { googleLoginSchema, emailAuthSchema, avatarSchema, nombreSchema } from './dto/auth.dto';
 
 @Controller('api/v1/auth')
+@ApiBearerAuth()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('google')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   loginConGoogle(
     @Body(new ZodValidationPipe(googleLoginSchema)) body: { googleToken: string },
   ) {
@@ -27,6 +31,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   registrarConEmail(
     @Body(new ZodValidationPipe(emailAuthSchema)) body: { email: string; password: string },
   ) {
@@ -34,6 +39,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   loginConEmail(
     @Body(new ZodValidationPipe(emailAuthSchema)) body: { email: string; password: string },
   ) {
