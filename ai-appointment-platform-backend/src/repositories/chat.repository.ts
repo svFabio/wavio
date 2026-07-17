@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { prisma } from './prisma';
 import { MensajeChat } from '../domain/types';
 
 export interface ConversacionRaw {
@@ -113,6 +112,3 @@ export class ChatRepository {
     return resultado.count;
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const chatRepository = new ChatRepository(prisma as never);

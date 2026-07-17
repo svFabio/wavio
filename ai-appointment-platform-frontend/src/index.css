@@ -69,19 +69,19 @@
   --color-text-muted: #64748b;
   /* Placeholders, hints */
 
-  /* --- Event Colors (Calendario) --- */
-  --color-event-1-bg: #3b82f6;
-  --color-event-1-border: #2563eb;
-  --color-event-2-bg: #8b5cf6;
-  --color-event-2-border: #7c3aed;
-  --color-event-3-bg: #ec4899;
-  --color-event-3-border: #db2777;
-  --color-event-4-bg: #f59e0b;
-  --color-event-4-border: #d97706;
-  --color-event-5-bg: #10b981;
-  --color-event-5-border: #059669;
-  --color-event-6-bg: #06b6d4;
-  --color-event-6-border: #0891b2;
+  /* --- Event Colors (Calendario) - Vibrant Warm/Intense --- */
+  --color-event-1-bg: #f59e0b; /* Amber */
+  --color-event-1-border: #d97706;
+  --color-event-2-bg: #f97316; /* Orange */
+  --color-event-2-border: #ea580c;
+  --color-event-3-bg: #f43f5e; /* Rose */
+  --color-event-3-border: #e11d48;
+  --color-event-4-bg: #d946ef; /* Fuchsia */
+  --color-event-4-border: #c026d3;
+  --color-event-5-bg: #a855f7; /* Purple */
+  --color-event-5-border: #9333ea;
+  --color-event-6-bg: #ef4444; /* Red */
+  --color-event-6-border: #dc2626;
   --color-event-text: #ffffff;
 
   /* --- Bordes --- */
@@ -185,19 +185,19 @@
   --color-text-secondary: #a3a3a3;
   --color-text-muted: #9ca3af;
 
-  /* --- Event Colors (Calendario) --- */
-  --color-event-1-bg: #2563eb;
-  --color-event-1-border: #1d4ed8;
-  --color-event-2-bg: #7c3aed;
-  --color-event-2-border: #6d28d9;
-  --color-event-3-bg: #db2777;
-  --color-event-3-border: #be185d;
-  --color-event-4-bg: #fbbf24;
-  --color-event-4-border: #d97706;
-  --color-event-5-bg: #059669;
-  --color-event-5-border: #047857;
-  --color-event-6-bg: #0891b2;
-  --color-event-6-border: #0e7490;
+  /* --- Event Colors (Calendario) - Intense Dark Mode --- */
+  --color-event-1-bg: #fbbf24; /* Bright Amber */
+  --color-event-1-border: #f59e0b;
+  --color-event-2-bg: #fb923c; /* Bright Orange */
+  --color-event-2-border: #f97316;
+  --color-event-3-bg: #fb7185; /* Bright Rose */
+  --color-event-3-border: #f43f5e;
+  --color-event-4-bg: #e879f9; /* Bright Fuchsia */
+  --color-event-4-border: #d946ef;
+  --color-event-5-bg: #c084fc; /* Bright Purple */
+  --color-event-5-border: #a855f7;
+  --color-event-6-bg: #f87171; /* Bright Red */
+  --color-event-6-border: #ef4444;
   --color-event-text: #ffffff;
 
   /* --- Bordes --- */
@@ -750,7 +750,7 @@
 
 /* Time slots row lines — scoped to time content only, not header rows */
 .rbc-time-content .rbc-row {
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .rbc-time-content .rbc-row:last-child {
@@ -782,7 +782,7 @@
 }
 
 .rbc-day-slot .rbc-time-slot {
-  border-top: 1px solid var(--color-border-light);
+  border-top: 1px solid var(--color-border);
 }
 
 /* Current time line */

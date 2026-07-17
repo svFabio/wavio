@@ -5,7 +5,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { verifyJwt } from '../middleware/auth.middleware';
+import { verifyJwt } from '../common/utils/jwt';
 import { env } from '../config/env';
 import pino from 'pino';
 

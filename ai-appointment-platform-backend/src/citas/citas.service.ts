@@ -8,7 +8,7 @@ import { EventsService } from '../events/events.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita } from '../domain/types';
 import { enviarMensaje } from '../lib/whatsapp';
-import { getSlotsDisponibles } from '../services/availability.service';
+import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 import pino from 'pino';
 
@@ -188,7 +188,7 @@ export class CitasService {
     }
 
     const config = await this.configuracionRepository.getOrCreateByNegocioId(negocioId);
-    const slots = await getSlotsDisponibles({
+    const slots = await getSlotsDisponibles(this.availabilityRepository, {
       negocioId,
       servicioId: resolvedServicioId,
       fecha: fechaStr,
@@ -233,7 +233,7 @@ export class CitasService {
     const fechaCita = new Date(year, month - 1, day);
 
     if (servicioId) {
-      const slots = await getSlotsDisponibles({
+      const slots = await getSlotsDisponibles(this.availabilityRepository, {
         negocioId,
         servicioId,
         fecha,
@@ -287,7 +287,7 @@ export class CitasService {
     if (!citaActual) throw new NotFoundError('Cita');
 
     if (citaActual.servicioId) {
-      const slots = await getSlotsDisponibles({
+      const slots = await getSlotsDisponibles(this.availabilityRepository, {
         negocioId,
         servicioId: citaActual.servicioId,
         fecha,

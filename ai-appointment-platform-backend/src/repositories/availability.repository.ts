@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { prisma } from './prisma';
 import type { Servicio, HorarioEspecial, HorarioNegocio, HorarioStaff } from '../domain/types';
 
 interface CitaParaDisponibilidad {
@@ -69,6 +68,3 @@ export class AvailabilityRepository {
     return records as unknown as CitaParaDisponibilidad[];
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const availabilityRepository = new AvailabilityRepository(prisma as never);

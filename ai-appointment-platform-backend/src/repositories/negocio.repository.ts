@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { prisma } from './prisma';
 import { Negocio } from '../domain/types';
 import { NEGOCIO_SAFE_SELECT } from './negocio-select';
 
@@ -50,6 +49,3 @@ export class NegocioRepository {
     return negocio;
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const negocioRepository = new NegocioRepository(prisma as never);

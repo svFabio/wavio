@@ -90,7 +90,7 @@ export const CalendarioContainer = () => {
       const start = new Date(`${datePart}T${cita.horario}:00`);
       return {
         id: cita.id.toString(),
-        title: `${cita.clienteNombre || 'Cita sin nombre'}${cita.estadoPago === 'PENDIENTE' ? ' 💰' : ' ✅'}`,
+        title: cita.clienteNombre || 'Cita sin nombre',
         start,
         end: new Date(start.getTime() + 60 * 60000),
         resource: {
@@ -125,15 +125,16 @@ export const CalendarioContainer = () => {
 
     return {
       style: {
-        backgroundColor: 'transparent',
+        backgroundColor: 'var(--color-surface-elevated)',
         borderLeftColor: border,
         borderLeftWidth: '4px',
         borderLeftStyle: 'solid' as const,
-        borderTop: '1px solid var(--color-border-strong)',
-        borderRight: '1px solid var(--color-border-strong)',
-        borderBottom: '1px solid var(--color-border-strong)',
+        borderTop: `2px solid ${border}`,
+        borderRight: `2px solid ${border}`,
+        borderBottom: `2px solid ${border}`,
         borderRadius: 'var(--radius-md)',
         color: 'var(--color-text)',
+        boxShadow: 'var(--shadow-event)',
       },
     };
   }, []);

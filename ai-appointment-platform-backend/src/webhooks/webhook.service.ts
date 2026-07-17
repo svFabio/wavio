@@ -3,9 +3,10 @@ import { ChatRepository } from '../repositories/chat.repository';
 import { NegocioRepository } from '../repositories/negocio.repository';
 import { ConfiguracionRepository } from '../repositories/configuracion.repository';
 import { ServiciosRepository } from '../repositories/servicios.repository';
+import { AvailabilityRepository } from '../repositories/availability.repository';
 import { CitasService } from '../citas/citas.service';
-import { getSlotsDisponibles } from '../services/availability.service';
-import { procesarMensajeConIA, ContextoConversacion } from '../services/ai.service';
+import { getSlotsDisponibles } from '../scheduling/availability-engine';
+import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
 import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
 import type { Servicio, Negocio, ChatFlowStep } from '../domain/types';
 import pino from 'pino';
@@ -24,6 +25,7 @@ export class WebhookService {
     private readonly negocioRepository: NegocioRepository,
     private readonly configuracionRepository: ConfiguracionRepository,
     private readonly serviciosRepository: ServiciosRepository,
+    private readonly availabilityRepository: AvailabilityRepository,
     private readonly citasService: CitasService,
   ) {}
 
@@ -111,7 +113,7 @@ export class WebhookService {
                       contexto.datos.fecha instanceof Date
                         ? contexto.datos.fecha.toISOString().split('T')[0]
                         : String(contexto.datos.fecha);
-                    const slots = await getSlotsDisponibles({
+                    const slots = await getSlotsDisponibles(this.availabilityRepository, {
                       negocioId: negocio.id,
                       servicioId,
                       fecha: fechaStr,
@@ -259,7 +261,7 @@ export class WebhookService {
             contexto.estado = 'ESPERANDO_SERVICIO';
             return;
           }
-          const slots = await getSlotsDisponibles({
+          const slots = await getSlotsDisponibles(this.availabilityRepository, {
             negocioId: negocio.id,
             servicioId: fallbackServicioId,
             fecha: fechaStr,

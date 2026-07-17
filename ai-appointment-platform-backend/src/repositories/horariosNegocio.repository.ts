@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { prisma } from './prisma';
 import type { HorarioNegocio } from '../domain/types';
 
 @Injectable()
@@ -66,6 +65,3 @@ export class HorariosNegocioRepository {
     return count;
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const horariosNegocioRepository = new HorariosNegocioRepository(prisma as never);

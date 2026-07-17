@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { prisma } from './prisma';
 import { Configuracion, ChatFlowStep } from '../domain/types';
 
 function mapConfig(raw: Record<string, unknown>): Configuracion {
@@ -41,6 +40,3 @@ export class ConfiguracionRepository {
     return mapConfig(config as unknown as Record<string, unknown>);
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const configuracionRepository = new ConfiguracionRepository(prisma as never);

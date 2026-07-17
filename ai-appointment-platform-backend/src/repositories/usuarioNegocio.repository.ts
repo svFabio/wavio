@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Rol } from '@prisma/client';
-import { prisma } from './prisma';
 
 @Injectable()
 export class UsuarioNegocioRepository {
@@ -30,6 +29,3 @@ export class UsuarioNegocioRepository {
     });
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const usuarioNegocioRepository = new UsuarioNegocioRepository(prisma as never);

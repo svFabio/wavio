@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { prisma } from './prisma';
 import { Cita } from '../domain/types';
 import { ConflictError } from '../domain/errors';
 
@@ -169,6 +168,3 @@ export class CitasRepository {
     return count;
   }
 }
-
-// Backward-compatible singleton for Express routes
-export const citasRepository = new CitasRepository(prisma as never);

@@ -11,7 +11,7 @@ import { CustomEventDay } from './CustomEventDay';
 import { CustomEventMonth } from './CustomEventMonth';
 import { CustomToolbar } from './CustomToolbar';
 import type { CustomToolbarProps } from './CustomToolbar';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+
 import '../../../index.css';
 
 const locales = { es: es };
