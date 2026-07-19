@@ -24,7 +24,12 @@ interface ConfiguracionViewProps {
   ) => void;
   isHorariosSaving: boolean;
   horariosEspeciales: HorarioEspecial[];
-  onCreateHorarioEspecial: (data: { fecha: string; cerrado: boolean; horaInicio: string | null; horaFin: string | null }) => void;
+  onCreateHorarioEspecial: (data: {
+    fecha: string;
+    cerrado: boolean;
+    horaInicio: string | null;
+    horaFin: string | null;
+  }) => void;
   onDeleteHorarioEspecial: (id: number) => void;
   isPendingAny: boolean;
 }

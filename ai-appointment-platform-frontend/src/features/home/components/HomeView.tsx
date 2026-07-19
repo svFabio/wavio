@@ -14,6 +14,7 @@ interface HomeViewProps {
   loading: boolean;
   citas: Cita[];
   citasLoading: boolean;
+  error?: string | null;
 }
 
 const getGreeting = () => {
@@ -23,7 +24,7 @@ const getGreeting = () => {
   return 'Buenas noches';
 };
 
-export const HomeView = ({ data, loading, citas }: HomeViewProps) => {
+export const HomeView = ({ data, loading, citas, error }: HomeViewProps) => {
   if (loading || !data)
     return (
       <div className="space-y-6">
@@ -81,6 +82,17 @@ export const HomeView = ({ data, loading, citas }: HomeViewProps) => {
         </div>
       </div>
     );
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="card-modern p-6 text-center">
+          <p className="text-danger font-medium">{error}</p>
+          <p className="text-txt-muted text-sm mt-1">Algunos datos pueden no estar disponibles.</p>
+        </div>
+      </div>
+    );
+  }
 
   const statCards = [
     {
