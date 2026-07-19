@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
 import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';

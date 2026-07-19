@@ -22,4 +22,12 @@ export class NegocioService {
 
     return negocio;
   }
+
+  async getWaStatus(negocioId: number): Promise<{ connected: boolean; phone: string | undefined }> {
+    const negocio = await this.negocioRepository.findById(negocioId);
+    return {
+      connected: negocio?.isWaConnected ?? false,
+      phone: negocio?.waPhoneNumberId ?? undefined,
+    };
+  }
 }

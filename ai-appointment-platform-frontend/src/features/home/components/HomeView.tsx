@@ -23,7 +23,7 @@ const getGreeting = () => {
   return 'Buenas noches';
 };
 
-export const HomeView = ({ data, loading, citas, citasLoading }: HomeViewProps) => {
+export const HomeView = ({ data, loading, citas }: HomeViewProps) => {
   if (loading || !data)
     return (
       <div className="space-y-6">

@@ -110,17 +110,25 @@ res.status(500).json({ error: "Internal server error", code: "INTERNAL" });
 
 > Full detail in [`docs/architecture.md`](./docs/architecture.md). This section is the contract summary.
 
-### Backend — Layered Clean Architecture
+### Backend — NestJS Module Architecture
 
 ```
-routes/       ← HTTP boundary only. No logic. Registers middleware + calls controller.
-controllers/  ← Orchestration layer. Reads request, calls service, writes response.
-services/     ← Business logic. The "what the system does". No Prisma here.
-repositories/ ← Data access. The ONLY place Prisma is imported and used.
-domain/       ← Entities, value types, domain errors. Zero framework dependencies.
-lib/          ← External client wrappers: Gemini, WhatsApp, Cloudinary, Socket.IO.
-config/       ← Env parsing, constants.
-middleware/   ← Auth, validation, error handling.
+src/
+├── <module>/           ← One folder per NestJS module (auth, usuarios, citas, etc.)
+│   ├── *.module.ts     ← NestJS module definition (controllers + providers)
+│   ├── *.controller.ts ← HTTP boundary. Handles request/response. No business logic.
+│   ├── *.service.ts    ← Business logic. The "what the system does".
+│   └── dto/            ← Zod schemas for request validation.
+├── repositories/       ← Data access. The ONLY place Prisma is imported and used.
+├── domain/             ← Entities, value types, domain errors. Zero framework dependencies.
+├── lib/                ← External client wrappers: Gemini, WhatsApp, Cloudinary.
+├── config/             ← Env parsing (env.ts), constants, AppConfigModule.
+├── prisma/             ← PrismaModule (global) + PrismaService.
+└── common/             ← Guards, decorators, pipes, interceptors.
+    ├── guards/         ← JwtAuthGuard, TenantGuard, RolesGuard
+    ├── decorators/     ← @CurrentUser, @TenantId, @Roles
+    ├── pipes/          ← ZodValidationPipe
+    └── interceptors/   ← PaginationInterceptor
 ```
 
 **Layer communication rule**: each layer talks ONLY to the layer directly below it.
@@ -128,7 +136,8 @@ middleware/   ← Auth, validation, error handling.
 - Controller → Service → Repository → Prisma
 - A controller NEVER imports from a repository directly.
 - A repository NEVER contains business logic.
-- A service NEVER imports from `routes/` or `middleware/`.
+- A service NEVER imports from a controller or guard.
+- Guards and decorators access request data via `ExecutionContext`.
 
 ### Frontend — Feature-based + Container/Presentational
 
@@ -160,10 +169,11 @@ src/
 
 | Context            | Convention                 | Example                        |
 | ------------------ | -------------------------- | ------------------------------ |
+| Backend module     | `camelCase.module.ts`      | `citas.module.ts`              |
 | Backend service    | `camelCase.service.ts`     | `citas.service.ts`             |
 | Backend repository | `camelCase.repository.ts`  | `citas.repository.ts`          |
 | Backend controller | `camelCase.controller.ts`  | `citas.controller.ts`          |
-| Backend route      | `camelCase.route.ts`       | `citas.route.ts`               |
+| Backend DTO        | `camelCase.dto.ts`         | `citas.dto.ts`                 |
 | Frontend component | `PascalCase.tsx`           | `CitaCard.tsx`                 |
 | Frontend container | `PascalCase.container.tsx` | `CalendarioView.container.tsx` |
 | Frontend hook      | `useNoun.ts`               | `useCitas.ts`                  |
@@ -193,12 +203,12 @@ src/
 
 ### Backend-specific
 
-- All request validation is done with **Zod** in middleware, before reaching the controller.
-- JWT verification happens exclusively in `middleware/auth.ts`. No other file checks tokens.
+- All request validation is done with **Zod** in pipes or DTOs, before reaching the controller.
+- JWT verification happens in `common/guards/jwt-auth.guard.ts` via Passport strategy.
 - Prisma is imported ONLY inside `repositories/`. Not in services, not in controllers.
-- `socket.io` instance is accessed via `lib/socket.ts` singleton, not via `req.app.get('io')`.
-- Environment variables are read exclusively from `config/env.ts`. No direct `process.env` calls outside config.
-- Cron jobs and scheduled services are bootstrapped in `config/bootstrap.ts`, not in `server.ts`.
+- `socket.io` instance is accessed via the EventsModule gateway, not via raw socket imports.
+- Environment variables are read exclusively from `config/env.ts` via AppConfigModule.
+- Cron jobs and scheduled services run via `@nestjs/schedule` in their respective modules.
 - Domain errors are typed classes extending `AppError` from `domain/errors.ts`.
 
 ### Frontend-specific
@@ -376,17 +386,20 @@ React Query errors are caught at the query level and surfaced via the `isError` 
 
 ## Key Files Reference
 
-| File                            | Purpose                                   |
-| ------------------------------- | ----------------------------------------- |
-| `docs/architecture.md`          | Full architecture rationale and diagrams  |
-| `docs/decisions.md`             | Architecture Decision Records (ADRs)      |
-| `docs/api.md`                   | REST API contract and endpoint reference  |
-| `docs/onboarding.md`            | Setup guide for new contributors          |
-| `backend/src/domain/errors.ts`  | Typed domain error classes                |
-| `backend/src/config/env.ts`     | Env variable parsing and validation       |
-| `backend/src/lib/socket.ts`     | Socket.IO singleton                       |
-| `frontend/src/lib/auth.ts`      | Token read/write — single source of truth |
-| `frontend/src/lib/apiClient.ts` | Centralized fetch wrapper                 |
+| File                                                                  | Purpose                                   |
+| --------------------------------------------------------------------- | ----------------------------------------- |
+| `docs/architecture.md`                                                | Full architecture rationale and diagrams  |
+| `docs/decisions.md`                                                   | Architecture Decision Records (ADRs)      |
+| `docs/api.md`                                                         | REST API contract and endpoint reference  |
+| `docs/onboarding.md`                                                  | Setup guide for new contributors          |
+| `ai-appointment-platform-backend/src/main.ts`                         | NestJS entry point, Swagger, CORS         |
+| `ai-appointment-platform-backend/src/app.module.ts`                   | Root module with all imports              |
+| `ai-appointment-platform-backend/src/config/env.ts`                   | Env variable parsing and validation       |
+| `ai-appointment-platform-backend/src/domain/errors.ts`                | Typed domain error classes                |
+| `ai-appointment-platform-backend/src/common/guards/jwt-auth.guard.ts` | JWT authentication guard                  |
+| `ai-appointment-platform-backend/src/common/guards/tenant.guard.ts`   | Multi-tenant guard                        |
+| `frontend/src/lib/auth.ts`                                            | Token read/write — single source of truth |
+| `frontend/src/lib/apiClient.ts`                                       | Centralized fetch wrapper                 |
 
 ---
 

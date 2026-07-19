@@ -334,8 +334,8 @@ export const api = {
   createHorarioEspecial: async (data: {
     fecha: string;
     cerrado: boolean;
-    horaInicio?: string;
-    horaFin?: string;
+    horaInicio?: string | null;
+    horaFin?: string | null;
   }) => {
     return apiClient.post<HorarioEspecial>('/horarios/especiales', data);
   },

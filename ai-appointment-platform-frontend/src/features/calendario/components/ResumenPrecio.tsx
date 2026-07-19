@@ -1,4 +1,4 @@
-import type { Servicio } from '../types';
+import type { Servicio } from '../../configuracion/types';
 
 interface ResumenPrecioProps {
   servicioId: number | null | undefined;

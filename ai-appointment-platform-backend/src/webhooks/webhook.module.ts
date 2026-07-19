@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { WhatsAppController } from './whatsapp.controller';
+import { WhatsAppStatusController } from './whatsappStatus.controller';
 import { StripeController } from './stripe.controller';
 import { WebhookService } from './webhook.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -11,7 +12,7 @@ import { CitasModule } from '../citas/citas.module';
 
 @Module({
   imports: [PrismaModule, AppConfigModule, ChatModule, NegocioModule, ServiciosModule, CitasModule],
-  controllers: [WhatsAppController, StripeController],
+  controllers: [WhatsAppController, WhatsAppStatusController, StripeController],
   providers: [WebhookService],
 })
 export class WebhookModule {}
