@@ -20,10 +20,7 @@ export class WhatsAppController {
   ) {}
 
   @Get('/whatsapp')
-  async verify(
-    @Req() req: Request,
-    @Res() res: Response,
-  ): Promise<void> {
+  async verify(@Req() req: Request, @Res() res: Response): Promise<void> {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
@@ -51,10 +48,7 @@ export class WhatsAppController {
 
   @Post('/whatsapp')
   @HttpCode(200)
-  async handleMessages(
-    @Req() req: RawBodyRequest,
-    @Res() res: Response,
-  ): Promise<void> {
+  async handleMessages(@Req() req: RawBodyRequest, @Res() res: Response): Promise<void> {
     try {
       if (!this.verifySignature(req)) {
         res.sendStatus(403);

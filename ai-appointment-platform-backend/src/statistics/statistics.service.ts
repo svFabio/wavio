@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { StatisticsRepository } from './statistics.repository';
+import { StatisticsRepository } from '../repositories/statistics.repository';
 import { ValidationError } from '../domain/errors';
 
 @Injectable()
 export class StatisticsService {
   constructor(private readonly statisticsRepository: StatisticsRepository) {}
 
-  async getOverview(
-    negocioId: number,
-  ): Promise<{
+  async getOverview(negocioId: number): Promise<{
     citasMes: number;
     ingresosMes: number;
     topClientes: Array<{ nombre: string; telefono: string; totalCitas: number }>;
@@ -43,12 +41,7 @@ export class StatisticsService {
       this.statisticsRepository.getHorariosPopulares(negocioId),
       this.statisticsRepository.getRatingPromedio(negocioId),
       this.statisticsRepository.getUltimosComentarios(negocioId),
-      this.statisticsRepository.countCitasPorOrigen(
-        negocioId,
-        startOfMonth,
-        endOfMonth,
-        'virtual',
-      ),
+      this.statisticsRepository.countCitasPorOrigen(negocioId, startOfMonth, endOfMonth, 'virtual'),
       this.statisticsRepository.countCitasPorOrigen(
         negocioId,
         startOfMonth,

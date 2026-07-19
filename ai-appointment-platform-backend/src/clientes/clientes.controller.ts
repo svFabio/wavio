@@ -28,8 +28,7 @@ export class ClientesController {
   @Get('/')
   async getAll(@TenantId() negocioId: number, @Req() req: Request) {
     const pagination = (req as unknown as Record<string, unknown>).pagination as
-      | { page: number; limit: number }
-      | undefined;
+      { page: number; limit: number } | undefined;
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;
 
@@ -37,10 +36,7 @@ export class ClientesController {
   }
 
   @Get('/:id')
-  async getById(
-    @TenantId() negocioId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  async getById(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     return this.clientesService.getById(negocioId, id);
   }
 
@@ -65,10 +61,7 @@ export class ClientesController {
 
   @Delete('/:id')
   @HttpCode(204)
-  async remove(
-    @TenantId() negocioId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  async remove(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     await this.clientesService.remove(negocioId, id);
   }
 }

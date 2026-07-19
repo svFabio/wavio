@@ -52,10 +52,7 @@ export class ChatController {
 
   @Delete('/conversacion/:jid')
   @HttpCode(204)
-  async deleteConversacion(
-    @TenantId() negocioId: number,
-    @Param('jid') jid: string,
-  ) {
+  async deleteConversacion(@TenantId() negocioId: number, @Param('jid') jid: string) {
     await this.chatService.deleteConversacion(negocioId, jid);
   }
 }

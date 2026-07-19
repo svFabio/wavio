@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Patch,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Patch, Body, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -24,9 +15,7 @@ export class AuthController {
 
   @Post('google')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  loginConGoogle(
-    @Body(new ZodValidationPipe(googleLoginSchema)) body: { googleToken: string },
-  ) {
+  loginConGoogle(@Body(new ZodValidationPipe(googleLoginSchema)) body: { googleToken: string }) {
     return this.authService.loginConGoogle(body.googleToken);
   }
 

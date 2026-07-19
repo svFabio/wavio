@@ -16,10 +16,7 @@ export class NegocioController {
   @Patch('/configurar')
   @Roles('ADMIN')
   @UsePipes(new ZodValidationPipe(configurarNegocioSchema))
-  async configurarNegocio(
-    @TenantId() negocioId: number,
-    @Body() body: { nombre: string },
-  ) {
+  async configurarNegocio(@TenantId() negocioId: number, @Body() body: { nombre: string }) {
     const negocio = await this.negocioService.configurarNegocio(negocioId, body.nombre);
     return { success: true, negocio };
   }

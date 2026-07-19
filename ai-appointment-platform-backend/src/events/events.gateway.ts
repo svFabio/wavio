@@ -25,10 +25,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: Socket): void {
     const token =
-      (client.handshake.auth?.token as string) ||
-      (client.handshake.query?.token as string);
-    const negocioIdRaw =
-      client.handshake.auth?.negocioId || client.handshake.query?.negocioId;
+      (client.handshake.auth?.token as string) || (client.handshake.query?.token as string);
+    const negocioIdRaw = client.handshake.auth?.negocioId || client.handshake.query?.negocioId;
 
     if (!token) {
       client.disconnect();

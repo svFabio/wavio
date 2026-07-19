@@ -18,8 +18,6 @@ export class EventsService {
   }
 
   emitConversacionEliminada(negocioId: number, data: Record<string, unknown>): void {
-    this.gateway.server
-      .to(`negocio:${negocioId}`)
-      .emit('conversacion-eliminada', data);
+    this.gateway.server.to(`negocio:${negocioId}`).emit('conversacion-eliminada', data);
   }
 }

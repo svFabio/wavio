@@ -133,11 +133,7 @@ export class UsuariosService {
     return this.usuariosRepository.update(userId, updateData);
   }
 
-  async deleteUser(
-    negocioId: number,
-    userId: number,
-    requestingUserId: number,
-  ): Promise<void> {
+  async deleteUser(negocioId: number, userId: number, requestingUserId: number): Promise<void> {
     if (requestingUserId === userId) {
       throw new ValidationError('No puedes eliminar tu propio usuario');
     }

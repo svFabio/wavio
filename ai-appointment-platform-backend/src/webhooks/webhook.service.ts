@@ -88,7 +88,8 @@ export class WebhookService {
 
               const sessionJid = `${from}`;
               // TODO: port sesionChatRepository to NestJS injectable repository
-              const { sesionChatRepository } = await import('../repositories/sesionChat.repository');
+              const { sesionChatRepository } =
+                await import('../repositories/sesionChat.repository');
               const sesion = await sesionChatRepository.findByJid(sessionJid, negocio.id);
               const contexto: ContextoConversacion = sesion
                 ? {

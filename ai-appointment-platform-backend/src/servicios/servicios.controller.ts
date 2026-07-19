@@ -32,7 +32,8 @@ export class ServiciosController {
   @UsePipes(new ZodValidationPipe(createServicioSchema))
   async create(
     @TenantId() negocioId: number,
-    @Body() body: { nombre: string; duracionMinutos?: number; bufferMinutos?: number; precio?: number },
+    @Body()
+    body: { nombre: string; duracionMinutos?: number; bufferMinutos?: number; precio?: number },
   ) {
     return this.serviciosService.create(negocioId, body);
   }
@@ -42,7 +43,8 @@ export class ServiciosController {
   async update(
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: {
+    @Body()
+    body: {
       nombre?: string;
       duracionMinutos?: number;
       bufferMinutos?: number;
@@ -55,10 +57,7 @@ export class ServiciosController {
 
   @Delete('/:id')
   @HttpCode(204)
-  async remove(
-    @TenantId() negocioId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  async remove(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     await this.serviciosService.remove(negocioId, id);
   }
 }

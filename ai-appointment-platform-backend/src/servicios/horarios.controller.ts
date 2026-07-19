@@ -32,7 +32,8 @@ export class HorariosController {
   @UsePipes(new ZodValidationPipe(updateHorariosSchema))
   async updateHorarios(
     @TenantId() negocioId: number,
-    @Body() body: {
+    @Body()
+    body: {
       horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>;
     },
   ) {
@@ -48,7 +49,8 @@ export class HorariosController {
   @UsePipes(new ZodValidationPipe(createEspecialSchema))
   async createEspecial(
     @TenantId() negocioId: number,
-    @Body() body: { fecha: string; cerrado: boolean; horaInicio?: string | null; horaFin?: string | null },
+    @Body()
+    body: { fecha: string; cerrado: boolean; horaInicio?: string | null; horaFin?: string | null },
   ) {
     return this.horariosService.createEspecial(negocioId, {
       fecha: new Date(body.fecha),
@@ -60,10 +62,7 @@ export class HorariosController {
 
   @Delete('/especiales/:id')
   @HttpCode(204)
-  async deleteEspecial(
-    @TenantId() negocioId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  async deleteEspecial(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     await this.horariosService.deleteEspecial(negocioId, id);
   }
 }

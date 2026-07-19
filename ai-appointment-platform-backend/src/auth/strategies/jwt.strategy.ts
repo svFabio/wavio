@@ -22,7 +22,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtTokenPayload): { id: number; email: string; negocioId: number; rol: string } {
+  validate(payload: JwtTokenPayload): {
+    id: number;
+    email: string;
+    negocioId: number;
+    rol: string;
+  } {
     if (!payload.id || !payload.email || !payload.rol) {
       throw new UnauthorizedException('Token inválido');
     }

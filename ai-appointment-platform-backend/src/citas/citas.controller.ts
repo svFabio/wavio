@@ -37,7 +37,8 @@ export class CitasController {
   async getAgenda(
     @TenantId() negocioId: number,
     @Pagination() pagination: PaginationParams,
-    @Query(new ZodValidationPipe(agendaQuerySchema)) query: {
+    @Query(new ZodValidationPipe(agendaQuerySchema))
+    query: {
       fecha?: string;
       desde?: string;
       hasta?: string;
@@ -51,20 +52,11 @@ export class CitasController {
       hasta = `${query.fecha}T23:59:59.999Z`;
     }
 
-    return this.citasService.getAgenda(
-      negocioId,
-      desde,
-      hasta,
-      pagination.page,
-      pagination.limit,
-    );
+    return this.citasService.getAgenda(negocioId, desde, hasta, pagination.page, pagination.limit);
   }
 
   @Get('/pendientes')
-  async getPendientes(
-    @TenantId() negocioId: number,
-    @Pagination() pagination: PaginationParams,
-  ) {
+  async getPendientes(@TenantId() negocioId: number, @Pagination() pagination: PaginationParams) {
     return this.citasService.getPendientes(negocioId, pagination.page, pagination.limit);
   }
 
@@ -76,7 +68,8 @@ export class CitasController {
   @Get('/horarios-disponibles')
   async getHorariosDisponibles(
     @TenantId() negocioId: number,
-    @Query(new ZodValidationPipe(horariosQuerySchema)) query: {
+    @Query(new ZodValidationPipe(horariosQuerySchema))
+    query: {
       fecha: string;
       servicioId?: number;
       staffId?: number;
@@ -136,19 +129,13 @@ export class CitasController {
 
   @Put('/:id/no-asistio')
   @Roles('ADMIN')
-  async marcarNoAsistio(
-    @TenantId() negocioId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  async marcarNoAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     return this.citasService.cambiarEstado(id, negocioId, 'NO_ASISTIO');
   }
 
   @Put('/:id/asistio')
   @Roles('ADMIN')
-  async marcarAsistio(
-    @TenantId() negocioId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
+  async marcarAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     return this.citasService.cambiarEstado(id, negocioId, 'CONFIRMADA');
   }
 

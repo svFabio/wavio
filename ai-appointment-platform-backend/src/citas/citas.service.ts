@@ -249,17 +249,22 @@ export class CitasService {
     const [horas, minutos] = horario.split(':').map(Number);
     fechaCita.setHours(horas, minutos, 0, 0);
 
-    const nuevaCita = await this.citasRepository.createIfSlotAvailable(negocioId, fechaCita, horario, {
-      clienteNombre,
-      clienteTelefono,
-      monto: montoFinal,
-      estado: data.estado ?? 'CONFIRMADA',
-      estadoPago,
-      origen: data.origen ?? 'presencial',
-      servicioId: servicioId ?? undefined,
-      duracionMinutos,
-      staffId: staffId ?? undefined,
-    });
+    const nuevaCita = await this.citasRepository.createIfSlotAvailable(
+      negocioId,
+      fechaCita,
+      horario,
+      {
+        clienteNombre,
+        clienteTelefono,
+        monto: montoFinal,
+        estado: data.estado ?? 'CONFIRMADA',
+        estadoPago,
+        origen: data.origen ?? 'presencial',
+        servicioId: servicioId ?? undefined,
+        duracionMinutos,
+        staffId: staffId ?? undefined,
+      },
+    );
 
     this.eventsService.emitCambioCitas(negocioId);
     this.eventsService.emitNuevaCita(negocioId, {

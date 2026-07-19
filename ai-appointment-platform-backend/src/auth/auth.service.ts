@@ -38,12 +38,7 @@ export class AuthService {
     this.googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
   }
 
-  private signToken(user: {
-    id: number;
-    email: string;
-    negocioId: number;
-    rol: string;
-  }): string {
+  private signToken(user: { id: number; email: string; negocioId: number; rol: string }): string {
     return jwt.sign(
       { id: user.id, email: user.email, negocioId: user.negocioId, rol: user.rol },
       env.JWT_SECRET,
@@ -51,9 +46,7 @@ export class AuthService {
     );
   }
 
-  async loginConGoogle(
-    googleToken: string,
-  ): Promise<{
+  async loginConGoogle(googleToken: string): Promise<{
     token: string;
     usuario: UsuarioSafe;
     negocios: NegocioSafe[];
@@ -99,10 +92,7 @@ export class AuthService {
       negocio = await this.authRepository.createNegocioWithAdmin(googleId, email, nombre);
     }
 
-    let usuario = await this.authRepository.findUsuarioByNegocioAndGoogleId(
-      negocio.id,
-      googleId,
-    );
+    let usuario = await this.authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
     if (!usuario) {
       const existingUser = await this.authRepository.findFirstByGoogleId(googleId);
       if (existingUser) {
@@ -238,10 +228,7 @@ export class AuthService {
       throw new NotFoundError('Usuario');
     }
 
-    const membership = await this.authRepository.findUsuarioNegocioMembership(
-      userId,
-      negocioId,
-    );
+    const membership = await this.authRepository.findUsuarioNegocioMembership(userId, negocioId);
     if (!membership) {
       throw new NotFoundError('Usuario');
     }
@@ -252,19 +239,13 @@ export class AuthService {
     return { fotoPerfil };
   }
 
-  async deleteAvatar(
-    userId: number,
-    negocioId: number,
-  ): Promise<{ success: boolean }> {
+  async deleteAvatar(userId: number, negocioId: number): Promise<{ success: boolean }> {
     const usuario = await this.authRepository.findUsuarioById(userId);
     if (!usuario) {
       throw new NotFoundError('Usuario');
     }
 
-    const membership = await this.authRepository.findUsuarioNegocioMembership(
-      userId,
-      negocioId,
-    );
+    const membership = await this.authRepository.findUsuarioNegocioMembership(userId, negocioId);
     if (!membership) {
       throw new NotFoundError('Usuario');
     }
@@ -283,10 +264,7 @@ export class AuthService {
       throw new NotFoundError('Usuario');
     }
 
-    const membership = await this.authRepository.findUsuarioNegocioMembership(
-      userId,
-      negocioId,
-    );
+    const membership = await this.authRepository.findUsuarioNegocioMembership(userId, negocioId);
     if (!membership) {
       throw new NotFoundError('Usuario');
     }

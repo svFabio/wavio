@@ -21,20 +21,14 @@ export class ConfiguracionController {
   @Patch('/')
   @Roles('ADMIN')
   @UsePipes(new ZodValidationPipe(updateConfiguracionSchema))
-  async updateConfiguracion(
-    @TenantId() negocioId: number,
-    @Body() body: Record<string, unknown>,
-  ) {
+  async updateConfiguracion(@TenantId() negocioId: number, @Body() body: Record<string, unknown>) {
     return this.configuracionService.updateConfiguracion(negocioId, body);
   }
 
   @Post('/qr')
   @Roles('ADMIN')
   @UsePipes(new ZodValidationPipe(uploadQrSchema))
-  async uploadQR(
-    @TenantId() negocioId: number,
-    @Body() body: { imagen: string },
-  ) {
+  async uploadQR(@TenantId() negocioId: number, @Body() body: { imagen: string }) {
     return this.configuracionService.uploadQR(negocioId, body.imagen);
   }
 }
