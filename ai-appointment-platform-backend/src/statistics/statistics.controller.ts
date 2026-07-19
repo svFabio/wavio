@@ -18,16 +18,29 @@ export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
   @Get('/')
-  @Get('/overview')
   @Roles('ADMIN')
   async getOverview(@TenantId() negocioId: number) {
     return this.statisticsService.getOverview(negocioId);
   }
 
+  @Get('/overview')
+  @Roles('ADMIN')
+  async getOverviewAlias(@TenantId() negocioId: number) {
+    return this.statisticsService.getOverview(negocioId);
+  }
+
   @Get('/ingresos')
-  @Get('/revenue')
   @Roles('ADMIN')
   async getRevenue(
+    @TenantId() negocioId: number,
+    @Query(new ZodValidationPipe(monthsQuerySchema)) query: { months: number },
+  ) {
+    return this.statisticsService.getRevenue(negocioId, query.months);
+  }
+
+  @Get('/revenue')
+  @Roles('ADMIN')
+  async getRevenueAlias(
     @TenantId() negocioId: number,
     @Query(new ZodValidationPipe(monthsQuerySchema)) query: { months: number },
   ) {
