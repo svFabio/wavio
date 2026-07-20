@@ -7,7 +7,6 @@ import { ChatRepository } from '../repositories/chat.repository';
 import { EventsService } from '../events/events.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita } from '../domain/types';
-import { enviarMensaje } from '../lib/whatsapp';
 import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 import pino from 'pino';
@@ -94,8 +93,7 @@ export class CitasService {
         const jid = ultimoMsg?.remoteJid || citaActualizada.clienteTelefono;
         const waCreds = await this.negocioRepository.findByIdForInternal(negocioId);
         if (waCreds?.waAccessToken && waCreds.waPhoneNumberId) {
-          // TODO: inject via EventsModule when available
-          await enviarMensaje(
+          await this.eventsService.sendWhatsAppMessage(
             { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
             jid,
             mensaje,
