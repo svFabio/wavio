@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Scissors,
   UserCheck,
+  Repeat,
 } from 'lucide-react';
 
 import { HorariosGrid } from './HorariosGrid';
@@ -26,6 +27,9 @@ interface DatosNuevaCita {
   horario: string;
   servicioId?: number;
   staffId?: number;
+  esRecurrente?: boolean;
+  recurrence?: 'weekly' | 'biweekly' | 'monthly';
+  recurrenceEnd?: string;
 }
 
 
@@ -132,6 +136,9 @@ export const ModalNuevaCita = ({
         horario: '',
         servicioId: servicios[0]?.id,
         staffId: undefined,
+        esRecurrente: false,
+        recurrence: undefined,
+        recurrenceEnd: undefined,
       });
       onClose();
     } else {
@@ -149,6 +156,9 @@ export const ModalNuevaCita = ({
       horario: '',
       servicioId: servicios[0]?.id,
       staffId: undefined,
+      esRecurrente: false,
+      recurrence: undefined,
+      recurrenceEnd: undefined,
     });
     onClose();
   };
@@ -169,7 +179,7 @@ export const ModalNuevaCita = ({
         aria-modal="true"
         aria-label="Nueva cita"
         onKeyDown={handleKeyDown}
-        className="card-modern w-full max-w-md overflow-hidden animate-modal-pop shadow-2xl"
+        className={`card-modern w-full overflow-hidden animate-modal-pop shadow-2xl transition-all duration-300 ${formData.esRecurrente ? 'max-w-lg' : 'max-w-md'}`}
       >
         <div className="flex items-center justify-between p-4 border-b border-border bg-surface-elevated/30">
           <h3 className="font-bold text-lg text-txt flex items-center gap-2">
@@ -299,6 +309,61 @@ export const ModalNuevaCita = ({
               onSelect={(h) => setFormData((prev) => ({ ...prev, horario: h }))}
               loading={loadingHorarios}
             />
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <label className="flex items-center gap-2 cursor-pointer w-max">
+              <input
+                type="checkbox"
+                checked={!!formData.esRecurrente}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    esRecurrente: e.target.checked,
+                    recurrence: e.target.checked ? 'weekly' : undefined,
+                    recurrenceEnd: e.target.checked
+                      ? format(new Date(new Date(prev.fecha).setMonth(new Date(prev.fecha).getMonth() + 1)), 'yyyy-MM-dd')
+                      : undefined,
+                  }))
+                }
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-semibold text-txt">Repetir cita</span>
+              <Repeat className="w-4 h-4 text-txt-muted" />
+            </label>
+
+            {formData.esRecurrente && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <select
+                    value={formData.recurrence || 'weekly'}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        recurrence: e.target.value as any,
+                      }))
+                    }
+                    className="input-modern appearance-none bg-surface"
+                  >
+                    <option value="weekly">Semanal</option>
+                    <option value="biweekly">Quincenal</option>
+                    <option value="monthly">Mensual</option>
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="date"
+                    required={formData.esRecurrente}
+                    value={formData.recurrenceEnd || ''}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, recurrenceEnd: e.target.value }))
+                    }
+                    min={formData.fecha}
+                    className="input-modern"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-border">
