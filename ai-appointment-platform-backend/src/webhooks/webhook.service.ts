@@ -4,6 +4,7 @@ import { NegocioRepository } from '../repositories/negocio.repository';
 import { ConfiguracionRepository } from '../repositories/configuracion.repository';
 import { ServiciosRepository } from '../repositories/servicios.repository';
 import { AvailabilityRepository } from '../repositories/availability.repository';
+import { SesionChatRepository } from '../repositories/sesion-chat.repository';
 import { CitasService } from '../citas/citas.service';
 import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
@@ -26,6 +27,7 @@ export class WebhookService {
     private readonly configuracionRepository: ConfiguracionRepository,
     private readonly serviciosRepository: ServiciosRepository,
     private readonly availabilityRepository: AvailabilityRepository,
+    private readonly sesionChatRepository: SesionChatRepository,
     private readonly citasService: CitasService,
   ) {}
 
@@ -87,10 +89,7 @@ export class WebhookService {
               }
 
               const sessionJid = `${from}`;
-              // TODO: port sesionChatRepository to NestJS injectable repository
-              const { sesionChatRepository } =
-                await import('../repositories/sesionChat.repository');
-              const sesion = await sesionChatRepository.findByJid(sessionJid, negocio.id);
+              const sesion = await this.sesionChatRepository.findByJid(sessionJid, negocio.id);
               const contexto: ContextoConversacion = sesion
                 ? {
                     estado: sesion.estado as ContextoConversacion['estado'],
@@ -134,7 +133,7 @@ export class WebhookService {
                 chatFlow,
               );
 
-              await sesionChatRepository.upsert(sessionJid, negocio.id, {
+              await this.sesionChatRepository.upsert(sessionJid, negocio.id, {
                 estado: contexto.estado,
                 datos: contexto.datos,
               });
