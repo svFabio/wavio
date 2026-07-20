@@ -105,6 +105,7 @@ model Servicio {
   id              Int      @id @default(autoincrement())
   negocioId       Int
   nombre          String
+  categoria       String?  // e.g., "Masajes", "Faciales", "Depilación"
   duracionMinutos Int      @default(60)
   bufferMinutos   Int      @default(10)
   precio          Float    @default(0)
