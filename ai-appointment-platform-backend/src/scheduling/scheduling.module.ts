@@ -4,12 +4,12 @@ import { CleanupService } from './cleanup.service';
 import { ReminderService } from './reminder.service';
 import { SurveyService } from './survey.service';
 import { CleanupRepository } from '../repositories/cleanup.repository';
-import { CitasModule } from '../citas/citas.module';
-import { NegocioModule } from '../negocio/negocio.module';
+import { AppointmentRepository } from '../repositories/appointment.repository';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), CitasModule, NegocioModule],
-  providers: [CleanupService, ReminderService, SurveyService, CleanupRepository],
+  imports: [ScheduleModule.forRoot(), EventsModule],
+  providers: [CleanupService, ReminderService, SurveyService, CleanupRepository, AppointmentRepository],
   exports: [CleanupService, ReminderService, SurveyService],
 })
 export class SchedulingModule {}
