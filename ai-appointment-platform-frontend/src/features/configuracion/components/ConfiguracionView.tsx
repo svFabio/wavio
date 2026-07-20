@@ -3,35 +3,48 @@ import { ServiciosTab } from './ServiciosTab';
 import { HorariosTab } from './HorariosTab';
 import { HorariosEspecialesTab } from './HorariosEspecialesTab';
 import { useState } from 'react';
+import { LoadingSkeleton } from '../../../shared/components/skeletons/LoadingSkeleton';
 
 type ConfigTab = 'servicios' | 'horarios' | 'horariosEspeciales';
 
-interface ConfiguracionViewProps {
-  loading: boolean;
-  error: string | null;
+export interface ServiciosHandlers {
   servicios: Servicio[];
-  onAddServicio: (data: {
+  onAdd: (data: {
     nombre: string;
     duracionMinutos: number;
     bufferMinutos: number;
     precio: number;
   }) => void;
-  onUpdateServicio: (id: number, data: Partial<Servicio>) => void;
-  onDeleteServicio: (id: number) => void;
+  onUpdate: (id: number, data: Partial<Servicio>) => void;
+  onDelete: (id: number) => void;
+}
+
+export interface HorariosHandlers {
   horarios: HorarioNegocio[];
-  onSaveHorarios: (
-    horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>,
-  ) => void;
-  isHorariosSaving: boolean;
+  onSave: (horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>) => void;
+  isSaving: boolean;
+}
+
+export interface HorariosEspecialesHandlers {
   horariosEspeciales: HorarioEspecial[];
-  onCreateHorarioEspecial: (data: {
+  onCreate: (data: {
     fecha: string;
     cerrado: boolean;
     horaInicio: string | null;
     horaFin: string | null;
   }) => void;
-  onDeleteHorarioEspecial: (id: number) => void;
-  isPendingAny: boolean;
+  onDelete: (id: number) => void;
+}
+
+interface ConfiguracionViewProps {
+  ui: {
+    loading: boolean;
+    error: string | null;
+    isPendingAny: boolean;
+  };
+  serviciosHandlers: ServiciosHandlers;
+  horariosHandlers: HorariosHandlers;
+  horariosEspecialesHandlers: HorariosEspecialesHandlers;
 }
 
 const TAB_LABELS: Record<ConfigTab, string> = {
@@ -40,41 +53,15 @@ const TAB_LABELS: Record<ConfigTab, string> = {
   horariosEspeciales: 'Fechas Especiales',
 };
 
-const LoadingSkeleton = () => (
-  <div className="space-y-6">
-    <div className="card-modern overflow-hidden">
-      <div className="p-5 md:p-6 border-b border-border">
-        <div className="space-y-2">
-          <div className="skeleton h-5 w-48 rounded" />
-          <div className="skeleton h-3 w-64 rounded" />
-        </div>
-      </div>
-      <div className="px-5 md:px-6 py-3 flex gap-2">
-        <div className="skeleton h-9 w-24 rounded-lg" />
-        <div className="skeleton h-9 w-24 rounded-lg" />
-      </div>
-    </div>
-  </div>
-);
-
 export const ConfiguracionView = ({
-  loading,
-  error,
-  servicios,
-  onAddServicio,
-  onUpdateServicio,
-  onDeleteServicio,
-  horarios,
-  onSaveHorarios,
-  isHorariosSaving,
-  horariosEspeciales,
-  onCreateHorarioEspecial,
-  onDeleteHorarioEspecial,
-  isPendingAny,
+  ui,
+  serviciosHandlers,
+  horariosHandlers,
+  horariosEspecialesHandlers,
 }: ConfiguracionViewProps) => {
   const [tab, setTab] = useState<ConfigTab>('servicios');
 
-  if (loading) {
+  if (ui.loading) {
     return <LoadingSkeleton />;
   }
 
@@ -106,37 +93,37 @@ export const ConfiguracionView = ({
         </div>
       </div>
 
-      {error && (
+      {ui.error && (
         <div className="bg-danger-light border border-danger/20 rounded-xl px-4 py-3 text-sm text-danger">
-          {error}
+          {ui.error}
         </div>
       )}
 
       {tab === 'servicios' && (
         <ServiciosTab
-          servicios={servicios}
-          onAdd={onAddServicio}
-          onUpdate={onUpdateServicio}
-          onDelete={onDeleteServicio}
-          isLoading={isPendingAny}
+          servicios={serviciosHandlers.servicios}
+          onAdd={serviciosHandlers.onAdd}
+          onUpdate={serviciosHandlers.onUpdate}
+          onDelete={serviciosHandlers.onDelete}
+          isLoading={ui.isPendingAny}
         />
       )}
 
       {tab === 'horarios' && (
         <HorariosTab
-          horarios={horarios}
-          onSave={onSaveHorarios}
-          isLoading={loading}
-          isSaving={isHorariosSaving}
+          horarios={horariosHandlers.horarios}
+          onSave={horariosHandlers.onSave}
+          isLoading={ui.loading}
+          isSaving={horariosHandlers.isSaving}
         />
       )}
 
       {tab === 'horariosEspeciales' && (
         <HorariosEspecialesTab
-          horariosEspeciales={horariosEspeciales}
-          onCreate={onCreateHorarioEspecial}
-          onDelete={onDeleteHorarioEspecial}
-          isLoading={loading}
+          horariosEspeciales={horariosEspecialesHandlers.horariosEspeciales}
+          onCreate={horariosEspecialesHandlers.onCreate}
+          onDelete={horariosEspecialesHandlers.onDelete}
+          isLoading={ui.loading}
         />
       )}
     </div>
