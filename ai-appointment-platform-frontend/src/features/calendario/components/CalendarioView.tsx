@@ -32,7 +32,10 @@ interface DatosNuevaCita {
   clienteTelefono: string;
   fecha: string;
   horario: string;
+  servicioId?: number;
+  staffId?: number;
 }
+
 
 interface CalendarioViewProps {
   eventos: EventoCalendario[];

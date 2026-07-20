@@ -13,7 +13,9 @@ import {
   Loader2,
   AlertCircle,
   Scissors,
+  UserCheck,
 } from 'lucide-react';
+
 import { HorariosGrid } from './HorariosGrid';
 import { ResumenPrecio } from './ResumenPrecio';
 
@@ -23,7 +25,9 @@ interface DatosNuevaCita {
   fecha: string;
   horario: string;
   servicioId?: number;
+  staffId?: number;
 }
+
 
 interface ModalNuevaCitaProps {
   isOpen: boolean;
@@ -44,7 +48,9 @@ export const ModalNuevaCita = ({
     fecha: fechaInicial ? format(fechaInicial, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     horario: '',
     servicioId: undefined,
+    staffId: undefined,
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,10 +62,16 @@ export const ModalNuevaCita = ({
     queryFn: api.getServicios,
   });
 
+  const { data: staffList = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: api.getUsers,
+  });
+
   const { data: config } = useQuery({
     queryKey: ['configuracion'],
     queryFn: api.getConfiguracion,
   });
+
 
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
     useHorariosDisponiblesQuery(formData.fecha, isOpen && !!formData.fecha, formData.servicioId);
@@ -119,11 +131,13 @@ export const ModalNuevaCita = ({
         fecha: format(new Date(), 'yyyy-MM-dd'),
         horario: '',
         servicioId: servicios[0]?.id,
+        staffId: undefined,
       });
       onClose();
     } else {
       setError(result.error || 'Error al crear la cita');
     }
+
   };
 
   const handleClose = () => {
@@ -134,9 +148,11 @@ export const ModalNuevaCita = ({
       fecha: format(new Date(), 'yyyy-MM-dd'),
       horario: '',
       servicioId: servicios[0]?.id,
+      staffId: undefined,
     });
     onClose();
   };
+
 
   const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value.replace(/\D/g, '');
@@ -248,6 +264,32 @@ export const ModalNuevaCita = ({
 
             <ResumenPrecio servicioId={formData.servicioId} servicios={servicios} config={config} />
           </div>
+
+          {staffList.length > 1 && (
+            <div>
+              <label className="block text-sm font-semibold text-txt mb-1.5">Asignar Staff</label>
+              <div className="relative">
+                <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
+                <select
+                  value={formData.staffId ?? ''}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      staffId: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="input-modern pl-10 appearance-none bg-surface"
+                >
+                  <option value="">Sin asignar</option>
+                  {staffList.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre} ({u.rol})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-txt mb-1.5">Horario *</label>

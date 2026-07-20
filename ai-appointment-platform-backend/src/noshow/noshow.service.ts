@@ -37,17 +37,15 @@ export class NoShowService {
     citaId: number,
     negocioId: number,
   ): Promise<{ success: boolean; noShowCount: number; blocked: boolean }> {
-    const cita = await this.noShowRepository.getExpiredInProgressAppointments(
-      negocioId,
-      0,
-    );
+    const cita = await this.noShowRepository.findCitaById(citaId);
 
     // Mark as no-show
     await this.noShowRepository.markAsNoShow(citaId);
 
     // Increment client's no-show count
-    const telefono = cita[0]?.clienteTelefono;
+    const telefono = cita?.clienteTelefono;
     if (!telefono) {
+
       return { success: true, noShowCount: 0, blocked: false };
     }
 
@@ -114,10 +112,12 @@ export class NoShowService {
         await this.negocioRepository.findByIdForInternal(negocioId);
       if (!negocio?.waAccessToken || !negocio.waPhoneNumberId) return;
 
+      const maskedPhone = clienteTelefono.slice(-4).padStart(clienteTelefono.length, '*');
       const mensaje =
         `⚠️ *Alerta de No-Show*\n\n` +
-        `El cliente con teléfono ${clienteTelefono} ha acumulado ${noShowCount} inasistencias.\n\n` +
+        `El cliente con teléfono ${maskedPhone} ha acumulado ${noShowCount} inasistencias.\n\n` +
         `Ha sido bloqueado automáticamente del sistema de agendamiento.`;
+
 
       // This would send to the business owner's WhatsApp
       // For now, just log it

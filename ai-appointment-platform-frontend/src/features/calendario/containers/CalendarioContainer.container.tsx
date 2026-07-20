@@ -193,12 +193,15 @@ export const CalendarioContainer = () => {
       clienteTelefono: string;
       fecha: string;
       horario: string;
+      servicioId?: number;
+      staffId?: number;
     }) => {
       const result = await crearCita.mutateAsync(data);
       return { success: result.success, error: result.error };
     },
     [crearCita],
   );
+
 
   const handleCerrarReprogramar = useCallback(() => setModalReprogramar({ isOpen: false }), []);
 

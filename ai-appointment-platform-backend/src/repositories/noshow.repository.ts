@@ -12,6 +12,15 @@ export class NoShowRepository {
     });
   }
 
+  async findCitaById(
+    citaId: number,
+  ): Promise<{ clienteTelefono: string } | null> {
+    return this.prisma.cita.findUnique({
+      where: { id: citaId },
+      select: { clienteTelefono: true },
+    });
+  }
+
   async incrementNoShowCount(
     negocioId: number,
     clienteTelefono: string,

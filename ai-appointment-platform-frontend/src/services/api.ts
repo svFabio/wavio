@@ -131,6 +131,7 @@ export const api = {
     fecha: string;
     horario: string;
     servicioId?: number;
+    staffId?: number;
   }): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.post('/citas/admin', datos);
