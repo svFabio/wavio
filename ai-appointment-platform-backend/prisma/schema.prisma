@@ -50,6 +50,7 @@ model Negocio {
   horariosNegocio    HorarioNegocio[]
   horariosEspeciales HorarioEspecial[]
   clientes           Cliente[]
+  listaEspera        ListaEspera[]
 }
 
 // ─── USUARIO-NEGOCIO (M:N junction) ──────────────────────────────────────────
@@ -252,4 +253,22 @@ model Configuracion {
 
   negocioId Int     @unique
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+}
+
+// ─── LISTA DE ESPERA ─────────────────────────────────────────────────────────
+model ListaEspera {
+  id              Int      @id @default(autoincrement())
+  clienteNombre   String
+  clienteTelefono String
+  servicioId      Int?
+  fechaPreferida  DateTime
+  horarioPreferido String?
+  estado          String   @default("PENDIENTE") // PENDIENTE, NOTIFICADA, CONFIRMADA, CANCELADA
+  notificadoEn    DateTime?
+  creadoEn        DateTime @default(now())
+
+  negocioId Int
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@index([negocioId, estado, fechaPreferida])
 }
