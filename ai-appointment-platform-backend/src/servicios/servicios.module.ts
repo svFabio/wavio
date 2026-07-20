@@ -6,6 +6,7 @@ import { HorariosService } from './horarios.service';
 import { ServiciosRepository } from '../repositories/servicios.repository';
 import { HorariosNegocioRepository } from '../repositories/horariosNegocio.repository';
 import { HorariosEspecialesRepository } from '../repositories/horariosEspeciales.repository';
+import { HorariosStaffRepository } from '../repositories/horariosStaff.repository';
 
 @Module({
   controllers: [ServiciosController, HorariosController],
@@ -15,6 +16,7 @@ import { HorariosEspecialesRepository } from '../repositories/horariosEspeciales
     ServiciosRepository,
     HorariosNegocioRepository,
     HorariosEspecialesRepository,
+    HorariosStaffRepository,
   ],
   exports: [ServiciosRepository],
 })

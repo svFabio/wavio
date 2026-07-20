@@ -1,22 +1,49 @@
-import { prisma } from './prisma';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import type { HorarioStaff } from '../domain/types';
 
-export const horariosStaffRepository = {
+@Injectable()
+export class HorariosStaffRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
   async findByUsuarioId(usuarioId: number): Promise<HorarioStaff[]> {
-    const records = await prisma.horarioStaff.findMany({
+    const records = await this.prisma.horarioStaff.findMany({
       where: { usuarioId, activo: true },
       orderBy: [{ diaSemana: 'asc' }, { horaInicio: 'asc' }],
     });
     return records as unknown as HorarioStaff[];
-  },
+  }
 
   async findByUsuarioIdYDia(usuarioId: number, diaSemana: number): Promise<HorarioStaff[]> {
-    const records = await prisma.horarioStaff.findMany({
+    const records = await this.prisma.horarioStaff.findMany({
       where: { usuarioId, diaSemana, activo: true },
       orderBy: { horaInicio: 'asc' },
     });
     return records as unknown as HorarioStaff[];
-  },
+  }
+
+  async findByNegocioId(negocioId: number): Promise<
+    Array<{
+      usuarioId: number;
+      diaSemana: number;
+      horaInicio: string;
+      horaFin: string;
+    }>
+  > {
+    return this.prisma.horarioStaff.findMany({
+      where: {
+        usuario: { usuarioNegocios: { some: { negocioId } } },
+        activo: true,
+      },
+      select: {
+        usuarioId: true,
+        diaSemana: true,
+        horaInicio: true,
+        horaFin: true,
+      },
+      orderBy: [{ usuarioId: 'asc' }, { diaSemana: 'asc' }, { horaInicio: 'asc' }],
+    });
+  }
 
   async upsert(
     usuarioId: number,
@@ -24,7 +51,7 @@ export const horariosStaffRepository = {
     horaInicio: string,
     horaFin: string,
   ): Promise<HorarioStaff> {
-    const record = await prisma.horarioStaff.upsert({
+    const record = await this.prisma.horarioStaff.upsert({
       where: {
         usuarioId_diaSemana_horaInicio: {
           usuarioId,
@@ -45,12 +72,30 @@ export const horariosStaffRepository = {
       },
     });
     return record as unknown as HorarioStaff;
-  },
+  }
 
   async deleteByUsuarioId(usuarioId: number): Promise<number> {
-    const { count } = await prisma.horarioStaff.deleteMany({
+    const { count } = await this.prisma.horarioStaff.deleteMany({
       where: { usuarioId },
     });
     return count;
-  },
-};
+  }
+
+  async getAvailableStaffForSlot(
+    negocioId: number,
+    diaSemana: number,
+    horaInicio: string,
+  ): Promise<number[]> {
+    const staff = await this.prisma.horarioStaff.findMany({
+      where: {
+        usuario: { usuarioNegocios: { some: { negocioId } } },
+        diaSemana,
+        activo: true,
+        horaInicio: { lte: horaInicio },
+        horaFin: { gt: horaInicio },
+      },
+      select: { usuarioId: true },
+    });
+    return staff.map((s) => s.usuarioId);
+  }
+}
