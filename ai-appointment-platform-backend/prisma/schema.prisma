@@ -39,6 +39,12 @@ model Negocio {
   waAppId         String?
   isWaConnected   Boolean @default(false)
 
+  // ─── GOOGLE CALENDAR FIELDS ───
+  googleCalendarAccessToken  String?
+  googleCalendarRefreshToken String?
+  googleCalendarId           String?
+  isGoogleCalendarConnected  Boolean @default(false)
+
   creadoEn DateTime @default(now())
 
   usuarioNegocios    UsuarioNegocio[]
