@@ -1,9 +1,10 @@
-import { usePendientes, useValidarPago } from '../../../shared/hooks/useCitas';
+import { usePendientesQuery } from '../api/usePendientesQuery';
+import { useValidarPagoMutation } from '../api/useValidarPagoMutation';
 import { PagosView } from '../components/PagosView';
 
 export const PagosContainer = () => {
-  const { data: citas = [], isLoading: loading } = usePendientes();
-  const { mutateAsync: validarPago } = useValidarPago();
+  const { data: citas = [], isLoading: loading } = usePendientesQuery();
+  const { mutateAsync: validarPago } = useValidarPagoMutation();
 
   const manejarValidacion = async (id: string, accion: 'APROBAR' | 'RECHAZAR') => {
     const confirmacion = window.confirm(

@@ -3,12 +3,18 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import type { ResumenData } from '../types';
+import type { Cita } from '../../../types';
 import { AgendaTable } from './AgendaTable';
 import { StatCard } from './StatCard';
+import { PageHeaderSkeleton } from '../../../shared/components/skeletons/PageHeaderSkeleton';
+import { StatCardSkeleton } from '../../../shared/components/skeletons/StatCardSkeleton';
 
 interface HomeViewProps {
   data: ResumenData | null | undefined;
   loading: boolean;
+  citas: Cita[];
+  citasLoading: boolean;
+  error?: string | null;
 }
 
 const getGreeting = () => {
@@ -18,28 +24,15 @@ const getGreeting = () => {
   return 'Buenas noches';
 };
 
-export const HomeView = ({ data, loading }: HomeViewProps) => {
+export const HomeView = ({ data, loading, citas, error }: HomeViewProps) => {
   if (loading || !data)
     return (
       <div className="space-y-6">
-        <div className="card-modern p-5 md:p-6">
-          <div className="space-y-2">
-            <div className="skeleton h-7 w-64 rounded" />
-            <div className="skeleton h-3 w-48 rounded" />
-          </div>
-        </div>
+        <PageHeaderSkeleton />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="stat-card">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="skeleton h-3 w-28 rounded" />
-                  <div className="skeleton h-7 w-16 rounded" />
-                </div>
-                <div className="skeleton w-11 h-11 rounded-xl shrink-0" />
-              </div>
-            </div>
+          {['stat-1', 'stat-2', 'stat-3'].map((k) => (
+            <StatCardSkeleton key={k} />
           ))}
         </div>
 
@@ -60,9 +53,9 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
                 <div className="skeleton h-2.5 w-16 rounded" />
               </div>
             </div>
-            {[...Array(3)].map((_, i) => (
+            {['row-1', 'row-2', 'row-3'].map((k) => (
               <div
-                key={i}
+                key={k}
                 className="flex items-center px-6 py-3.5 border-t border-border-light gap-6"
               >
                 <div className="skeleton h-3.5 w-14 rounded" />
@@ -73,8 +66,8 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
             ))}
           </div>
           <div className="md:hidden">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="p-4 border-t border-border-light">
+            {['mob-1', 'mob-2', 'mob-3'].map((k) => (
+              <div key={k} className="p-4 border-t border-border-light">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1.5">
                     <div className="skeleton h-3.5 w-14 rounded" />
@@ -89,6 +82,17 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
         </div>
       </div>
     );
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="card-modern p-6 text-center">
+          <p className="text-danger font-medium">{error}</p>
+          <p className="text-txt-muted text-sm mt-1">Algunos datos pueden no estar disponibles.</p>
+        </div>
+      </div>
+    );
+  }
 
   const statCards = [
     {
@@ -155,7 +159,7 @@ export const HomeView = ({ data, loading }: HomeViewProps) => {
             Ver calendario <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <AgendaTable citas={[]} />
+        <AgendaTable citas={citas} />
       </div>
     </div>
   );

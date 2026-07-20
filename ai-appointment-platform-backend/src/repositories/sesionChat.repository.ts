@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 
 type SesionChatRow = {
   id: string;

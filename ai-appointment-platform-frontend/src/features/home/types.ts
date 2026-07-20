@@ -1,5 +1,5 @@
 export interface CitaResumen {
-  id: number;
+  id: string;
   clienteNombre: string | null;
   clienteTelefono: string;
   horario: string;

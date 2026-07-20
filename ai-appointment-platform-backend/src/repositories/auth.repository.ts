@@ -1,21 +1,9 @@
-import { prisma } from '../repositories/prisma';
+import { prisma } from './prisma';
 import { Negocio, Usuario } from '../domain/types';
+import { NEGOCIO_SAFE_SELECT } from './negocio-select';
 
 type NegocioSafe = Omit<Negocio, 'waAccessToken'>;
 type UsuarioSafe = Omit<Usuario, 'password'> & { fotoPerfil: string | null };
-
-const NEGOCIO_SAFE_SELECT = {
-  id: true,
-  googleId: true,
-  email: true,
-  nombre: true,
-  plan: true,
-  waPhoneNumberId: true,
-  waWabaId: true,
-  waAppId: true,
-  isWaConnected: true,
-  creadoEn: true,
-} as const;
 
 const USUARIO_SAFE_SELECT = {
   id: true,
@@ -38,24 +26,25 @@ export const authRepository = {
     nombre: string,
     hashedPassword?: string,
   ): Promise<NegocioSafe> {
-    const negocio = await prisma.negocio.create({
-      data: {
-        googleId,
-        email,
-        nombre,
-      },
-      select: NEGOCIO_SAFE_SELECT,
-    });
-
-    const usuario = await prisma.usuario.create({
-      data: {
-        nombre,
-        email,
-        googleId: hashedPassword ? null : googleId,
-        password: hashedPassword || '',
-        rol: 'ADMIN',
-      },
-    });
+    const [negocio, usuario] = await prisma.$transaction([
+      prisma.negocio.create({
+        data: {
+          googleId,
+          email,
+          nombre,
+        },
+        select: NEGOCIO_SAFE_SELECT,
+      }),
+      prisma.usuario.create({
+        data: {
+          nombre,
+          email,
+          googleId: hashedPassword ? null : googleId,
+          password: hashedPassword || '',
+          rol: 'ADMIN',
+        },
+      }),
+    ]);
 
     await prisma.usuarioNegocio.create({
       data: {
@@ -89,6 +78,7 @@ export const authRepository = {
     return prisma.negocio.findUnique({ where: { id }, select: NEGOCIO_SAFE_SELECT });
   },
 
+  // Intentionally returns full user including password — needed for bcrypt comparison in auth.service.ts
   async findUsuarioByEmail(
     email: string,
   ): Promise<(Usuario & { fotoPerfil: string | null }) | null> {

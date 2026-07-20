@@ -1,49 +1,51 @@
-import { prisma } from '../repositories/prisma';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { Negocio } from '../domain/types';
+import { NEGOCIO_SAFE_SELECT } from './negocio-select';
 
-const NEGOCIO_SAFE_SELECT = {
-  id: true,
-  googleId: true,
-  email: true,
-  nombre: true,
-  plan: true,
-  waPhoneNumberId: true,
-  waWabaId: true,
-  waAppId: true,
-  isWaConnected: true,
-  creadoEn: true,
-} as const;
+@Injectable()
+export class NegocioRepository {
+  constructor(private readonly prisma: PrismaService) {}
 
-export const negocioRepository = {
-  async findByWaPhoneNumberId(waPhoneNumberId: string): Promise<Negocio | null> {
-    const negocio = await prisma.negocio.findUnique({
+  async findByWaPhoneNumberId(
+    waPhoneNumberId: string,
+  ): Promise<(Omit<Negocio, 'waAccessToken'> & { configuracion: unknown }) | null> {
+    const negocio = await this.prisma.negocio.findUnique({
       where: { waPhoneNumberId },
-      include: { configuracion: true },
+      select: { ...NEGOCIO_SAFE_SELECT, configuracion: true },
+    });
+    return negocio as unknown as Omit<Negocio, 'waAccessToken'> & { configuracion: unknown };
+  }
+
+  async findByWaPhoneNumberIdForInternal(waPhoneNumberId: string): Promise<Negocio | null> {
+    const negocio = await this.prisma.negocio.findUnique({
+      where: { waPhoneNumberId },
+      select: { ...NEGOCIO_SAFE_SELECT, waAccessToken: true, configuracion: true },
     });
     return negocio as unknown as Negocio;
-  },
+  }
 
   async findById(id: number): Promise<Omit<Negocio, 'waAccessToken'> | null> {
-    const negocio = await prisma.negocio.findUnique({
+    const negocio = await this.prisma.negocio.findUnique({
       where: { id },
       select: NEGOCIO_SAFE_SELECT,
     });
     return negocio;
-  },
+  }
 
   async findByIdForInternal(id: number): Promise<Negocio | null> {
-    return prisma.negocio.findUnique({
+    return this.prisma.negocio.findUnique({
       where: { id },
       select: { ...NEGOCIO_SAFE_SELECT, waAccessToken: true },
     });
-  },
+  }
 
   async update(id: number, data: Record<string, unknown>): Promise<Omit<Negocio, 'waAccessToken'>> {
-    const negocio = await prisma.negocio.update({
+    const negocio = await this.prisma.negocio.update({
       where: { id },
       data,
       select: NEGOCIO_SAFE_SELECT,
     });
     return negocio;
-  },
-};
+  }
+}

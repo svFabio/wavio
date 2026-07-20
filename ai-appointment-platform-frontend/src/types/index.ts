@@ -1,5 +1,14 @@
 // src/types/index.ts
-export type EstadoCita = 'PENDIENTE_PAGO' | 'VALIDANDO' | 'CONFIRMADA' | 'CANCELADA' | 'EXPIRADA';
+export type EstadoCita =
+  | 'PENDIENTE_PAGO'
+  | 'VALIDANDO'
+  | 'CONFIRMADA'
+  | 'CANCELADA'
+  | 'EXPIRADA'
+  | 'PENDIENTE'
+  | 'EN_PROCESO'
+  | 'VALIDACION_PENDIENTE'
+  | 'NO_ASISTIO';
 
 export interface Cita {
   id: string;
@@ -8,6 +17,8 @@ export interface Cita {
   fecha: string; // ISO String 2025-12-20
   horario: string; // "14:00"
   servicio: string;
+  servicioId?: number;
+  estadoPago?: string;
   estado: EstadoCita;
   comprobanteUrl?: string; // URL de la imagen del pago
   descripcion?: string;

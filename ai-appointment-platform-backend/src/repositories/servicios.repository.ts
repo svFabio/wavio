@@ -1,21 +1,25 @@
-import { prisma } from '../repositories/prisma';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import type { Servicio } from '../domain/types';
 
-export const serviciosRepository = {
+@Injectable()
+export class ServiciosRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
   async findByNegocioId(negocioId: number): Promise<Servicio[]> {
-    const records = await prisma.servicio.findMany({
+    const records = await this.prisma.servicio.findMany({
       where: { negocioId, activo: true },
       orderBy: { nombre: 'asc' },
     });
     return records as unknown as Servicio[];
-  },
+  }
 
   async findById(id: number): Promise<Servicio | null> {
-    const record = await prisma.servicio.findUnique({
+    const record = await this.prisma.servicio.findUnique({
       where: { id },
     });
     return record as unknown as Servicio | null;
-  },
+  }
 
   async create(data: {
     negocioId: number;
@@ -24,14 +28,14 @@ export const serviciosRepository = {
     bufferMinutos: number;
     precio: number;
   }): Promise<Servicio> {
-    const record = await prisma.servicio.create({
+    const record = await this.prisma.servicio.create({
       data: {
         ...data,
         activo: true,
       },
     });
     return record as unknown as Servicio;
-  },
+  }
 
   async update(
     id: number,
@@ -43,18 +47,18 @@ export const serviciosRepository = {
       activo: boolean;
     }>,
   ): Promise<Servicio> {
-    const record = await prisma.servicio.update({
+    const record = await this.prisma.servicio.update({
       where: { id },
       data,
     });
     return record as unknown as Servicio;
-  },
+  }
 
   async softDelete(id: number): Promise<Servicio> {
-    const record = await prisma.servicio.update({
+    const record = await this.prisma.servicio.update({
       where: { id },
       data: { activo: false },
     });
     return record as unknown as Servicio;
-  },
-};
+  }
+}

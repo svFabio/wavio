@@ -2,23 +2,45 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../services/api';
 import { ConfiguracionView } from '../components/ConfiguracionView';
-import type { Servicio, HorarioNegocio } from '../types';
+import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
+import type { Servicio, HorarioNegocio, HorarioEspecial } from '../types';
 
 export const ConfiguracionContainer = () => {
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: serviciosData, isLoading: loadingServicios } = useQuery<Servicio[]>({
+  const {
+    data: serviciosData,
+    isLoading: loadingServicios,
+    isError: isErrorServicios,
+  } = useQuery<Servicio[]>({
     queryKey: ['servicios'],
     queryFn: api.getServicios,
   });
 
-  const { data: horariosData, isLoading: loadingHorarios } = useQuery<HorarioNegocio[]>({
+  const {
+    data: horariosData,
+    isLoading: loadingHorarios,
+    isError: isErrorHorarios,
+  } = useQuery<HorarioNegocio[]>({
     queryKey: ['horarios'],
     queryFn: api.getHorariosNegocio,
   });
 
-  const isLoading = loadingServicios || loadingHorarios;
+  const {
+    data: horariosEspecialesData,
+    isLoading: loadingHorariosEspeciales,
+    isError: isErrorHorariosEspeciales,
+  } = useQuery<HorarioEspecial[]>({
+    queryKey: ['horariosEspeciales'],
+    queryFn: api.getHorariosEspeciales,
+  });
+
+  const isLoading = loadingServicios || loadingHorarios || loadingHorariosEspeciales;
+  const queryError =
+    isErrorServicios || isErrorHorarios || isErrorHorariosEspeciales
+      ? 'Error cargando la configuración'
+      : null;
 
   const addServicioMutation = useMutation({
     mutationFn: (data: {
@@ -28,17 +50,20 @@ export const ConfiguracionContainer = () => {
       precio: number;
     }) => api.createServicio(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servicios'] }),
+    onError: (e: Error) => setError(e.message || 'Error agregando servicio'),
   });
 
   const updateServicioMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Servicio> }) =>
       api.updateServicio(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servicios'] }),
+    onError: (e: Error) => setError(e.message || 'Error actualizando servicio'),
   });
 
   const deleteServicioMutation = useMutation({
     mutationFn: (id: number) => api.deleteServicio(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servicios'] }),
+    onError: (e: Error) => setError(e.message || 'Error eliminando servicio'),
   });
 
   const saveHorariosMutation = useMutation({
@@ -48,24 +73,50 @@ export const ConfiguracionContainer = () => {
     onError: (e: Error) => setError(e.message || 'Error guardando horarios'),
   });
 
+  const createHorarioEspecialMutation = useMutation({
+    mutationFn: (data: {
+      fecha: string;
+      cerrado: boolean;
+      horaInicio: string | null;
+      horaFin: string | null;
+    }) => api.createHorarioEspecial(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horariosEspeciales'] }),
+    onError: (e: Error) => setError(e.message || 'Error creando horario especial'),
+  });
+
+  const deleteHorarioEspecialMutation = useMutation({
+    mutationFn: (id: number) => api.deleteHorarioEspecial(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horariosEspeciales'] }),
+    onError: (e: Error) => setError(e.message || 'Error eliminando horario especial'),
+  });
+
   const isPending =
     addServicioMutation.isPending ||
     updateServicioMutation.isPending ||
     deleteServicioMutation.isPending ||
-    saveHorariosMutation.isPending;
+    saveHorariosMutation.isPending ||
+    createHorarioEspecialMutation.isPending ||
+    deleteHorarioEspecialMutation.isPending;
+
+  const displayError = error || queryError;
 
   return (
-    <ConfiguracionView
-      loading={isLoading}
-      error={error}
-      servicios={serviciosData || []}
-      onAddServicio={(data) => addServicioMutation.mutate(data)}
-      onUpdateServicio={(id, data) => updateServicioMutation.mutate({ id, data })}
-      onDeleteServicio={(id) => deleteServicioMutation.mutate(id)}
-      horarios={horariosData || []}
-      onSaveHorarios={(horarios) => saveHorariosMutation.mutate(horarios)}
-      isHorariosSaving={saveHorariosMutation.isPending}
-      isPendingAny={isPending}
-    />
+    <ErrorBoundary>
+      <ConfiguracionView
+        loading={isLoading}
+        error={displayError}
+        servicios={serviciosData || []}
+        onAddServicio={(data) => addServicioMutation.mutate(data)}
+        onUpdateServicio={(id, data) => updateServicioMutation.mutate({ id, data })}
+        onDeleteServicio={(id) => deleteServicioMutation.mutate(id)}
+        horarios={horariosData || []}
+        onSaveHorarios={(horarios) => saveHorariosMutation.mutate(horarios)}
+        isHorariosSaving={saveHorariosMutation.isPending}
+        horariosEspeciales={horariosEspecialesData || []}
+        onCreateHorarioEspecial={(data) => createHorarioEspecialMutation.mutate(data)}
+        onDeleteHorarioEspecial={(id) => deleteHorarioEspecialMutation.mutate(id)}
+        isPendingAny={isPending}
+      />
+    </ErrorBoundary>
   );
 };

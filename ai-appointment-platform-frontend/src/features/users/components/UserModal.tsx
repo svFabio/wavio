@@ -1,5 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useRef } from 'react';
 import { X, Loader2 } from 'lucide-react';
+import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
 import type { User, UserFormData } from '../types';
 
 interface UserModalProps {
@@ -24,53 +25,12 @@ export const UserModal = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      triggerRef.current = document.activeElement as HTMLElement;
-      const timer = setTimeout(() => {
-        const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
-          'input, select, textarea, button:not([aria-label="Cerrar"]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable && focusable.length > 0) focusable[0].focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-    return () => {
-      if (triggerRef.current) {
-        triggerRef.current.focus();
-        triggerRef.current = null;
-      }
-    };
-  }, [isOpen]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    },
-    [onClose],
-  );
+  const { handleKeyDown } = useModalAccessibility({
+    isOpen,
+    onClose,
+    modalRef,
+    triggerRef,
+  });
 
   if (!isOpen) return null;
 

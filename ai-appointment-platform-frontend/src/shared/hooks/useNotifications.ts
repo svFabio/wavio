@@ -11,7 +11,14 @@ export interface Notification {
 
 const STORAGE_KEY = 'citas-notifications';
 
-export const useNotifications = () => {
+export interface UseNotificationsReturn {
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => string;
+  dismissNotification: (id: string) => void;
+  clearAll: () => void;
+}
+
+export const useNotifications = (): UseNotificationsReturn => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const isInitialLoad = useRef(true);
 

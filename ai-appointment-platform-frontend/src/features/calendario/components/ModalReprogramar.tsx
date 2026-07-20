@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useHorariosDisponibles } from '../../../shared/hooks/useHorariosDisponibles';
+import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
+import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';
 import { X, Clock, Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
 import type { EventoCalendario } from '../types';
 
@@ -25,60 +26,15 @@ export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalRepro
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  const { data: horariosDisponibles = [], isLoading: loadingHorarios } = useHorariosDisponibles(
-    fecha,
+  const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
+    useHorariosDisponiblesQuery(fecha, isOpen, cita.resource?.servicioId);
+
+  const { handleKeyDown } = useModalAccessibility({
     isOpen,
-    cita.resource?.servicioId,
-  );
-
-  // Focus trap and return focus
-  useEffect(() => {
-    if (isOpen) {
-      triggerRef.current = document.activeElement as HTMLElement;
-      const timer = setTimeout(() => {
-        const modal = modalRef.current;
-        if (modal) {
-          const focusable = modal.querySelectorAll<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-          );
-          if (focusable.length > 0) focusable[0].focus();
-        }
-      }, 50);
-      return () => clearTimeout(timer);
-    } else if (triggerRef.current) {
-      triggerRef.current.focus();
-      triggerRef.current = null;
-    }
-  }, [isOpen]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-        return;
-      }
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    },
-    [onClose],
-  );
+    onClose,
+    modalRef,
+    triggerRef,
+  });
 
   useEffect(() => {
     if (
