@@ -205,12 +205,18 @@ model Cita {
   comentario      String?
   creadoEn        DateTime @default(now())
 
+  // ─── RECURRENCE FIELDS ───
+  recurrence   String?  // none, weekly, biweekly, monthly
+  recurrenceId String?  // groups all instances of a recurring series
+  recurrenceEnd DateTime? // when to stop generating instances
+
   negocioId   Int
   negocio     Negocio   @relation(fields: [negocioId], references: [id], onDelete: Cascade)
   servicioRef Servicio? @relation(fields: [servicioId], references: [id])
   staff       Usuario?  @relation("StaffCitas", fields: [staffId], references: [id])
 
   @@index([negocioId, fecha, estado])
+  @@index([recurrenceId])
 }
 
 // ─── HISTORIAL DE MENSAJES ───────────────────────────────────────────────────

@@ -167,4 +167,39 @@ export class CitasRepository {
     });
     return count;
   }
+
+  async findRecurringSeries(
+    recurrenceId: string,
+  ): Promise<Cita[]> {
+    const citas = await this.prisma.cita.findMany({
+      where: { recurrenceId },
+      orderBy: { fecha: 'asc' },
+    });
+    return citas as unknown as Cita[];
+  }
+
+  async createRecurringInstances(
+    instances: Array<Omit<Prisma.CitaUncheckedCreateInput, 'negocioId'>>,
+    negocioId: number,
+  ): Promise<number> {
+    const result = await this.prisma.cita.createMany({
+      data: instances.map((inst) => ({
+        ...inst,
+        negocioId,
+      })),
+    });
+    return result.count;
+  }
+
+  async cancelRecurringSeries(recurrenceId: string): Promise<number> {
+    const { count } = await this.prisma.cita.updateMany({
+      where: {
+        recurrenceId,
+        estado: { notIn: ['CANCELADA'] },
+        fecha: { gte: new Date() },
+      },
+      data: { estado: 'CANCELADA' },
+    });
+    return count;
+  }
 }

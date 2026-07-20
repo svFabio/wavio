@@ -210,6 +210,9 @@ export class CitasService {
       duracionMinutos?: number;
       estado?: string;
       origen?: string;
+      recurrence?: string;
+      recurrenceId?: string;
+      recurrenceEnd?: Date;
     },
   ): Promise<Cita> {
     const { clienteNombre, clienteTelefono, fecha, horario } = data;
@@ -261,6 +264,9 @@ export class CitasService {
         servicioId: servicioId ?? undefined,
         duracionMinutos,
         staffId: staffId ?? undefined,
+        recurrence: data.recurrence ?? undefined,
+        recurrenceId: data.recurrenceId ?? undefined,
+        recurrenceEnd: data.recurrenceEnd ?? undefined,
       },
     );
 
@@ -354,5 +360,99 @@ export class CitasService {
     const cita = await this.citasRepository.getByIdAndNegocio(id, negocioId);
     if (!cita) throw new NotFoundError('Cita');
     return this.citasRepository.update(id, { descripcion: descripcion || null });
+  }
+
+  async crearCitaRecurente(
+    negocioId: number,
+    data: {
+      clienteNombre: string;
+      clienteTelefono: string;
+      fecha: string;
+      horario: string;
+      monto?: number;
+      servicioId?: number | null;
+      staffId?: number | null;
+      duracionMinutos?: number;
+      recurrence: 'weekly' | 'biweekly' | 'monthly';
+      recurrenceEnd: string;
+    },
+  ): Promise<{ base: Cita; instancesCreated: number }> {
+    const recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const recurrenceEndDate = new Date(data.recurrenceEnd);
+
+    // Create the base appointment
+    const baseCita = await this.crearCitaAdmin(negocioId, {
+      ...data,
+      recurrence: data.recurrence,
+      recurrenceId,
+      recurrenceEnd: recurrenceEndDate,
+    });
+
+    // Generate future instances
+    const instances: Array<{ fecha: string; horario: string }> = [];
+    const baseDate = new Date(baseCita.fecha);
+
+    let nextDate = new Date(baseDate);
+    const maxInstances = 52; // Max 1 year of weekly appointments
+
+    for (let i = 0; i < maxInstances; i++) {
+      // Calculate next date based on recurrence type
+      switch (data.recurrence) {
+        case 'weekly':
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case 'biweekly':
+          nextDate.setDate(nextDate.getDate() + 14);
+          break;
+        case 'monthly':
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+      }
+
+      // Stop if past end date
+      if (nextDate > recurrenceEndDate) break;
+
+      instances.push({
+        fecha: nextDate.toISOString().split('T')[0],
+        horario: data.horario,
+      });
+    }
+
+    // Create instances in batch
+    if (instances.length > 0) {
+      await this.citasRepository.createRecurringInstances(
+        instances.map((inst) => ({
+          fecha: new Date(inst.fecha),
+          horario: inst.horario,
+          clienteNombre: data.clienteNombre,
+          clienteTelefono: data.clienteTelefono,
+          servicioId: data.servicioId ?? null,
+          staffId: data.staffId ?? null,
+          duracionMinutos: data.duracionMinutos ?? 60,
+          monto: data.monto ?? 0,
+          estado: 'CONFIRMADA',
+          estadoPago: 'PENDIENTE',
+          origen: 'recurrente',
+          recurrence: data.recurrence,
+          recurrenceId,
+          recurrenceEnd: recurrenceEndDate,
+        })),
+        negocioId,
+      );
+    }
+
+    this.eventsService.emitCambioCitas(negocioId);
+
+    return { base: baseCita, instancesCreated: instances.length };
+  }
+
+  async cancelarSerieRecurente(recurrenceId: string, negocioId: number): Promise<number> {
+    const count = await this.citasRepository.cancelRecurringSeries(recurrenceId);
+    this.eventsService.emitCambioCitas(negocioId);
+    return count;
+  }
+
+  async getSeriesRecurente(recurrenceId: string): Promise<Cita[]> {
+    return this.citasRepository.findRecurringSeries(recurrenceId);
   }
 }
