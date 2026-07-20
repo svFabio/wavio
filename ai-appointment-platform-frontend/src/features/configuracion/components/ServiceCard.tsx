@@ -24,8 +24,15 @@ export const ServiceCard = ({
           : 'bg-surface-elevated/50 border-border-light opacity-60'
       }`}
     >
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-        <div className="font-medium text-sm text-txt">{svc.nombre}</div>
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+        <div>
+          <div className="font-medium text-sm text-txt">{svc.nombre}</div>
+          {svc.categoria && (
+            <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-[10px] uppercase font-bold rounded-full">
+              {svc.categoria}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-sm text-txt-muted">
           <Clock className="w-4 h-4" />
           {formatDuration(svc.duracionMinutos)}

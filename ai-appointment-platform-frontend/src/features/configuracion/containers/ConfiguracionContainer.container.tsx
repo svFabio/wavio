@@ -45,6 +45,7 @@ export const ConfiguracionContainer = () => {
   const addServicioMutation = useMutation({
     mutationFn: (data: {
       nombre: string;
+      categoria?: string;
       duracionMinutos: number;
       bufferMinutos: number;
       precio: number;

@@ -296,6 +296,7 @@ export const api = {
   },
   createServicio: async (data: {
     nombre: string;
+    categoria?: string;
     duracionMinutos: number;
     bufferMinutos: number;
     precio: number;
@@ -306,6 +307,7 @@ export const api = {
     id: number,
     data: Partial<{
       nombre: string;
+      categoria: string;
       duracionMinutos: number;
       bufferMinutos: number;
       precio: number;
