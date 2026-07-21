@@ -75,6 +75,13 @@ export class WaitlistRepository {
     });
   }
 
+  async getAll(negocioId: number) {
+    return this.prisma.listaEspera.findMany({
+      where: { negocioId },
+      orderBy: { creadoEn: 'desc' },
+    });
+  }
+
   async getWaitlistCount(negocioId: number): Promise<number> {
     return this.prisma.listaEspera.count({
       where: { negocioId, estado: 'PENDIENTE' },

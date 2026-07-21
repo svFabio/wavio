@@ -82,6 +82,10 @@ export class WaitlistService {
     return notified;
   }
 
+  async getAll(negocioId: number) {
+    return this.waitlistRepository.getAll(negocioId);
+  }
+
   async getWaitlistCount(negocioId: number): Promise<number> {
     return this.waitlistRepository.getWaitlistCount(negocioId);
   }

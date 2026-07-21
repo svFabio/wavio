@@ -31,9 +31,8 @@ export class WaitlistController {
   constructor(private readonly waitlistService: WaitlistService) {}
 
   @Get('/')
-  async getCount(@TenantId() negocioId: number) {
-    const count = await this.waitlistService.getWaitlistCount(negocioId);
-    return { count };
+  async getAll(@TenantId() negocioId: number) {
+    return this.waitlistService.getAll(negocioId);
   }
 
   @Post('/')
