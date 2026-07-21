@@ -20,6 +20,8 @@ import { WaitlistModule } from './waitlist/waitlist.module';
 import { NoShowModule } from './noshow/noshow.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { PortalModule } from './portal/portal.module';
+import { PushModule } from './push/push.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 @Module({
@@ -43,6 +45,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     NoShowModule,
     ReportesModule,
     CalendarModule,
+    PortalModule,
+    PushModule,
   ],
   providers: [
     {

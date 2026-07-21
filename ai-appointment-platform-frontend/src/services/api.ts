@@ -433,5 +433,17 @@ export const api = {
   getClienteNoShows: async (id: number) => {
     return apiClient.get<{ count: number }>(`/clientes/${id}/no-shows`);
   },
-};
 
+  // --- PUSH NOTIFICATIONS ---
+  getVapidPublicKey: async () => {
+    return apiClient.get<{ publicKey: string | null }>('/push/vapid-public-key');
+  },
+  subscribePush: async (subscription: { endpoint: string; p256dh: string; auth: string }) => {
+    return apiClient.post<{ id: number }>('/push/subscribe', subscription);
+  },
+  unsubscribePush: async (endpoint: string) => {
+    return apiClient.delete<{ success: boolean }>('/push/unsubscribe', {
+      body: JSON.stringify({ endpoint }),
+    });
+  },
+};

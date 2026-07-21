@@ -2,6 +2,7 @@ import type { Servicio, HorarioNegocio, HorarioEspecial } from '../types';
 import { ServiciosTab } from './ServiciosTab';
 import { HorariosTab } from './HorariosTab';
 import { HorariosEspecialesTab } from './HorariosEspecialesTab';
+import { PushNotificationToggle } from '../../../shared/components/PushNotificationToggle';
 import { useState } from 'react';
 import { LoadingSkeleton } from '../../../shared/components/skeletons/LoadingSkeleton';
 
@@ -90,6 +91,9 @@ export const ConfiguracionView = ({
               {TAB_LABELS[t]}
             </button>
           ))}
+        </div>
+        <div className="px-5 md:px-6 py-3 border-t border-border">
+          <PushNotificationToggle />
         </div>
       </div>
 
