@@ -42,25 +42,19 @@ export const WaitlistView = ({
   return (
     <div className="card-modern overflow-hidden">
       {/* Header */}
-      <div className="p-5 md:p-6 border-b border-border flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-warning/10 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-warning" />
-          </div>
+      <div className="p-5 md:p-6 border-b border-border">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h2 className="text-base font-bold text-txt">Lista de Espera</h2>
-            <p className="text-xs text-txt-muted">
+            <h2 className="text-lg font-bold text-txt">Lista de Espera</h2>
+            <p className="text-sm text-txt-muted mt-1">
               {pendientes > 0 ? `${pendientes} clientes esperando disponibilidad` : 'Sin clientes en espera'}
             </p>
           </div>
+          <button onClick={onToggleForm} className="btn-primary">
+            <Plus className="w-5 h-5" />
+            Nuevo Registro
+          </button>
         </div>
-        <button
-          onClick={onToggleForm}
-          className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors px-3 py-1.5 bg-primary/10 rounded-lg"
-        >
-          <Plus className="w-4 h-4" />
-          Agregar
-        </button>
       </div>
 
       <div className="p-5 md:p-6 space-y-4">
