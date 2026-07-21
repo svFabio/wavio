@@ -21,6 +21,8 @@ const Chat = lazy(() => import('./pages/Chat'));
 const Asistente = lazy(() => import('./pages/Asistente'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Waitlist = lazy(() => import('./pages/Waitlist'));
+
 import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
 import { format } from 'date-fns';
@@ -173,6 +175,16 @@ function App() {
                       <ProtectedRoute requiredRole="ADMIN">
                         <ErrorBoundary>
                           <Asistente />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="waitlist"
+                    element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <ErrorBoundary>
+                          <Waitlist />
                         </ErrorBoundary>
                       </ProtectedRoute>
                     }

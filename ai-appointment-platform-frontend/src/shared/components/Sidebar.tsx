@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   Bot,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -111,6 +112,15 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           >
             <Calendar size={16} />
             <span className="text-sm">Calendario</span>
+          </Link>
+
+          <Link
+            to="/dashboard/waitlist"
+            onClick={onClose}
+            className={linkClass('/dashboard/waitlist')}
+          >
+            <Clock size={16} />
+            <span className="text-sm">Lista de Espera</span>
           </Link>
 
           <Link to="/dashboard/pagos" onClick={onClose} className={linkClass('/dashboard/pagos')}>

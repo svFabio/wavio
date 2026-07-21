@@ -404,4 +404,27 @@ export const api = {
   configurarNegocio: async (nombre: string) => {
     return apiClient.patch('/negocio/configurar', { nombre });
   },
+
+  // --- WAITLIST ---
+  getWaitlist: async () => {
+    return apiClient.get<import('../features/waitlist/types').WaitlistEntry[]>('/waitlist');
+  },
+  addToWaitlist: async (data: import('../features/waitlist/types').AddToWaitlistPayload) => {
+    return apiClient.post<import('../features/waitlist/types').WaitlistEntry>('/waitlist', data);
+  },
+  removeFromWaitlist: async (id: number) => {
+    return apiClient.delete(`/waitlist/${id}`);
+  },
+  notifyWaitlist: async (id: number) => {
+    return apiClient.post(`/waitlist/${id}/notify`);
+  },
+
+  // --- CLIENTES ---
+  getClientes: async () => {
+    return apiClient.get('/clientes');
+  },
+  getClienteNoShows: async (id: number) => {
+    return apiClient.get<{ count: number }>(`/clientes/${id}/no-shows`);
+  },
 };
+
