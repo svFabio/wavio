@@ -1,22 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { google, calendar_v3 } from 'googleapis';
+import { google } from 'googleapis';
 import { env } from '../config/env';
+import { PrismaService } from '../prisma/prisma.service';
 import type { Cita } from '../domain/types';
+import { ExternalServiceError, NotFoundError } from '../domain/errors';
 
 @Injectable()
 export class GoogleCalendarService {
   private readonly logger = new Logger(GoogleCalendarService.name);
-  private calendarClient: calendar_v3.Calendar;
 
-  constructor() {
-    const oauth2Client = new google.auth.OAuth2(
-      env.GOOGLE_CALENDAR_CLIENT_ID,
-      env.GOOGLE_CALENDAR_CLIENT_SECRET,
-      env.GOOGLE_CALENDAR_REDIRECT_URI,
-    );
-
-    this.calendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   getAuthUrl(negocioId: number): string {
     const oauth2Client = new google.auth.OAuth2(
@@ -33,11 +26,7 @@ export class GoogleCalendarService {
     });
   }
 
-  async handleCallback(code: string): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    calendarId: string;
-  }> {
+  async handleCallback(code: string, negocioId: number): Promise<{ calendarId: string }> {
     const oauth2Client = new google.auth.OAuth2(
       env.GOOGLE_CALENDAR_CLIENT_ID,
       env.GOOGLE_CALENDAR_CLIENT_SECRET,
@@ -49,97 +38,145 @@ export class GoogleCalendarService {
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const calendarList = await calendar.calendarList.list();
-
     const calendarId = calendarList.data.items?.[0]?.id ?? 'primary';
 
-    return {
-      accessToken: tokens.access_token ?? '',
-      refreshToken: tokens.refresh_token ?? '',
-      calendarId,
-    };
+    await this.prisma.negocio.update({
+      where: { id: negocioId },
+      data: {
+        googleCalendarAccessToken: tokens.access_token ?? '',
+        googleCalendarRefreshToken: tokens.refresh_token ?? '',
+        googleCalendarId: calendarId,
+        isGoogleCalendarConnected: true,
+      },
+    });
+
+    this.logger.log(`Google Calendar connected for negocio ${negocioId}, calendarId: ${calendarId}`);
+    return { calendarId };
   }
 
-  async createEvent(
-    accessToken: string,
-    refreshToken: string,
-    calendarId: string,
-    cita: Cita,
-  ): Promise<string | null> {
-    try {
-      const oauth2Client = new google.auth.OAuth2(
-        env.GOOGLE_CALENDAR_CLIENT_ID,
-        env.GOOGLE_CALENDAR_CLIENT_SECRET,
-        env.GOOGLE_CALENDAR_REDIRECT_URI,
-      );
+  async createEvent(negocioId: number, cita: Cita): Promise<string | null> {
+    const negocio = await this.getCalendarCredentials(negocioId);
 
-      oauth2Client.setCredentials({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
+    const oauth2Client = new google.auth.OAuth2(
+      env.GOOGLE_CALENDAR_CLIENT_ID,
+      env.GOOGLE_CALENDAR_CLIENT_SECRET,
+      env.GOOGLE_CALENDAR_REDIRECT_URI,
+    );
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    oauth2Client.setCredentials({
+      access_token: negocio.googleCalendarAccessToken,
+      refresh_token: negocio.googleCalendarRefreshToken,
+    });
 
-      const [hours, minutes] = cita.horario.split(':').map(Number);
-      const startDate = new Date(cita.fecha);
-      startDate.setHours(hours, minutes, 0, 0);
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-      const endDate = new Date(startDate);
-      endDate.setMinutes(endDate.getMinutes() + 60);
+    const [hours, minutes] = cita.horario.split(':').map(Number);
+    const startDate = new Date(cita.fecha);
+    startDate.setHours(hours, minutes, 0, 0);
 
-      const event = await calendar.events.insert({
-        calendarId,
-        requestBody: {
-          summary: `${cita.servicio} — ${cita.clienteNombre ?? cita.clienteTelefono}`,
-          description: `Cita ID: ${cita.id}\nServicio: ${cita.servicio}\nCliente: ${cita.clienteNombre ?? cita.clienteTelefono}\nTeléfono: ${cita.clienteTelefono}`,
-          start: {
-            dateTime: startDate.toISOString(),
-            timeZone: 'America/Mexico_City',
-          },
-          end: {
-            dateTime: endDate.toISOString(),
-            timeZone: 'America/Mexico_City',
-          },
+    const endDate = new Date(startDate);
+    endDate.setMinutes(endDate.getMinutes() + (cita.duracionMinutos || 60));
+
+    const event = await calendar.events.insert({
+      calendarId: negocio.googleCalendarId!,
+      requestBody: {
+        summary: `${cita.servicio} — ${cita.clienteNombre ?? cita.clienteTelefono}`,
+        description: [
+          `Cita ID: ${cita.id}`,
+          `Servicio: ${cita.servicio}`,
+          `Cliente: ${cita.clienteNombre ?? cita.clienteTelefono}`,
+          `Teléfono: ${cita.clienteTelefono}`,
+        ].join('\n'),
+        start: {
+          dateTime: startDate.toISOString(),
+          timeZone: 'America/Mexico_City',
         },
-      });
+        end: {
+          dateTime: endDate.toISOString(),
+          timeZone: 'America/Mexico_City',
+        },
+      },
+    });
 
-      this.logger.log(`Created Google Calendar event for cita ${cita.id}: ${event.data.id}`);
-      return event.data.id ?? null;
-    } catch (error) {
-      this.logger.error(`Failed to create Google Calendar event for cita ${cita.id}`, error);
-      return null;
-    }
+    this.logger.log(`Created Google Calendar event for cita ${cita.id}: ${event.data.id}`);
+    return event.data.id ?? null;
   }
 
-  async deleteEvent(
-    accessToken: string,
-    refreshToken: string,
-    calendarId: string,
-    googleEventId: string,
-  ): Promise<boolean> {
-    try {
-      const oauth2Client = new google.auth.OAuth2(
-        env.GOOGLE_CALENDAR_CLIENT_ID,
-        env.GOOGLE_CALENDAR_CLIENT_SECRET,
-        env.GOOGLE_CALENDAR_REDIRECT_URI,
+  async deleteEvent(negocioId: number, googleEventId: string): Promise<boolean> {
+    const negocio = await this.getCalendarCredentials(negocioId);
+
+    const oauth2Client = new google.auth.OAuth2(
+      env.GOOGLE_CALENDAR_CLIENT_ID,
+      env.GOOGLE_CALENDAR_CLIENT_SECRET,
+      env.GOOGLE_CALENDAR_REDIRECT_URI,
+    );
+
+    oauth2Client.setCredentials({
+      access_token: negocio.googleCalendarAccessToken,
+      refresh_token: negocio.googleCalendarRefreshToken,
+    });
+
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+    await calendar.events.delete({
+      calendarId: negocio.googleCalendarId!,
+      eventId: googleEventId,
+    });
+
+    this.logger.log(`Deleted Google Calendar event: ${googleEventId}`);
+    return true;
+  }
+
+  async disconnect(negocioId: number): Promise<void> {
+    await this.prisma.negocio.update({
+      where: { id: negocioId },
+      data: {
+        googleCalendarAccessToken: null,
+        googleCalendarRefreshToken: null,
+        googleCalendarId: null,
+        isGoogleCalendarConnected: false,
+      },
+    });
+
+    this.logger.log(`Google Calendar disconnected for negocio ${negocioId}`);
+  }
+
+  async isConnected(negocioId: number): Promise<boolean> {
+    const negocio = await this.prisma.negocio.findUnique({
+      where: { id: negocioId },
+      select: { isGoogleCalendarConnected: true },
+    });
+    return negocio?.isGoogleCalendarConnected ?? false;
+  }
+
+  private async getCalendarCredentials(negocioId: number): Promise<{
+    googleCalendarAccessToken: string;
+    googleCalendarRefreshToken: string;
+    googleCalendarId: string;
+  }> {
+    const negocio = await this.prisma.negocio.findUnique({
+      where: { id: negocioId },
+      select: {
+        googleCalendarAccessToken: true,
+        googleCalendarRefreshToken: true,
+        googleCalendarId: true,
+        isGoogleCalendarConnected: true,
+      },
+    });
+
+    if (!negocio) throw new NotFoundError('Negocio');
+    if (!negocio.isGoogleCalendarConnected || !negocio.googleCalendarRefreshToken) {
+      throw new ExternalServiceError(
+        'Google Calendar is not connected for this business',
+        'CALENDAR_NOT_CONNECTED',
+        400,
       );
-
-      oauth2Client.setCredentials({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-      await calendar.events.delete({
-        calendarId,
-        eventId: googleEventId,
-      });
-
-      this.logger.log(`Deleted Google Calendar event: ${googleEventId}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Failed to delete Google Calendar event: ${googleEventId}`, error);
-      return false;
     }
+
+    return {
+      googleCalendarAccessToken: negocio.googleCalendarAccessToken ?? '',
+      googleCalendarRefreshToken: negocio.googleCalendarRefreshToken,
+      googleCalendarId: negocio.googleCalendarId ?? 'primary',
+    };
   }
 }
