@@ -22,6 +22,7 @@ const Asistente = lazy(() => import('./pages/Asistente'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
+const Portal = lazy(() => import('./pages/Portal'));
 
 import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
@@ -200,6 +201,15 @@ function App() {
                     }
                   />
                 </Route>
+
+                <Route
+                  path="/portal/:token"
+                  element={
+                    <ErrorBoundary>
+                      <Portal />
+                    </ErrorBoundary>
+                  }
+                />
 
                 <Route
                   path="*"

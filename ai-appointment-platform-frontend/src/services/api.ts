@@ -446,4 +446,36 @@ export const api = {
       body: JSON.stringify({ endpoint }),
     });
   },
+
+  // --- PORTAL (Magic Link) ---
+  generateMagicLink: async (clienteId: number) => {
+    return apiClient.post<{ url: string; token: string }>(`/portal/generate/${clienteId}`);
+  },
+  validateMagicLink: async (token: string) => {
+    return apiClient.get<{
+      cliente: { id: number; nombre: string; telefono: string; email: string | null };
+      negocio: { id: number; nombre: string };
+    }>(`/portal/${token}`);
+  },
+  getPortalAppointments: async (token: string) => {
+    return apiClient.get<Cita[]>(`/portal/${token}/appointments`);
+  },
+  getPortalServices: async (token: string) => {
+    return apiClient.get<
+      Array<{ id: number; nombre: string; duracionMinutos: number; precio: number }>
+    >(`/portal/${token}/services`);
+  },
+  getPortalAvailableSlots: async (token: string, fecha: string, servicioId?: number) => {
+    let url = `/portal/${token}/available-slots?fecha=${encodeURIComponent(fecha)}`;
+    if (servicioId) {
+      url += `&servicioId=${servicioId}`;
+    }
+    return apiClient.get<string[]>(url);
+  },
+  bookPortalAppointment: async (
+    token: string,
+    data: { fecha: string; horario: string; servicioId?: number },
+  ) => {
+    return apiClient.post<{ success: boolean; message: string }>(`/portal/${token}/book`, data);
+  },
 };
