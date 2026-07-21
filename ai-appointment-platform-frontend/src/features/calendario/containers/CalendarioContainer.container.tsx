@@ -8,7 +8,7 @@ import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
 import { useActualizarDescripcionMutation } from '../api/useActualizarDescripcionMutation';
 import { useCrearCitaMutation } from '../api/useCrearCitaMutation';
 import { useReprogramarCitaMutation } from '../api/useReprogramarCitaMutation';
-import { useMarcarAsistenciaMutation } from '../api/useMarcarAsistenciaMutation';
+import { useMarkNoShowMutation, useMarkAsistioMutation } from '../api/useNoShow';
 import type { EventoCalendario } from '../types';
 import { CalendarioView } from '../components/CalendarioView';
 import { CalendarioSkeleton } from '../../../shared/components/skeletons/CalendarioSkeleton';
@@ -38,7 +38,8 @@ export const CalendarioContainer = () => {
   const actualizarDesc = useActualizarDescripcionMutation();
   const crearCita = useCrearCitaMutation();
   const reprogramarCita = useReprogramarCitaMutation();
-  const marcarAsistencia = useMarcarAsistenciaMutation();
+  const markNoShow = useMarkNoShowMutation();
+  const markAsistio = useMarkAsistioMutation();
 
   const [fecha, setFecha] = useState(new Date());
   const [vista, setVista] = useState<View>(Views.MONTH);
@@ -182,9 +183,13 @@ export const CalendarioContainer = () => {
     const citaId = citaSeleccionada?.resource?.citaId;
     if (!citaId) return;
     const esNoAsistio = citaSeleccionada?.resource?.estado === 'NO_ASISTIO';
-    await marcarAsistencia.mutateAsync({ citaId, noAsistio: !esNoAsistio });
+    if (esNoAsistio) {
+      await markAsistio.mutateAsync(citaId);
+    } else {
+      await markNoShow.mutateAsync(citaId);
+    }
     setCitaSeleccionada(null);
-  }, [citaSeleccionada, marcarAsistencia]);
+  }, [citaSeleccionada, markNoShow, markAsistio]);
 
   const handleNuevaCita = useCallback(() => setModalNuevaCita({ isOpen: true }), []);
 
@@ -272,6 +277,7 @@ export const CalendarioContainer = () => {
       onReprogramarDesdeDetalle={handleReprogramarDesdeDetalle}
       onNoAsistio={handleNoAsistio}
       onGuardarDescripcion={handleGuardarDescripcion}
+      isLoadingNoShow={markNoShow.isPending || markAsistio.isPending}
       modalNuevaCitaAbierto={modalNuevaCita.isOpen}
       fechaInicialNuevaCita={modalNuevaCita.fecha}
       onCerrarNuevaCita={handleCerrarNuevaCita}

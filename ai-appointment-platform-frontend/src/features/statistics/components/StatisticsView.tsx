@@ -5,6 +5,7 @@ import { CitasChart } from './CitasChart';
 import { OriginsChart } from './OriginsChart';
 import { ClientList } from './ClientList';
 import { StatisticsSkeleton } from './StatisticsSkeleton';
+import type { Cliente } from '../../../types';
 
 const MONTH_NAMES: Record<string, string> = {
   '01': 'Ene',
@@ -38,9 +39,10 @@ interface StatisticsViewProps {
   overview: OverviewData | null;
   revenue: RevenueData | null;
   loading: boolean;
+  clientes: Cliente[];
 }
 
-export const StatisticsView = ({ overview, revenue, loading }: StatisticsViewProps) => {
+export const StatisticsView = ({ overview, revenue, loading, clientes }: StatisticsViewProps) => {
   const revenueFormatted = useMemo(() => {
     return (revenue?.revenue || []).map((item) => ({
       ...item,
@@ -125,7 +127,7 @@ export const StatisticsView = ({ overview, revenue, loading }: StatisticsViewPro
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CitasChart horarios={overview?.horariosPopulares || []} />
-        <ClientList clientes={overview?.topClientes || []} />
+        <ClientList clientes={overview?.topClientes || []} allClientes={clientes} />
       </div>
     </div>
   );

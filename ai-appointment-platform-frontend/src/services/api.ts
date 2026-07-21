@@ -1,4 +1,4 @@
-import type { Cita } from '../types';
+import type { Cita, Cliente } from '../types';
 import { apiClient, ApiError } from '../lib/apiClient';
 import type {
   Servicio,
@@ -421,7 +421,14 @@ export const api = {
 
   // --- CLIENTES ---
   getClientes: async () => {
-    return apiClient.get('/clientes');
+    const res = await apiClient.get<{
+      data: Cliente[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>('/clientes');
+    return res.data;
   },
   getClienteNoShows: async (id: number) => {
     return apiClient.get<{ count: number }>(`/clientes/${id}/no-shows`);

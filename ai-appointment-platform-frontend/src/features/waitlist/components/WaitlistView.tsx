@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Plus, Users, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Users, AlertCircle, Loader2 } from 'lucide-react';
 import { WaitlistCard } from './WaitlistCard';
 import { WaitlistForm } from './WaitlistForm';
 import type { WaitlistEntry } from '../types';
