@@ -1,12 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventsGateway } from './events.gateway';
 import { enviarMensaje, WaCredentials } from '../lib/whatsapp';
-import pino from 'pino';
-
-const logger = pino({ name: 'events-service' });
 
 @Injectable()
 export class EventsService {
+  private readonly logger = new Logger(EventsService.name);
+
   constructor(private readonly gateway: EventsGateway) {}
 
   emitCambioCitas(negocioId: number, data?: Record<string, unknown>): void {
@@ -25,15 +24,7 @@ export class EventsService {
     this.gateway.server.to(`negocio:${negocioId}`).emit('conversacion-eliminada', data);
   }
 
-  async sendWhatsAppMessage(
-    waCreds: WaCredentials,
-    to: string,
-    message: string,
-  ): Promise<void> {
-    try {
-      await enviarMensaje(waCreds, to, message);
-    } catch (error) {
-      logger.error({ error, to }, '[Events] Error enviando mensaje WhatsApp');
-    }
+  async sendWhatsAppMessage(waCreds: WaCredentials, to: string, message: string): Promise<void> {
+    await enviarMensaje(waCreds, to, message);
   }
 }

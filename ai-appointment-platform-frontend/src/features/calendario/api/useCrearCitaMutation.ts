@@ -11,7 +11,6 @@ interface CrearCitaParams {
   staffId?: number;
 }
 
-
 export function useCrearCitaMutation(): UseMutationResult<
   { success: boolean; error?: string },
   Error,

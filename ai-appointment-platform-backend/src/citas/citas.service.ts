@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CitasRepository } from '../repositories/citas.repository';
 import { AvailabilityRepository } from '../repositories/availability.repository';
 import { ConfiguracionRepository } from '../repositories/configuracion.repository';
@@ -9,12 +9,11 @@ import { NotFoundError, ConflictError, ValidationError } from '../domain/errors'
 import { Cita } from '../domain/types';
 import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
-import pino from 'pino';
-
-const logger = pino({ name: 'citas-service' });
 
 @Injectable()
 export class CitasService {
+  private readonly logger = new Logger(CitasService.name);
+
   constructor(
     private readonly citasRepository: CitasRepository,
     private readonly availabilityRepository: AvailabilityRepository,
@@ -101,7 +100,7 @@ export class CitasService {
         }
       }
     } catch (msgError) {
-      logger.error({ msgError }, '[Validar] Error enviando notificación WhatsApp');
+      this.logger.error(`[Validar] Error enviando notificación WhatsApp: ${msgError}`);
     }
 
     return citaActualizada;
@@ -270,6 +269,10 @@ export class CitasService {
       },
     );
 
+    if (!nuevaCita) {
+      throw new ConflictError('Este horario ya está ocupado');
+    }
+
     this.eventsService.emitCambioCitas(negocioId);
     this.eventsService.emitNuevaCita(negocioId, {
       id: nuevaCita.id,
@@ -392,7 +395,7 @@ export class CitasService {
     const instances: Array<{ fecha: string; horario: string }> = [];
     const baseDate = new Date(baseCita.fecha);
 
-    let nextDate = new Date(baseDate);
+    const nextDate = new Date(baseDate);
     const maxInstances = 52; // Max 1 year of weekly appointments
 
     for (let i = 0; i < maxInstances; i++) {

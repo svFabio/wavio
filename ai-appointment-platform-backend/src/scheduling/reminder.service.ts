@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AppointmentRepository } from '../repositories/appointment.repository';
+import { NegocioRepository } from '../repositories/negocio.repository';
 import { EventsService } from '../events/events.service';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class ReminderService {
 
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
+    private readonly negocioRepository: NegocioRepository,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -20,15 +22,13 @@ export class ReminderService {
     this.logger.debug('Checking for 24h appointment reminders…');
 
     try {
-      const negocios = await this.appointmentRepository.findUpcomingForReminder(
-        0,
-        23,
-        25,
-      );
+      const citas = await this.appointmentRepository.findUpcomingForReminder(0, 23, 25);
 
-      for (const cita of negocios) {
+      for (const cita of citas) {
         if (cita.recordatorio24h) continue;
-        if (!cita.negocio.waAccessToken || !cita.negocio.waPhoneNumberId) continue;
+
+        const waCreds = await this.negocioRepository.findByIdForInternal(cita.negocioId);
+        if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
         const fechaFormateada = new Date(cita.fecha).toLocaleDateString('es-ES', {
           weekday: 'long',
@@ -46,10 +46,7 @@ export class ReminderService {
           `¡Te esperamos! Si necesitas reagendar, escríbenos.`;
 
         await this.eventsService.sendWhatsAppMessage(
-          {
-            waAccessToken: cita.negocio.waAccessToken,
-            waPhoneNumberId: cita.negocio.waPhoneNumberId,
-          },
+          { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
           cita.clienteTelefono,
           mensaje,
         );
@@ -70,15 +67,13 @@ export class ReminderService {
     this.logger.debug('Checking for 1h appointment reminders…');
 
     try {
-      const citas = await this.appointmentRepository.findUpcomingForReminder(
-        0,
-        0.75,
-        1.25,
-      );
+      const citas = await this.appointmentRepository.findUpcomingForReminder(0, 0.75, 1.25);
 
       for (const cita of citas) {
         if (cita.recordatorio1h) continue;
-        if (!cita.negocio.waAccessToken || !cita.negocio.waPhoneNumberId) continue;
+
+        const waCreds = await this.negocioRepository.findByIdForInternal(cita.negocioId);
+        if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
         const mensaje =
           `Hola ${cita.clienteNombre || 'Cliente'}! 👋\n\n` +
@@ -89,10 +84,7 @@ export class ReminderService {
           `¡Te esperamos!`;
 
         await this.eventsService.sendWhatsAppMessage(
-          {
-            waAccessToken: cita.negocio.waAccessToken,
-            waPhoneNumberId: cita.negocio.waPhoneNumberId,
-          },
+          { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
           cita.clienteTelefono,
           mensaje,
         );

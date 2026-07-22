@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CitasRepository } from '../repositories/citas.repository';
-import { Cita } from '../domain/types';
+import type { Cita } from '../domain/types';
 
 @Injectable()
 export class ReportesService {
@@ -8,21 +8,18 @@ export class ReportesService {
 
   constructor(private readonly citasRepository: CitasRepository) {}
 
-  async exportCitasCSV(
-    negocioId: number,
-    fechaDesde: string,
-    fechaHasta: string,
-  ): Promise<string> {
+  async exportCitasCSV(negocioId: number, fechaDesde: string, fechaHasta: string): Promise<string> {
     const desde = new Date(fechaDesde);
     const hasta = new Date(fechaHasta);
 
-    const { data: citas } = await this.citasRepository.getAgenda(
-      negocioId,
-      desde,
-      hasta,
-      1,
-      10000,
-    );
+    const { data: citas } = await this.citasRepository.getAgenda(negocioId, desde, hasta, 1, 10000);
+
+    const sanitizeCsvCell = (value: string): string => {
+      if (/^[=+\-@\t\r]/.test(value)) {
+        return `'${value}`;
+      }
+      return value;
+    };
 
     const headers = [
       'ID',
@@ -39,17 +36,17 @@ export class ReportesService {
     ];
 
     const rows = citas.map((cita: Cita) => [
-      cita.id,
-      new Date(cita.fecha).toISOString().split('T')[0],
-      cita.horario,
-      cita.clienteNombre ?? '',
-      cita.clienteTelefono,
-      cita.servicio,
-      cita.estado,
-      cita.monto,
-      cita.origen,
-      cita.staffId ?? '',
-      new Date(cita.creadoEn).toISOString(),
+      String(cita.id),
+      sanitizeCsvCell(new Date(cita.fecha).toISOString().split('T')[0]),
+      sanitizeCsvCell(cita.horario),
+      sanitizeCsvCell(cita.clienteNombre ?? ''),
+      sanitizeCsvCell(cita.clienteTelefono),
+      sanitizeCsvCell(cita.servicio),
+      sanitizeCsvCell(cita.estado),
+      String(cita.monto),
+      sanitizeCsvCell(cita.origen),
+      String(cita.staffId ?? ''),
+      sanitizeCsvCell(new Date(cita.creadoEn).toISOString()),
     ]);
 
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -73,13 +70,7 @@ export class ReportesService {
     const inicio = new Date(year, month - 1, 1);
     const fin = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const { data: citas } = await this.citasRepository.getAgenda(
-      negocioId,
-      inicio,
-      fin,
-      1,
-      10000,
-    );
+    const { data: citas } = await this.citasRepository.getAgenda(negocioId, inicio, fin, 1, 10000);
 
     const totalCitas = citas.length;
     const confirmadas = citas.filter((c: Cita) => c.estado === 'CONFIRMADA').length;

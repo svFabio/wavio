@@ -51,7 +51,7 @@ export const WaitlistForm = ({ onSubmit, onCancel, isLoading }: WaitlistFormProp
               value={form.clienteNombre}
               onChange={(e) => setForm({ ...form, clienteNombre: e.target.value })}
               placeholder="Nombre del cliente"
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-surface"
+              className="input-modern pl-9"
             />
           </div>
         </div>
@@ -64,9 +64,11 @@ export const WaitlistForm = ({ onSubmit, onCancel, isLoading }: WaitlistFormProp
               required
               type="tel"
               value={form.clienteTelefono}
-              onChange={(e) => setForm({ ...form, clienteTelefono: e.target.value.replace(/\D/g, '') })}
+              onChange={(e) =>
+                setForm({ ...form, clienteTelefono: e.target.value.replace(/\D/g, '') })
+              }
               placeholder="591 70000000"
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-surface"
+              className="input-modern pl-9"
             />
           </div>
         </div>
@@ -81,7 +83,7 @@ export const WaitlistForm = ({ onSubmit, onCancel, isLoading }: WaitlistFormProp
               value={form.fechaPreferida}
               onChange={(e) => setForm({ ...form, fechaPreferida: e.target.value })}
               min={format(new Date(), 'yyyy-MM-dd')}
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-surface"
+              className="input-modern pl-9"
             />
           </div>
         </div>
@@ -94,25 +96,17 @@ export const WaitlistForm = ({ onSubmit, onCancel, isLoading }: WaitlistFormProp
               type="time"
               value={form.horarioPreferido ?? ''}
               onChange={(e) => setForm({ ...form, horarioPreferido: e.target.value })}
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 bg-surface"
+              className="input-modern pl-9"
             />
           </div>
         </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-sm text-txt-muted hover:text-txt transition-colors"
-        >
+        <button type="button" onClick={onCancel} className="btn-secondary">
           Cancelar
         </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
-        >
+        <button type="submit" disabled={isLoading} className="btn-primary">
           Agregar a la Lista
         </button>
       </div>

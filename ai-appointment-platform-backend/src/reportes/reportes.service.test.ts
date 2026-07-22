@@ -53,8 +53,12 @@ describe('ReportesService', () => {
 
       const csv = await service.exportCitasCSV(1, '2025-01-01', '2025-01-31');
 
-      expect(csv).toContain('ID,Fecha,Horario,Cliente,Teléfono,Servicio,Estado,Monto,Origen,Staff ID,Creado');
-      expect(csv).toContain('1,2025-01-15,10:00,Juan Pérez,+521234567890,Corte de cabello,CONFIRMADA,250,whatsapp,1,');
+      expect(csv).toContain(
+        'ID,Fecha,Horario,Cliente,Teléfono,Servicio,Estado,Monto,Origen,Staff ID,Creado',
+      );
+      expect(csv).toContain(
+        '1,2025-01-15,10:00,Juan Pérez,+521234567890,Corte de cabello,CONFIRMADA,250,whatsapp,1,',
+      );
       expect(csv).toContain('2,2025-01-15,11:00,,+520987654321,Barba,PENDIENTE,100,manual,,');
     });
   });

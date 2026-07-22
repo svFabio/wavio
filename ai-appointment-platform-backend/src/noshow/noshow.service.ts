@@ -5,7 +5,6 @@ import { NegocioRepository } from '../repositories/negocio.repository';
 
 const BLOCK_THRESHOLD = 3;
 
-
 @Injectable()
 export class NoShowService {
   private readonly logger = new Logger(NoShowService.name);
@@ -14,7 +13,6 @@ export class NoShowService {
     private readonly noShowRepository: NoShowRepository,
     private readonly negocioRepository: NegocioRepository,
   ) {}
-
 
   /**
    * Check for expired in-progress appointments and mark as no-show.
@@ -38,41 +36,35 @@ export class NoShowService {
     negocioId: number,
   ): Promise<{ success: boolean; noShowCount: number; blocked: boolean }> {
     const cita = await this.noShowRepository.findCitaById(citaId);
+    if (!cita) {
+      return { success: false, noShowCount: 0, blocked: false };
+    }
 
     // Mark as no-show
     await this.noShowRepository.markAsNoShow(citaId);
 
     // Increment client's no-show count
-    const telefono = cita?.clienteTelefono;
-    if (!telefono) {
-
-      return { success: true, noShowCount: 0, blocked: false };
-    }
-
-    const noShowCount =
-      await this.noShowRepository.incrementNoShowCount(negocioId, telefono);
+    const noShowCount = await this.noShowRepository.incrementNoShowCount(
+      negocioId,
+      cita.clienteTelefono,
+    );
 
     // Auto-block if threshold reached
     let blocked = false;
     if (noShowCount >= BLOCK_THRESHOLD) {
-      await this.noShowRepository.blockClient(negocioId, telefono);
+      await this.noShowRepository.blockClient(negocioId, cita.clienteTelefono);
       blocked = true;
-      const maskedPhone = telefono.slice(-4).padStart(telefono.length, '*');
-      this.logger.warn(
-        `Client ${maskedPhone} auto-blocked after ${noShowCount} no-shows`,
-      );
-
+      const maskedPhone = cita.clienteTelefono.slice(-4).padStart(cita.clienteTelefono.length, '*');
+      this.logger.warn(`Client ${maskedPhone} auto-blocked after ${noShowCount} no-shows`);
 
       // Notify business owner
-      await this.notifyBusinessOfBlock(negocioId, telefono, noShowCount);
+      await this.notifyBusinessOfBlock(negocioId, cita.clienteTelefono, noShowCount);
     }
 
     return { success: true, noShowCount, blocked };
   }
 
-  async getNoShowStats(
-    negocioId: number,
-  ): Promise<
+  async getNoShowStats(negocioId: number): Promise<
     Array<{
       clienteNombre: string;
       clienteTelefono: string;
@@ -83,22 +75,15 @@ export class NoShowService {
     return this.noShowRepository.getNoShowStats(negocioId);
   }
 
-
   async blockClient(negocioId: number, clienteTelefono: string): Promise<void> {
     await this.noShowRepository.blockClient(negocioId, clienteTelefono);
   }
 
-  async unblockClient(
-    negocioId: number,
-    clienteTelefono: string,
-  ): Promise<void> {
+  async unblockClient(negocioId: number, clienteTelefono: string): Promise<void> {
     await this.noShowRepository.unblockClient(negocioId, clienteTelefono);
   }
 
-  async isClientBlocked(
-    negocioId: number,
-    clienteTelefono: string,
-  ): Promise<boolean> {
+  async isClientBlocked(negocioId: number, clienteTelefono: string): Promise<boolean> {
     return this.noShowRepository.isClientBlocked(negocioId, clienteTelefono);
   }
 
@@ -108,8 +93,7 @@ export class NoShowService {
     noShowCount: number,
   ): Promise<void> {
     try {
-      const negocio =
-        await this.negocioRepository.findByIdForInternal(negocioId);
+      const negocio = await this.negocioRepository.findByIdForInternal(negocioId);
       if (!negocio?.waAccessToken || !negocio.waPhoneNumberId) return;
 
       const maskedPhone = clienteTelefono.slice(-4).padStart(clienteTelefono.length, '*');
@@ -118,12 +102,9 @@ export class NoShowService {
         `El cliente con teléfono ${maskedPhone} ha acumulado ${noShowCount} inasistencias.\n\n` +
         `Ha sido bloqueado automáticamente del sistema de agendamiento.`;
 
-
       // This would send to the business owner's WhatsApp
       // For now, just log it
-      this.logger.warn(
-        `No-show alert for business ${negocioId}: ${mensaje}`,
-      );
+      this.logger.warn(`No-show alert for business ${negocioId}: ${mensaje}`);
     } catch (error) {
       this.logger.error('Failed to send no-show alert', error);
     }

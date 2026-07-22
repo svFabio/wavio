@@ -36,7 +36,6 @@ interface DatosNuevaCita {
   staffId?: number;
 }
 
-
 interface CalendarioViewProps {
   eventos: EventoCalendario[];
   vista: View;

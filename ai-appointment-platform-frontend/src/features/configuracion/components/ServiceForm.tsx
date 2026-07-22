@@ -8,7 +8,6 @@ interface NewServiceData {
   precio: number;
 }
 
-
 interface ServiceFormProps {
   newService: NewServiceData;
   setNewService: (service: NewServiceData) => void;
@@ -38,7 +37,7 @@ export const ServiceForm = ({
             value={newService.nombre}
             onChange={(e) => setNewService({ ...newService, nombre: e.target.value })}
             placeholder="Ej. Masaje Relajante"
-            className="w-full border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+            className="input-modern"
           />
         </div>
         <div className="space-y-1.5">
@@ -47,7 +46,7 @@ export const ServiceForm = ({
             value={newService.categoria}
             onChange={(e) => setNewService({ ...newService, categoria: e.target.value })}
             placeholder="Ej. Faciales"
-            className="w-full border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+            className="input-modern"
           />
         </div>
         <div className="space-y-1.5">
@@ -63,7 +62,7 @@ export const ServiceForm = ({
               onChange={(e) =>
                 setNewService({ ...newService, duracionMinutos: Number(e.target.value) })
               }
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+              className="input-modern pl-9"
             />
           </div>
         </div>
@@ -80,7 +79,7 @@ export const ServiceForm = ({
               onChange={(e) =>
                 setNewService({ ...newService, bufferMinutos: Number(e.target.value) })
               }
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+              className="input-modern pl-9"
             />
           </div>
         </div>
@@ -98,7 +97,7 @@ export const ServiceForm = ({
                 const val = e.target.value.replace(/[^0-9]/g, '');
                 setNewService({ ...newService, precio: val ? Number(val) : 0 });
               }}
-              className="w-full border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+              className="input-modern pl-9"
             />
           </div>
         </div>
@@ -111,11 +110,7 @@ export const ServiceForm = ({
         >
           Cancelar
         </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors"
-          disabled={isLoading}
-        >
+        <button type="submit" className="btn-primary" disabled={isLoading}>
           Guardar Servicio
         </button>
       </div>

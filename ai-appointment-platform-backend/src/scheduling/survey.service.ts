@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AppointmentRepository } from '../repositories/appointment.repository';
+import { NegocioRepository } from '../repositories/negocio.repository';
 import { EventsService } from '../events/events.service';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class SurveyService {
 
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
+    private readonly negocioRepository: NegocioRepository,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -21,14 +23,13 @@ export class SurveyService {
     this.logger.debug('Checking for post-appointment surveys…');
 
     try {
-      const citas = await this.appointmentRepository.findCompletedForSurvey(
-        0,
-        24,
-      );
+      const citas = await this.appointmentRepository.findCompletedForSurvey(0, 24);
 
       for (const cita of citas) {
         if (cita.encuestaEnviada) continue;
-        if (!cita.negocio.waAccessToken || !cita.negocio.waPhoneNumberId) continue;
+
+        const waCreds = await this.negocioRepository.findByIdForInternal(cita.negocioId);
+        if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
         const nombre = cita.clienteNombre || 'Cliente';
         const mensaje =
@@ -43,10 +44,7 @@ export class SurveyService {
           `También puedes escribir un comentario.`;
 
         await this.eventsService.sendWhatsAppMessage(
-          {
-            waAccessToken: cita.negocio.waAccessToken,
-            waPhoneNumberId: cita.negocio.waPhoneNumberId,
-          },
+          { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
           cita.clienteTelefono,
           mensaje,
         );

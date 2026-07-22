@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Cita } from '../domain/types';
-import { ConflictError } from '../domain/errors';
 
 type CitaCountWhere = {
   estado?: string | { not: string } | { notIn: string[] };
@@ -107,13 +106,13 @@ export class CitasRepository {
     fecha: Date,
     horario: string,
     data: Omit<Prisma.CitaUncheckedCreateInput, 'negocioId' | 'fecha' | 'horario'>,
-  ): Promise<Cita> {
+  ): Promise<Cita | null> {
     return this.prisma.$transaction(async (tx) => {
       const occupied = await tx.cita.findFirst({
         where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' } },
       });
       if (occupied) {
-        throw new ConflictError('Este horario ya está ocupado');
+        return null;
       }
       const cita = await tx.cita.create({
         data: { ...data, negocioId, fecha, horario },
@@ -168,9 +167,7 @@ export class CitasRepository {
     return count;
   }
 
-  async findRecurringSeries(
-    recurrenceId: string,
-  ): Promise<Cita[]> {
+  async findRecurringSeries(recurrenceId: string): Promise<Cita[]> {
     const citas = await this.prisma.cita.findMany({
       where: { recurrenceId },
       orderBy: { fecha: 'asc' },

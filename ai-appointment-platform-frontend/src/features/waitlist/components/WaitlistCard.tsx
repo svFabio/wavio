@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bell, Trash2, Clock, User, Phone, Calendar } from 'lucide-react';
+import { Bell, Trash2 } from 'lucide-react';
 import type { WaitlistEntry } from '../types';
 
 const ESTADO_LABELS: Record<WaitlistEntry['estado'], string> = {
@@ -11,9 +11,9 @@ const ESTADO_LABELS: Record<WaitlistEntry['estado'], string> = {
 };
 
 const ESTADO_STYLES: Record<WaitlistEntry['estado'], string> = {
-  PENDIENTE: 'bg-warning/10 text-warning',
-  NOTIFICADA: 'bg-primary/10 text-primary',
-  CONFIRMADA: 'bg-success/10 text-success',
+  PENDIENTE: 'badge-warning',
+  NOTIFICADA: 'badge-primary',
+  CONFIRMADA: 'badge-success',
   CANCELADA: 'bg-border text-txt-muted',
 };
 
@@ -37,46 +37,24 @@ export const WaitlistCard = ({
   });
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-xl border border-border bg-surface hover:border-primary/30 transition-colors">
-      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-        <User className="w-4 h-4 text-primary" />
-      </div>
-
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-sm text-txt capitalize">{entry.clienteNombre}</p>
-          <span
-            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${ESTADO_STYLES[entry.estado]}`}
-          >
-            {ESTADO_LABELS[entry.estado]}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-txt-muted">
-          <span className="flex items-center gap-1">
-            <Phone className="w-3 h-3" />
-            {entry.clienteTelefono}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {fechaFormateada}
-          </span>
-          {entry.horarioPreferido && (
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {entry.horarioPreferido}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex gap-2 shrink-0">
+    <tr className="border-t border-border-light hover:bg-surface-alt/50 transition-colors">
+      <td className="py-3 px-4 text-sm font-medium text-txt capitalize">{entry.clienteNombre}</td>
+      <td className="py-3 px-4 text-sm text-txt-secondary">{entry.clienteTelefono}</td>
+      <td className="py-3 px-4 text-sm text-txt-secondary">
+        {fechaFormateada} {entry.horarioPreferido ? ` a las ${entry.horarioPreferido}` : ''}
+      </td>
+      <td className="py-3 px-4">
+        <span className={`badge ${ESTADO_STYLES[entry.estado]}`}>
+          {ESTADO_LABELS[entry.estado]}
+        </span>
+      </td>
+      <td className="py-3 px-4 text-right">
         {entry.estado === 'PENDIENTE' && (
           <button
             onClick={() => onNotify(entry.id)}
             disabled={isNotifying}
             title="Notificar por WhatsApp"
-            className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50"
+            className="text-primary hover:text-primary-dark mr-3 disabled:opacity-50"
           >
             <Bell className="w-4 h-4" />
           </button>
@@ -85,11 +63,11 @@ export const WaitlistCard = ({
           onClick={() => onRemove(entry.id)}
           disabled={isRemoving}
           title="Eliminar"
-          className="p-2 text-txt-muted hover:text-danger hover:bg-danger-light rounded-lg transition-colors disabled:opacity-50"
+          className="text-danger hover:text-danger/80 disabled:opacity-50 inline-block"
         >
           <Trash2 className="w-4 h-4" />
         </button>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 };
