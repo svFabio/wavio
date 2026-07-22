@@ -23,5 +23,10 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.9.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion": "^2.0.1"
+    }
   }
 }

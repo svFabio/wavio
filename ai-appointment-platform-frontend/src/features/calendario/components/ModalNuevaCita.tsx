@@ -32,7 +32,6 @@ interface DatosNuevaCita {
   recurrenceEnd?: string;
 }
 
-
 interface ModalNuevaCitaProps {
   isOpen: boolean;
   onClose: () => void;
@@ -75,7 +74,6 @@ export const ModalNuevaCita = ({
     queryKey: ['configuracion'],
     queryFn: api.getConfiguracion,
   });
-
 
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
     useHorariosDisponiblesQuery(formData.fecha, isOpen && !!formData.fecha, formData.servicioId);
@@ -144,7 +142,6 @@ export const ModalNuevaCita = ({
     } else {
       setError(result.error || 'Error al crear la cita');
     }
-
   };
 
   const handleClose = () => {
@@ -162,7 +159,6 @@ export const ModalNuevaCita = ({
     });
     onClose();
   };
-
 
   const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value.replace(/\D/g, '');
@@ -322,7 +318,12 @@ export const ModalNuevaCita = ({
                     esRecurrente: e.target.checked,
                     recurrence: e.target.checked ? 'weekly' : undefined,
                     recurrenceEnd: e.target.checked
-                      ? format(new Date(new Date(prev.fecha).setMonth(new Date(prev.fecha).getMonth() + 1)), 'yyyy-MM-dd')
+                      ? format(
+                          new Date(
+                            new Date(prev.fecha).setMonth(new Date(prev.fecha).getMonth() + 1),
+                          ),
+                          'yyyy-MM-dd',
+                        )
                       : undefined,
                   }))
                 }
@@ -340,7 +341,7 @@ export const ModalNuevaCita = ({
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        recurrence: e.target.value as any,
+                        recurrence: e.target.value as 'weekly' | 'biweekly' | 'monthly',
                       }))
                     }
                     className="input-modern appearance-none bg-surface"

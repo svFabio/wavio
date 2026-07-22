@@ -45,7 +45,6 @@ export const ServiciosTab = ({
     setIsAdding(false);
   };
 
-
   const formatDuration = (minutos: number) => {
     const h = Math.floor(minutos / 60);
     const m = minutos % 60;
@@ -97,7 +96,9 @@ export const ServiciosTab = ({
               {} as Record<string, Servicio[]>,
             ),
           )
-            .sort(([a], [b]) => (a === 'Sin categoría' ? 1 : b === 'Sin categoría' ? -1 : a.localeCompare(b)))
+            .sort(([a], [b]) =>
+              a === 'Sin categoría' ? 1 : b === 'Sin categoría' ? -1 : a.localeCompare(b),
+            )
             .map(([categoria, svcs]) => (
               <div key={categoria} className="space-y-3">
                 <h3 className="text-sm font-semibold text-txt border-b border-border-light pb-2">

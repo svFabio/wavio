@@ -47,7 +47,9 @@ export const WaitlistView = ({
           <div>
             <h2 className="text-lg font-bold text-txt">Lista de Espera</h2>
             <p className="text-sm text-txt-muted mt-1">
-              {pendientes > 0 ? `${pendientes} clientes esperando disponibilidad` : 'Sin clientes en espera'}
+              {pendientes > 0
+                ? `${pendientes} clientes esperando disponibilidad`
+                : 'Sin clientes en espera'}
             </p>
           </div>
           <button onClick={onToggleForm} className="btn-primary">
@@ -59,9 +61,7 @@ export const WaitlistView = ({
 
       <div className="p-5 md:p-6 space-y-4">
         {/* Form */}
-        {isAdding && (
-          <WaitlistForm onSubmit={onAdd} onCancel={onToggleForm} isLoading={false} />
-        )}
+        {isAdding && <WaitlistForm onSubmit={onAdd} onCancel={onToggleForm} isLoading={false} />}
 
         {/* Error */}
         {error && (
@@ -97,7 +97,9 @@ export const WaitlistView = ({
           <div className="text-center py-12 space-y-2">
             <Users className="w-10 h-10 text-border mx-auto" />
             <p className="text-sm text-txt-muted">
-              {filterEstado === 'TODOS' ? 'No hay entradas en la lista.' : 'No hay entradas en este estado.'}
+              {filterEstado === 'TODOS'
+                ? 'No hay entradas en la lista.'
+                : 'No hay entradas en este estado.'}
             </p>
           </div>
         ) : (

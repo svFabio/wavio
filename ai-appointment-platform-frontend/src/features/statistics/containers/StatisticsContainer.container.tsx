@@ -24,11 +24,6 @@ export const StatisticsContainer = () => {
   const clientes = clientesQuery.data ?? [];
 
   return (
-    <StatisticsView
-      overview={overview}
-      revenue={revenue}
-      loading={loading}
-      clientes={clientes}
-    />
+    <StatisticsView overview={overview} revenue={revenue} loading={loading} clientes={clientes} />
   );
 };

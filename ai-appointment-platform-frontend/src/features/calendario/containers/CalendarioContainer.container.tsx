@@ -16,12 +16,12 @@ import { CalendarioSkeleton } from '../../../shared/components/skeletons/Calenda
 function calcularFechasRecurrentes(
   fechaInicio: string,
   frecuencia: 'weekly' | 'biweekly' | 'monthly',
-  fechaFin: string
+  fechaFin: string,
 ): string[] {
   const fechas: string[] = [];
   let current = new Date(`${fechaInicio}T00:00:00`);
   const end = new Date(`${fechaFin}T23:59:59`);
-  
+
   while (current <= end) {
     fechas.push(format(current, 'yyyy-MM-dd'));
     if (frecuencia === 'weekly') current = addWeeks(current, 1);
@@ -244,7 +244,6 @@ export const CalendarioContainer = () => {
     },
     [crearCita],
   );
-
 
   const handleCerrarReprogramar = useCallback(() => setModalReprogramar({ isOpen: false }), []);
 
