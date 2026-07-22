@@ -17,10 +17,9 @@ export class WaitlistController {
   }
 
   @Post('/')
-  @UsePipes(new ZodValidationPipe(addToWaitlistSchema))
   async add(
     @TenantId() negocioId: number,
-    @Body()
+    @Body(new ZodValidationPipe(addToWaitlistSchema))
     body: {
       clienteNombre: string;
       clienteTelefono: string;
