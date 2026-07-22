@@ -64,10 +64,7 @@ export class ServiciosRepository {
     return record as unknown as Servicio;
   }
 
-  async findByCategoria(
-    negocioId: number,
-    categoria: string,
-  ): Promise<Servicio[]> {
+  async findByCategoria(negocioId: number, categoria: string): Promise<Servicio[]> {
     const records = await this.prisma.servicio.findMany({
       where: { negocioId, activo: true, categoria },
       orderBy: { nombre: 'asc' },
@@ -75,9 +72,7 @@ export class ServiciosRepository {
     return records as unknown as Servicio[];
   }
 
-  async getCategorias(
-    negocioId: number,
-  ): Promise<Array<{ categoria: string; count: number }>> {
+  async getCategorias(negocioId: number): Promise<Array<{ categoria: string; count: number }>> {
     const results = await this.prisma.servicio.groupBy({
       by: ['categoria'],
       where: { negocioId, activo: true },
@@ -90,9 +85,7 @@ export class ServiciosRepository {
     }));
   }
 
-  async findAllByCategoria(
-    negocioId: number,
-  ): Promise<
+  async findAllByCategoria(negocioId: number): Promise<
     Array<{
       categoria: string;
       servicios: Servicio[];

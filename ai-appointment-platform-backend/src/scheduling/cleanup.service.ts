@@ -21,20 +21,15 @@ export class CleanupService {
     try {
       const limiteTiempo = new Date(Date.now() - EXPIRY_MINUTES * 60 * 1000);
 
-      const sessionCount =
-        await this.cleanupRepository.deleteInactiveSessions(limiteTiempo);
+      const sessionCount = await this.cleanupRepository.deleteInactiveSessions(limiteTiempo);
       if (sessionCount > 0) {
         this.logger.log(`Deleted ${sessionCount} inactive chat sessions`);
       }
 
       const citaCount =
-        await this.cleanupRepository.cancelExpiredInProgressAppointments(
-          limiteTiempo,
-        );
+        await this.cleanupRepository.cancelExpiredInProgressAppointments(limiteTiempo);
       if (citaCount > 0) {
-        this.logger.log(
-          `Cancelled ${citaCount} expired in-progress appointments`,
-        );
+        this.logger.log(`Cancelled ${citaCount} expired in-progress appointments`);
       }
     } catch (error) {
       this.logger.error('Cleanup cron failed', error);

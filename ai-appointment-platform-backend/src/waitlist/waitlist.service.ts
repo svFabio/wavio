@@ -36,14 +36,8 @@ export class WaitlistService {
     };
   }
 
-  async notifyAvailableSlot(
-    negocioId: number,
-    fecha: Date,
-  ): Promise<number> {
-    const pendingEntries = await this.waitlistRepository.getPendingForDate(
-      negocioId,
-      fecha,
-    );
+  async notifyAvailableSlot(negocioId: number, fecha: Date): Promise<number> {
+    const pendingEntries = await this.waitlistRepository.getPendingForDate(negocioId, fecha);
 
     if (pendingEntries.length === 0) return 0;
 
@@ -72,9 +66,7 @@ export class WaitlistService {
         await this.waitlistRepository.markNotified(entry.id);
         notified++;
       } catch (error) {
-        this.logger.error(
-          `Failed to notify waitlist entry ${entry.id}: ${error}`,
-        );
+        this.logger.error(`Failed to notify waitlist entry ${entry.id}: ${error}`);
       }
     }
 
@@ -82,7 +74,7 @@ export class WaitlistService {
     return notified;
   }
 
-  async getAll(negocioId: number) {
+  async getAll(negocioId: number): Promise<unknown[]> {
     return this.waitlistRepository.getAll(negocioId);
   }
 

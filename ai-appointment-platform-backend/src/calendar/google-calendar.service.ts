@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { google } from 'googleapis';
 import { env } from '../config/env';
-import { PrismaService } from '../prisma/prisma.service';
+import { CalendarRepository } from '../repositories/calendar.repository';
 import type { Cita } from '../domain/types';
 import { ExternalServiceError, NotFoundError } from '../domain/errors';
 
@@ -9,7 +9,7 @@ import { ExternalServiceError, NotFoundError } from '../domain/errors';
 export class GoogleCalendarService {
   private readonly logger = new Logger(GoogleCalendarService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly calendarRepository: CalendarRepository) {}
 
   getAuthUrl(negocioId: number): string {
     const oauth2Client = new google.auth.OAuth2(
@@ -40,22 +40,20 @@ export class GoogleCalendarService {
     const calendarList = await calendar.calendarList.list();
     const calendarId = calendarList.data.items?.[0]?.id ?? 'primary';
 
-    await this.prisma.negocio.update({
-      where: { id: negocioId },
-      data: {
-        googleCalendarAccessToken: tokens.access_token ?? '',
-        googleCalendarRefreshToken: tokens.refresh_token ?? '',
-        googleCalendarId: calendarId,
-        isGoogleCalendarConnected: true,
-      },
+    await this.calendarRepository.saveCalendarTokens(negocioId, {
+      accessToken: tokens.access_token ?? '',
+      refreshToken: tokens.refresh_token ?? '',
+      calendarId,
     });
 
-    this.logger.log(`Google Calendar connected for negocio ${negocioId}, calendarId: ${calendarId}`);
+    this.logger.log(
+      `Google Calendar connected for negocio ${negocioId}, calendarId: ${calendarId}`,
+    );
     return { calendarId };
   }
 
   async createEvent(negocioId: number, cita: Cita): Promise<string | null> {
-    const negocio = await this.getCalendarCredentials(negocioId);
+    const credentials = await this.getCredentials(negocioId);
 
     const oauth2Client = new google.auth.OAuth2(
       env.GOOGLE_CALENDAR_CLIENT_ID,
@@ -64,8 +62,8 @@ export class GoogleCalendarService {
     );
 
     oauth2Client.setCredentials({
-      access_token: negocio.googleCalendarAccessToken,
-      refresh_token: negocio.googleCalendarRefreshToken,
+      access_token: credentials.googleCalendarAccessToken,
+      refresh_token: credentials.googleCalendarRefreshToken,
     });
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
@@ -78,7 +76,7 @@ export class GoogleCalendarService {
     endDate.setMinutes(endDate.getMinutes() + (cita.duracionMinutos || 60));
 
     const event = await calendar.events.insert({
-      calendarId: negocio.googleCalendarId!,
+      calendarId: credentials.googleCalendarId!,
       requestBody: {
         summary: `${cita.servicio} — ${cita.clienteNombre ?? cita.clienteTelefono}`,
         description: [
@@ -103,7 +101,7 @@ export class GoogleCalendarService {
   }
 
   async deleteEvent(negocioId: number, googleEventId: string): Promise<boolean> {
-    const negocio = await this.getCalendarCredentials(negocioId);
+    const credentials = await this.getCredentials(negocioId);
 
     const oauth2Client = new google.auth.OAuth2(
       env.GOOGLE_CALENDAR_CLIENT_ID,
@@ -112,14 +110,14 @@ export class GoogleCalendarService {
     );
 
     oauth2Client.setCredentials({
-      access_token: negocio.googleCalendarAccessToken,
-      refresh_token: negocio.googleCalendarRefreshToken,
+      access_token: credentials.googleCalendarAccessToken,
+      refresh_token: credentials.googleCalendarRefreshToken,
     });
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
     await calendar.events.delete({
-      calendarId: negocio.googleCalendarId!,
+      calendarId: credentials.googleCalendarId!,
       eventId: googleEventId,
     });
 
@@ -128,41 +126,20 @@ export class GoogleCalendarService {
   }
 
   async disconnect(negocioId: number): Promise<void> {
-    await this.prisma.negocio.update({
-      where: { id: negocioId },
-      data: {
-        googleCalendarAccessToken: null,
-        googleCalendarRefreshToken: null,
-        googleCalendarId: null,
-        isGoogleCalendarConnected: false,
-      },
-    });
-
+    await this.calendarRepository.clearCalendarTokens(negocioId);
     this.logger.log(`Google Calendar disconnected for negocio ${negocioId}`);
   }
 
   async isConnected(negocioId: number): Promise<boolean> {
-    const negocio = await this.prisma.negocio.findUnique({
-      where: { id: negocioId },
-      select: { isGoogleCalendarConnected: true },
-    });
-    return negocio?.isGoogleCalendarConnected ?? false;
+    return this.calendarRepository.isConnected(negocioId);
   }
 
-  private async getCalendarCredentials(negocioId: number): Promise<{
+  private async getCredentials(negocioId: number): Promise<{
     googleCalendarAccessToken: string;
     googleCalendarRefreshToken: string;
     googleCalendarId: string;
   }> {
-    const negocio = await this.prisma.negocio.findUnique({
-      where: { id: negocioId },
-      select: {
-        googleCalendarAccessToken: true,
-        googleCalendarRefreshToken: true,
-        googleCalendarId: true,
-        isGoogleCalendarConnected: true,
-      },
-    });
+    const negocio = await this.calendarRepository.getCalendarCredentials(negocioId);
 
     if (!negocio) throw new NotFoundError('Negocio');
     if (!negocio.isGoogleCalendarConnected || !negocio.googleCalendarRefreshToken) {

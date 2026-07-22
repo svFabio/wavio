@@ -9,5 +9,3 @@ import { NegocioModule } from '../negocio/negocio.module';
   exports: [NoShowService],
 })
 export class NoShowModule {}
-
-

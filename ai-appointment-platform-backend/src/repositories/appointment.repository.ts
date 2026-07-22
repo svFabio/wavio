@@ -19,10 +19,7 @@ export class AppointmentRepository {
       servicio: string;
       recordatorio24h: boolean;
       recordatorio1h: boolean;
-      negocio: {
-        waAccessToken: string | null;
-        waPhoneNumberId: string | null;
-      };
+      negocioId: number;
     }>
   > {
     const ahora = new Date();
@@ -44,20 +41,12 @@ export class AppointmentRepository {
         servicio: true,
         recordatorio24h: true,
         recordatorio1h: true,
-        negocio: {
-          select: {
-            waAccessToken: true,
-            waPhoneNumberId: true,
-          },
-        },
+        negocioId: true,
       },
     });
   }
 
-  async markReminderSent(
-    citaId: number,
-    tipo: '24h' | '1h',
-  ): Promise<void> {
+  async markReminderSent(citaId: number, tipo: '24h' | '1h'): Promise<void> {
     const field = tipo === '24h' ? 'recordatorio24h' : 'recordatorio1h';
     await this.prisma.cita.update({
       where: { id: citaId },
@@ -74,10 +63,7 @@ export class AppointmentRepository {
       clienteNombre: string | null;
       clienteTelefono: string;
       encuestaEnviada: boolean;
-      negocio: {
-        waAccessToken: string | null;
-        waPhoneNumberId: string | null;
-      };
+      negocioId: number;
     }>
   > {
     const ahora = new Date();
@@ -95,12 +81,7 @@ export class AppointmentRepository {
         clienteNombre: true,
         clienteTelefono: true,
         encuestaEnviada: true,
-        negocio: {
-          select: {
-            waAccessToken: true,
-            waPhoneNumberId: true,
-          },
-        },
+        negocioId: true,
       },
     });
   }

@@ -12,19 +12,14 @@ export class NoShowRepository {
     });
   }
 
-  async findCitaById(
-    citaId: number,
-  ): Promise<{ clienteTelefono: string } | null> {
+  async findCitaById(citaId: number): Promise<{ clienteTelefono: string } | null> {
     return this.prisma.cita.findUnique({
       where: { id: citaId },
       select: { clienteTelefono: true },
     });
   }
 
-  async incrementNoShowCount(
-    negocioId: number,
-    clienteTelefono: string,
-  ): Promise<number> {
+  async incrementNoShowCount(negocioId: number, clienteTelefono: string): Promise<number> {
     const cliente = await this.prisma.cliente.findFirst({
       where: { negocioId, telefono: clienteTelefono },
     });
@@ -39,9 +34,7 @@ export class NoShowRepository {
     return updated.noShowCount;
   }
 
-  async getNoShowStats(
-    negocioId: number,
-  ): Promise<
+  async getNoShowStats(negocioId: number): Promise<
     Array<{
       clienteNombre: string;
       clienteTelefono: string;
