@@ -39,6 +39,12 @@ model Negocio {
   waAppId         String?
   isWaConnected   Boolean @default(false)
 
+  // ─── GOOGLE CALENDAR FIELDS ───
+  googleCalendarAccessToken  String?
+  googleCalendarRefreshToken String?
+  googleCalendarId           String?
+  isGoogleCalendarConnected  Boolean @default(false)
+
   creadoEn DateTime @default(now())
 
   usuarioNegocios    UsuarioNegocio[]
@@ -50,6 +56,8 @@ model Negocio {
   horariosNegocio    HorarioNegocio[]
   horariosEspeciales HorarioEspecial[]
   clientes           Cliente[]
+  listaEspera        ListaEspera[]
+  pushSubscriptions  PushSubscription[]
 }
 
 // ─── USUARIO-NEGOCIO (M:N junction) ──────────────────────────────────────────
@@ -104,6 +112,7 @@ model Servicio {
   id              Int      @id @default(autoincrement())
   negocioId       Int
   nombre          String
+  categoria       String? // e.g., "Masajes", "Faciales", "Depilación"
   duracionMinutos Int      @default(60)
   bufferMinutos   Int      @default(10)
   precio          Float    @default(0)
@@ -165,12 +174,18 @@ model HorarioEspecial {
 
 // ─── CLIENTE ──────────────────────────────────────────────────────────────────
 model Cliente {
-  id        Int      @id @default(autoincrement())
-  negocioId Int
-  nombre    String
-  telefono  String
-  email     String?
-  notas     String?
+  id          Int     @id @default(autoincrement())
+  negocioId   Int
+  nombre      String
+  telefono    String
+  email       String?
+  notas       String?
+  noShowCount Int     @default(0)
+  blocked     Boolean @default(false)
+
+  magicToken      String?   @unique
+  magicLinkExpiry DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -205,12 +220,18 @@ model Cita {
   comentario      String?
   creadoEn        DateTime @default(now())
 
+  // ─── RECURRENCE FIELDS ───
+  recurrence    String? // none, weekly, biweekly, monthly
+  recurrenceId  String? // groups all instances of a recurring series
+  recurrenceEnd DateTime? // when to stop generating instances
+
   negocioId   Int
   negocio     Negocio   @relation(fields: [negocioId], references: [id], onDelete: Cascade)
   servicioRef Servicio? @relation(fields: [servicioId], references: [id])
   staff       Usuario?  @relation("StaffCitas", fields: [staffId], references: [id])
 
   @@index([negocioId, fecha, estado])
+  @@index([recurrenceId])
 }
 
 // ─── HISTORIAL DE MENSAJES ───────────────────────────────────────────────────
@@ -246,4 +267,39 @@ model Configuracion {
 
   negocioId Int     @unique
   negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+}
+
+// ─── LISTA DE ESPERA ─────────────────────────────────────────────────────────
+model ListaEspera {
+  id               Int       @id @default(autoincrement())
+  clienteNombre    String
+  clienteTelefono  String
+  servicioId       Int?
+  fechaPreferida   DateTime
+  horarioPreferido String?
+  estado           String    @default("PENDIENTE") // PENDIENTE, NOTIFICADA, CONFIRMADA, CANCELADA
+  notificadoEn     DateTime?
+  creadoEn         DateTime  @default(now())
+
+  negocioId Int
+  negocio   Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@index([negocioId, estado, fechaPreferida])
+}
+
+// ─── PUSH SUBSCRIPTION ─────────────────────────────────────────────────────
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  endpoint  String
+  p256dh    String
+  auth      String
+  negocioId Int
+  userId    Int?
+  createdAt DateTime @default(now())
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([endpoint])
+  @@index([negocioId])
+  @@index([userId])
 }

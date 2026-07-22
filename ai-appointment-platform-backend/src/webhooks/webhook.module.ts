@@ -9,10 +9,11 @@ import { ChatModule } from '../chat/chat.module';
 import { NegocioModule } from '../negocio/negocio.module';
 import { ServiciosModule } from '../servicios/servicios.module';
 import { CitasModule } from '../citas/citas.module';
+import { SesionChatRepository } from '../repositories/sesion-chat.repository';
 
 @Module({
   imports: [PrismaModule, AppConfigModule, ChatModule, NegocioModule, ServiciosModule, CitasModule],
   controllers: [WhatsAppController, WhatsAppStatusController, StripeController],
-  providers: [WebhookService],
+  providers: [WebhookService, SesionChatRepository],
 })
 export class WebhookModule {}

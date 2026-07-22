@@ -5,6 +5,7 @@ export type { ChatFlowStep };
 export interface Servicio {
   id: number;
   nombre: string;
+  categoria?: string;
   duracionMinutos: number;
   bufferMinutos: number;
   precio: number;

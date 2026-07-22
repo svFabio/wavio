@@ -45,6 +45,7 @@ export const ConfiguracionContainer = () => {
   const addServicioMutation = useMutation({
     mutationFn: (data: {
       nombre: string;
+      categoria?: string;
       duracionMinutos: number;
       bufferMinutos: number;
       precio: number;
@@ -103,19 +104,27 @@ export const ConfiguracionContainer = () => {
   return (
     <ErrorBoundary>
       <ConfiguracionView
-        loading={isLoading}
-        error={displayError}
-        servicios={serviciosData || []}
-        onAddServicio={(data) => addServicioMutation.mutate(data)}
-        onUpdateServicio={(id, data) => updateServicioMutation.mutate({ id, data })}
-        onDeleteServicio={(id) => deleteServicioMutation.mutate(id)}
-        horarios={horariosData || []}
-        onSaveHorarios={(horarios) => saveHorariosMutation.mutate(horarios)}
-        isHorariosSaving={saveHorariosMutation.isPending}
-        horariosEspeciales={horariosEspecialesData || []}
-        onCreateHorarioEspecial={(data) => createHorarioEspecialMutation.mutate(data)}
-        onDeleteHorarioEspecial={(id) => deleteHorarioEspecialMutation.mutate(id)}
-        isPendingAny={isPending}
+        ui={{
+          loading: isLoading,
+          error: displayError,
+          isPendingAny: isPending,
+        }}
+        serviciosHandlers={{
+          servicios: serviciosData || [],
+          onAdd: (data) => addServicioMutation.mutate(data),
+          onUpdate: (id, data) => updateServicioMutation.mutate({ id, data }),
+          onDelete: (id) => deleteServicioMutation.mutate(id),
+        }}
+        horariosHandlers={{
+          horarios: horariosData || [],
+          onSave: (horarios) => saveHorariosMutation.mutate(horarios),
+          isSaving: saveHorariosMutation.isPending,
+        }}
+        horariosEspecialesHandlers={{
+          horariosEspeciales: horariosEspecialesData || [],
+          onCreate: (data) => createHorarioEspecialMutation.mutate(data),
+          onDelete: (id) => deleteHorarioEspecialMutation.mutate(id),
+        }}
       />
     </ErrorBoundary>
   );

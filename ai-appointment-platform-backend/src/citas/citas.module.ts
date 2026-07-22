@@ -18,6 +18,6 @@ import { EventsModule } from '../events/events.module';
     // ChatRepository provided via ChatModule export — kept here for CitasService injection
     ChatRepository,
   ],
-  exports: [CitasService, AvailabilityRepository],
+  exports: [CitasService, CitasRepository, AvailabilityRepository],
 })
 export class CitasModule {}

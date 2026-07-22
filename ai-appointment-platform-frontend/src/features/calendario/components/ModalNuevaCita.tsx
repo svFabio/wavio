@@ -13,7 +13,10 @@ import {
   Loader2,
   AlertCircle,
   Scissors,
+  UserCheck,
+  Repeat,
 } from 'lucide-react';
+
 import { HorariosGrid } from './HorariosGrid';
 import { ResumenPrecio } from './ResumenPrecio';
 
@@ -23,7 +26,12 @@ interface DatosNuevaCita {
   fecha: string;
   horario: string;
   servicioId?: number;
+  staffId?: number;
+  esRecurrente?: boolean;
+  recurrence?: 'weekly' | 'biweekly' | 'monthly';
+  recurrenceEnd?: string;
 }
+
 
 interface ModalNuevaCitaProps {
   isOpen: boolean;
@@ -44,7 +52,9 @@ export const ModalNuevaCita = ({
     fecha: fechaInicial ? format(fechaInicial, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     horario: '',
     servicioId: undefined,
+    staffId: undefined,
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,10 +66,16 @@ export const ModalNuevaCita = ({
     queryFn: api.getServicios,
   });
 
+  const { data: staffList = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: api.getUsers,
+  });
+
   const { data: config } = useQuery({
     queryKey: ['configuracion'],
     queryFn: api.getConfiguracion,
   });
+
 
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
     useHorariosDisponiblesQuery(formData.fecha, isOpen && !!formData.fecha, formData.servicioId);
@@ -119,11 +135,16 @@ export const ModalNuevaCita = ({
         fecha: format(new Date(), 'yyyy-MM-dd'),
         horario: '',
         servicioId: servicios[0]?.id,
+        staffId: undefined,
+        esRecurrente: false,
+        recurrence: undefined,
+        recurrenceEnd: undefined,
       });
       onClose();
     } else {
       setError(result.error || 'Error al crear la cita');
     }
+
   };
 
   const handleClose = () => {
@@ -134,9 +155,14 @@ export const ModalNuevaCita = ({
       fecha: format(new Date(), 'yyyy-MM-dd'),
       horario: '',
       servicioId: servicios[0]?.id,
+      staffId: undefined,
+      esRecurrente: false,
+      recurrence: undefined,
+      recurrenceEnd: undefined,
     });
     onClose();
   };
+
 
   const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value.replace(/\D/g, '');
@@ -153,7 +179,7 @@ export const ModalNuevaCita = ({
         aria-modal="true"
         aria-label="Nueva cita"
         onKeyDown={handleKeyDown}
-        className="card-modern w-full max-w-md overflow-hidden animate-modal-pop shadow-2xl"
+        className={`card-modern w-full overflow-hidden animate-modal-pop shadow-2xl transition-all duration-300 ${formData.esRecurrente ? 'max-w-lg' : 'max-w-md'}`}
       >
         <div className="flex items-center justify-between p-4 border-b border-border bg-surface-elevated/30">
           <h3 className="font-bold text-lg text-txt flex items-center gap-2">
@@ -249,6 +275,32 @@ export const ModalNuevaCita = ({
             <ResumenPrecio servicioId={formData.servicioId} servicios={servicios} config={config} />
           </div>
 
+          {staffList.length > 1 && (
+            <div>
+              <label className="block text-sm font-semibold text-txt mb-1.5">Asignar Staff</label>
+              <div className="relative">
+                <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt-muted" />
+                <select
+                  value={formData.staffId ?? ''}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      staffId: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="input-modern pl-10 appearance-none bg-surface"
+                >
+                  <option value="">Sin asignar</option>
+                  {staffList.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre} ({u.rol})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-semibold text-txt mb-1.5">Horario *</label>
             <HorariosGrid
@@ -257,6 +309,61 @@ export const ModalNuevaCita = ({
               onSelect={(h) => setFormData((prev) => ({ ...prev, horario: h }))}
               loading={loadingHorarios}
             />
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <label className="flex items-center gap-2 cursor-pointer w-max">
+              <input
+                type="checkbox"
+                checked={!!formData.esRecurrente}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    esRecurrente: e.target.checked,
+                    recurrence: e.target.checked ? 'weekly' : undefined,
+                    recurrenceEnd: e.target.checked
+                      ? format(new Date(new Date(prev.fecha).setMonth(new Date(prev.fecha).getMonth() + 1)), 'yyyy-MM-dd')
+                      : undefined,
+                  }))
+                }
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-semibold text-txt">Repetir cita</span>
+              <Repeat className="w-4 h-4 text-txt-muted" />
+            </label>
+
+            {formData.esRecurrente && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <select
+                    value={formData.recurrence || 'weekly'}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        recurrence: e.target.value as any,
+                      }))
+                    }
+                    className="input-modern appearance-none bg-surface"
+                  >
+                    <option value="weekly">Semanal</option>
+                    <option value="biweekly">Quincenal</option>
+                    <option value="monthly">Mensual</option>
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="date"
+                    required={formData.esRecurrente}
+                    value={formData.recurrenceEnd || ''}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, recurrenceEnd: e.target.value }))
+                    }
+                    min={formData.fecha}
+                    className="input-modern"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-border">

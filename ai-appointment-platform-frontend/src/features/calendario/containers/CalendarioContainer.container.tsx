@@ -3,15 +3,33 @@ import { useCitasQuery } from '../api/useCitasQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
-import { format } from 'date-fns';
+import { format, addWeeks, addMonths } from 'date-fns';
 import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
 import { useActualizarDescripcionMutation } from '../api/useActualizarDescripcionMutation';
 import { useCrearCitaMutation } from '../api/useCrearCitaMutation';
 import { useReprogramarCitaMutation } from '../api/useReprogramarCitaMutation';
-import { useMarcarAsistenciaMutation } from '../api/useMarcarAsistenciaMutation';
+import { useMarkNoShowMutation, useMarkAsistioMutation } from '../api/useNoShow';
 import type { EventoCalendario } from '../types';
 import { CalendarioView } from '../components/CalendarioView';
 import { CalendarioSkeleton } from '../../../shared/components/skeletons/CalendarioSkeleton';
+
+function calcularFechasRecurrentes(
+  fechaInicio: string,
+  frecuencia: 'weekly' | 'biweekly' | 'monthly',
+  fechaFin: string
+): string[] {
+  const fechas: string[] = [];
+  let current = new Date(`${fechaInicio}T00:00:00`);
+  const end = new Date(`${fechaFin}T23:59:59`);
+  
+  while (current <= end) {
+    fechas.push(format(current, 'yyyy-MM-dd'));
+    if (frecuencia === 'weekly') current = addWeeks(current, 1);
+    else if (frecuencia === 'biweekly') current = addWeeks(current, 2);
+    else current = addMonths(current, 1);
+  }
+  return fechas;
+}
 
 export const CalendarioContainer = () => {
   const { data: dataRaw = [], isLoading: loading } = useCitasQuery();
@@ -20,7 +38,8 @@ export const CalendarioContainer = () => {
   const actualizarDesc = useActualizarDescripcionMutation();
   const crearCita = useCrearCitaMutation();
   const reprogramarCita = useReprogramarCitaMutation();
-  const marcarAsistencia = useMarcarAsistenciaMutation();
+  const markNoShow = useMarkNoShowMutation();
+  const markAsistio = useMarkAsistioMutation();
 
   const [fecha, setFecha] = useState(new Date());
   const [vista, setVista] = useState<View>(Views.MONTH);
@@ -164,9 +183,13 @@ export const CalendarioContainer = () => {
     const citaId = citaSeleccionada?.resource?.citaId;
     if (!citaId) return;
     const esNoAsistio = citaSeleccionada?.resource?.estado === 'NO_ASISTIO';
-    await marcarAsistencia.mutateAsync({ citaId, noAsistio: !esNoAsistio });
+    if (esNoAsistio) {
+      await markAsistio.mutateAsync(citaId);
+    } else {
+      await markNoShow.mutateAsync(citaId);
+    }
     setCitaSeleccionada(null);
-  }, [citaSeleccionada, marcarAsistencia]);
+  }, [citaSeleccionada, markNoShow, markAsistio]);
 
   const handleNuevaCita = useCallback(() => setModalNuevaCita({ isOpen: true }), []);
 
@@ -193,12 +216,35 @@ export const CalendarioContainer = () => {
       clienteTelefono: string;
       fecha: string;
       horario: string;
+      servicioId?: number;
+      staffId?: number;
+      esRecurrente?: boolean;
+      recurrence?: 'weekly' | 'biweekly' | 'monthly';
+      recurrenceEnd?: string;
     }) => {
-      const result = await crearCita.mutateAsync(data);
+      const { esRecurrente, recurrence, recurrenceEnd, ...baseData } = data;
+
+      if (esRecurrente && recurrence && recurrenceEnd) {
+        const fechas = calcularFechasRecurrentes(data.fecha, recurrence, recurrenceEnd);
+        let errors = 0;
+
+        for (const fecha of fechas) {
+          const result = await crearCita.mutateAsync({ ...baseData, fecha });
+          if (!result.success) errors++;
+        }
+
+        if (errors > 0) {
+          return { success: false, error: `Error al crear ${errors} cita(s) recurrente(s)` };
+        }
+        return { success: true };
+      }
+
+      const result = await crearCita.mutateAsync(baseData);
       return { success: result.success, error: result.error };
     },
     [crearCita],
   );
+
 
   const handleCerrarReprogramar = useCallback(() => setModalReprogramar({ isOpen: false }), []);
 
@@ -231,6 +277,7 @@ export const CalendarioContainer = () => {
       onReprogramarDesdeDetalle={handleReprogramarDesdeDetalle}
       onNoAsistio={handleNoAsistio}
       onGuardarDescripcion={handleGuardarDescripcion}
+      isLoadingNoShow={markNoShow.isPending || markAsistio.isPending}
       modalNuevaCitaAbierto={modalNuevaCita.isOpen}
       fechaInicialNuevaCita={modalNuevaCita.fecha}
       onCerrarNuevaCita={handleCerrarNuevaCita}

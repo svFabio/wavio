@@ -8,7 +8,9 @@ interface CrearCitaParams {
   fecha: string;
   horario: string;
   servicioId?: number;
+  staffId?: number;
 }
+
 
 export function useCrearCitaMutation(): UseMutationResult<
   { success: boolean; error?: string },

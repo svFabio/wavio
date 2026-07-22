@@ -35,6 +35,18 @@ export interface Horario {
   disponible: boolean;
 }
 
+export interface Cliente {
+  id: number;
+  nombre: string;
+  telefono: string;
+  email?: string | null;
+  notas?: string | null;
+  noShowCount: number;
+  blocked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface MensajeChat {
   id: number;
   remoteJid: string;

@@ -13,9 +13,22 @@ export const StatisticsContainer = () => {
     queryFn: () => api.getStatisticsRevenue(6),
   });
 
+  const clientesQuery = useQuery({
+    queryKey: ['clientes'],
+    queryFn: () => api.getClientes(),
+  });
+
   const loading = overviewQuery.isLoading || revenueQuery.isLoading;
   const overview = overviewQuery.data ?? null;
   const revenue = revenueQuery.data ?? null;
+  const clientes = clientesQuery.data ?? [];
 
-  return <StatisticsView overview={overview} revenue={revenue} loading={loading} />;
+  return (
+    <StatisticsView
+      overview={overview}
+      revenue={revenue}
+      loading={loading}
+      clientes={clientes}
+    />
+  );
 };

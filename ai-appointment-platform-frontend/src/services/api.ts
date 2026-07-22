@@ -1,4 +1,4 @@
-import type { Cita } from '../types';
+import type { Cita, Cliente } from '../types';
 import { apiClient, ApiError } from '../lib/apiClient';
 import type {
   Servicio,
@@ -131,6 +131,7 @@ export const api = {
     fecha: string;
     horario: string;
     servicioId?: number;
+    staffId?: number;
   }): Promise<{ success: boolean; error?: string }> => {
     try {
       await apiClient.post('/citas/admin', datos);
@@ -295,6 +296,7 @@ export const api = {
   },
   createServicio: async (data: {
     nombre: string;
+    categoria?: string;
     duracionMinutos: number;
     bufferMinutos: number;
     precio: number;
@@ -305,6 +307,7 @@ export const api = {
     id: number,
     data: Partial<{
       nombre: string;
+      categoria: string;
       duracionMinutos: number;
       bufferMinutos: number;
       precio: number;
@@ -400,5 +403,79 @@ export const api = {
   // --- NEGOCIO ---
   configurarNegocio: async (nombre: string) => {
     return apiClient.patch('/negocio/configurar', { nombre });
+  },
+
+  // --- WAITLIST ---
+  getWaitlist: async () => {
+    return apiClient.get<import('../features/waitlist/types').WaitlistEntry[]>('/waitlist');
+  },
+  addToWaitlist: async (data: import('../features/waitlist/types').AddToWaitlistPayload) => {
+    return apiClient.post<import('../features/waitlist/types').WaitlistEntry>('/waitlist', data);
+  },
+  removeFromWaitlist: async (id: number) => {
+    return apiClient.delete(`/waitlist/${id}`);
+  },
+  notifyWaitlist: async (id: number) => {
+    return apiClient.post(`/waitlist/${id}/notify`);
+  },
+
+  // --- CLIENTES ---
+  getClientes: async () => {
+    const res = await apiClient.get<{
+      data: Cliente[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>('/clientes');
+    return res.data;
+  },
+  getClienteNoShows: async (id: number) => {
+    return apiClient.get<{ count: number }>(`/clientes/${id}/no-shows`);
+  },
+
+  // --- PUSH NOTIFICATIONS ---
+  getVapidPublicKey: async () => {
+    return apiClient.get<{ publicKey: string | null }>('/push/vapid-public-key');
+  },
+  subscribePush: async (subscription: { endpoint: string; p256dh: string; auth: string }) => {
+    return apiClient.post<{ id: number }>('/push/subscribe', subscription);
+  },
+  unsubscribePush: async (endpoint: string) => {
+    return apiClient.delete<{ success: boolean }>('/push/unsubscribe', {
+      body: JSON.stringify({ endpoint }),
+    });
+  },
+
+  // --- PORTAL (Magic Link) ---
+  generateMagicLink: async (clienteId: number) => {
+    return apiClient.post<{ url: string; token: string }>(`/portal/generate/${clienteId}`);
+  },
+  validateMagicLink: async (token: string) => {
+    return apiClient.get<{
+      cliente: { id: number; nombre: string; telefono: string; email: string | null };
+      negocio: { id: number; nombre: string };
+    }>(`/portal/${token}`);
+  },
+  getPortalAppointments: async (token: string) => {
+    return apiClient.get<Cita[]>(`/portal/${token}/appointments`);
+  },
+  getPortalServices: async (token: string) => {
+    return apiClient.get<
+      Array<{ id: number; nombre: string; duracionMinutos: number; precio: number }>
+    >(`/portal/${token}/services`);
+  },
+  getPortalAvailableSlots: async (token: string, fecha: string, servicioId?: number) => {
+    let url = `/portal/${token}/available-slots?fecha=${encodeURIComponent(fecha)}`;
+    if (servicioId) {
+      url += `&servicioId=${servicioId}`;
+    }
+    return apiClient.get<string[]>(url);
+  },
+  bookPortalAppointment: async (
+    token: string,
+    data: { fecha: string; horario: string; servicioId?: number },
+  ) => {
+    return apiClient.post<{ success: boolean; message: string }>(`/portal/${token}/book`, data);
   },
 };

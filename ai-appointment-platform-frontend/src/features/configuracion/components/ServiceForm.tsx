@@ -2,10 +2,12 @@ import { Clock, DollarSign } from 'lucide-react';
 
 interface NewServiceData {
   nombre: string;
+  categoria: string;
   duracionMinutos: number;
   bufferMinutos: number;
   precio: number;
 }
+
 
 interface ServiceFormProps {
   newService: NewServiceData;
@@ -28,7 +30,7 @@ export const ServiceForm = ({
       className="bg-surface-elevated border border-border rounded-xl p-5 space-y-4"
     >
       <h4 className="text-sm font-medium text-txt">Agregar nuevo servicio</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs text-txt-muted font-medium">Nombre</label>
           <input
@@ -36,6 +38,15 @@ export const ServiceForm = ({
             value={newService.nombre}
             onChange={(e) => setNewService({ ...newService, nombre: e.target.value })}
             placeholder="Ej. Masaje Relajante"
+            className="w-full border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs text-txt-muted font-medium">Categoría (opcional)</label>
+          <input
+            value={newService.categoria}
+            onChange={(e) => setNewService({ ...newService, categoria: e.target.value })}
+            placeholder="Ej. Faciales"
             className="w-full border border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
           />
         </div>

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { z } from 'zod';
 import { env } from '../config/env';
 import type { ChatFlowStep } from '../domain/types';
 import pino from 'pino';
@@ -6,6 +7,18 @@ import pino from 'pino';
 const logger = pino();
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+const ResultadoIASchema = z.object({
+  intencion: z.enum(['AGENDAR', 'CONSULTAR', 'CANCELAR', 'ACLARAR', 'OTRO']),
+  entidades: z.object({
+    fecha: z.string().optional(),
+    hora: z.string().optional(),
+    nombre: z.string().optional(),
+  }),
+  sentimiento: z.enum(['positivo', 'neutral', 'negativo']),
+  confianza: z.number().min(0).max(1),
+  respuestaSugerida: z.string().optional(),
+});
 
 export type EstadoConversacion =
   | 'INICIO'
@@ -109,11 +122,28 @@ export const procesarMensajeConIA = async (
     }
 
     const textoLimpio = texto.substring(inicio, fin + 1);
-    const resultado = JSON.parse(textoLimpio);
+    const parsed = JSON.parse(textoLimpio);
 
-    logger.info({ intencion: resultado.intencion }, 'Gemini respondio con exito');
+    const validation = ResultadoIASchema.safeParse(parsed);
+    if (!validation.success) {
+      logger.warn(
+        { errors: validation.error.flatten(), raw: parsed },
+        'Gemini response failed Zod validation, using fallback',
+      );
+      const intencion = detectarIntencionSimple(mensaje);
+      return {
+        intencion,
+        entidades: parsed?.entidades ?? {},
+        sentimiento: 'neutral',
+        confianza: 0.3,
+        respuestaSugerida:
+          parsed?.respuestaSugerida ?? 'No pude entender tu mensaje, ¿podrías repetirlo?',
+      };
+    }
 
-    return resultado as ResultadoIA;
+    logger.info({ intencion: validation.data.intencion }, 'Gemini respondio con exito');
+
+    return validation.data;
   } catch (error) {
     logger.error({ error }, 'ERROR IA');
 

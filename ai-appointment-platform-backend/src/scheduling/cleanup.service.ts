@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service';
+import { CleanupRepository } from '../repositories/cleanup.repository';
 
 const EXPIRY_MINUTES = 30;
 
@@ -8,7 +8,7 @@ const EXPIRY_MINUTES = 30;
 export class CleanupService {
   private readonly logger = new Logger(CleanupService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly cleanupRepository: CleanupRepository) {}
 
   /**
    * Clean up inactive chat sessions and cancel expired in-progress appointments.
@@ -21,26 +21,20 @@ export class CleanupService {
     try {
       const limiteTiempo = new Date(Date.now() - EXPIRY_MINUTES * 60 * 1000);
 
-      // Delete inactive chat sessions
-      const { count: sessionCount } = await this.prisma.sesionChat.deleteMany({
-        where: { ultimoMensaje: { lt: limiteTiempo } },
-      });
-
+      const sessionCount =
+        await this.cleanupRepository.deleteInactiveSessions(limiteTiempo);
       if (sessionCount > 0) {
         this.logger.log(`Deleted ${sessionCount} inactive chat sessions`);
       }
 
-      // Cancel expired in-progress appointments (>30 min without advancing)
-      const { count: citaCount } = await this.prisma.cita.updateMany({
-        where: {
-          estado: 'EN_PROCESO',
-          creadoEn: { lt: limiteTiempo },
-        },
-        data: { estado: 'CANCELADA' },
-      });
-
+      const citaCount =
+        await this.cleanupRepository.cancelExpiredInProgressAppointments(
+          limiteTiempo,
+        );
       if (citaCount > 0) {
-        this.logger.log(`Cancelled ${citaCount} expired in-progress appointments`);
+        this.logger.log(
+          `Cancelled ${citaCount} expired in-progress appointments`,
+        );
       }
     } catch (error) {
       this.logger.error('Cleanup cron failed', error);

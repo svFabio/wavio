@@ -8,6 +8,7 @@ interface ServiciosTabProps {
   servicios: Servicio[];
   onAdd: (data: {
     nombre: string;
+    categoria?: string;
     duracionMinutos: number;
     bufferMinutos: number;
     precio: number;
@@ -27,6 +28,7 @@ export const ServiciosTab = ({
   const [isAdding, setIsAdding] = useState(false);
   const [newService, setNewService] = useState({
     nombre: '',
+    categoria: '',
     duracionMinutos: 60,
     bufferMinutos: 10,
     precio: 0,
@@ -35,10 +37,14 @@ export const ServiciosTab = ({
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newService.nombre.trim()) return;
-    onAdd(newService);
-    setNewService({ nombre: '', duracionMinutos: 60, bufferMinutos: 10, precio: 0 });
+    onAdd({
+      ...newService,
+      categoria: newService.categoria.trim() || undefined,
+    });
+    setNewService({ nombre: '', categoria: '', duracionMinutos: 60, bufferMinutos: 10, precio: 0 });
     setIsAdding(false);
   };
+
 
   const formatDuration = (minutos: number) => {
     const h = Math.floor(minutos / 60);
@@ -79,17 +85,38 @@ export const ServiciosTab = ({
           <Loader2 className="w-6 h-6 animate-spin text-txt-muted" />
         </div>
       ) : (
-        <div className="grid gap-3">
-          {servicios.map((svc) => (
-            <ServiceCard
-              key={svc.id}
-              svc={svc}
-              formatDuration={formatDuration}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-              isLoading={isLoading}
-            />
-          ))}
+        <div className="space-y-6">
+          {Object.entries(
+            servicios.reduce(
+              (acc, svc) => {
+                const cat = svc.categoria || 'Sin categoría';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(svc);
+                return acc;
+              },
+              {} as Record<string, Servicio[]>,
+            ),
+          )
+            .sort(([a], [b]) => (a === 'Sin categoría' ? 1 : b === 'Sin categoría' ? -1 : a.localeCompare(b)))
+            .map(([categoria, svcs]) => (
+              <div key={categoria} className="space-y-3">
+                <h3 className="text-sm font-semibold text-txt border-b border-border-light pb-2">
+                  {categoria}
+                </h3>
+                <div className="grid gap-3">
+                  {svcs.map((svc) => (
+                    <ServiceCard
+                      key={svc.id}
+                      svc={svc}
+                      formatDuration={formatDuration}
+                      onUpdate={onUpdate}
+                      onDelete={onDelete}
+                      isLoading={isLoading}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           {servicios.length === 0 && !isAdding && (
             <div className="text-center py-8 text-txt-muted text-sm border border-dashed border-border rounded-xl">
               No hay servicios configurados.

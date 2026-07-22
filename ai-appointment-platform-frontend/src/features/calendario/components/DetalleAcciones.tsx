@@ -1,4 +1,4 @@
-import { X, Clock, CheckCircle2 } from 'lucide-react';
+import { X, Clock, CheckCircle2, Loader2 } from 'lucide-react';
 import type { EventoCalendario } from '../types';
 
 interface DetalleAccionesProps {
@@ -6,6 +6,7 @@ interface DetalleAccionesProps {
   onReprogramar: () => void;
   onNoAsistio: () => void;
   onClose: () => void;
+  isLoadingNoShow?: boolean;
 }
 
 export const DetalleAcciones = ({
@@ -13,6 +14,7 @@ export const DetalleAcciones = ({
   onReprogramar,
   onNoAsistio,
   onClose,
+  isLoadingNoShow = false,
 }: DetalleAccionesProps) => {
   const esPasada = event.start < new Date();
   const esNoAsistio = event.resource?.estado === 'NO_ASISTIO';
@@ -33,13 +35,16 @@ export const DetalleAcciones = ({
       {event.resource?.tipo === 'cita' && esPasada && (
         <button
           onClick={onNoAsistio}
+          disabled={isLoadingNoShow}
           className={`w-full py-2.5 border rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
             esNoAsistio
               ? 'border-success text-success bg-success-light/20 hover:bg-success-light/40'
               : 'border-danger/30 text-danger bg-danger-light/20 hover:bg-danger-light/40'
-          }`}
+          } ${isLoadingNoShow ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
-          {esNoAsistio ? (
+          {isLoadingNoShow ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : esNoAsistio ? (
             <>
               <CheckCircle2 className="w-4 h-4" /> Marcar como Asistio
             </>

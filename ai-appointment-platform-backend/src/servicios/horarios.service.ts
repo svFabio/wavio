@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { HorariosNegocioRepository } from '../repositories/horariosNegocio.repository';
 import { HorariosEspecialesRepository } from '../repositories/horariosEspeciales.repository';
+import { HorariosStaffRepository } from '../repositories/horariosStaff.repository';
 import { NotFoundError } from '../domain/errors';
-import type { HorarioEspecial, HorarioNegocio } from '../domain/types';
+import type { HorarioEspecial, HorarioNegocio, HorarioStaff } from '../domain/types';
 
 @Injectable()
 export class HorariosService {
   constructor(
     private readonly horariosNegocioRepository: HorariosNegocioRepository,
     private readonly horariosEspecialesRepository: HorariosEspecialesRepository,
+    private readonly horariosStaffRepository: HorariosStaffRepository,
   ) {}
 
   async getHorarios(negocioId: number): Promise<HorarioNegocio[]> {
@@ -57,5 +59,33 @@ export class HorariosService {
       throw new NotFoundError('Horario especial');
     }
     return this.horariosEspecialesRepository.deleteById(id);
+  }
+
+  async getStaffHorarios(usuarioId: number): Promise<HorarioStaff[]> {
+    return this.horariosStaffRepository.findByUsuarioId(usuarioId);
+  }
+
+  async replaceStaffHorarios(
+    usuarioId: number,
+    horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>,
+  ): Promise<HorarioStaff[]> {
+    await this.horariosStaffRepository.deleteByUsuarioId(usuarioId);
+    return Promise.all(
+      horarios.map((h) =>
+        this.horariosStaffRepository.upsert(usuarioId, h.diaSemana, h.horaInicio, h.horaFin),
+      ),
+    );
+  }
+
+  async getStaffHorariosByNegocio(negocioId: number) {
+    return this.horariosStaffRepository.findByNegocioId(negocioId);
+  }
+
+  async getAvailableStaffForSlot(
+    negocioId: number,
+    diaSemana: number,
+    horaInicio: string,
+  ): Promise<number[]> {
+    return this.horariosStaffRepository.getAvailableStaffForSlot(negocioId, diaSemana, horaInicio);
   }
 }

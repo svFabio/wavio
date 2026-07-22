@@ -21,6 +21,9 @@ const Chat = lazy(() => import('./pages/Chat'));
 const Asistente = lazy(() => import('./pages/Asistente'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Waitlist = lazy(() => import('./pages/Waitlist'));
+const Portal = lazy(() => import('./pages/Portal'));
+
 import { useNotifications } from './shared/hooks/useNotifications';
 import { playNotificationSound } from './utils/notificationSound';
 import { format } from 'date-fns';
@@ -178,6 +181,16 @@ function App() {
                     }
                   />
                   <Route
+                    path="waitlist"
+                    element={
+                      <ProtectedRoute requiredRole="ADMIN">
+                        <ErrorBoundary>
+                          <Waitlist />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="configuracion"
                     element={
                       <ProtectedRoute requiredRole="ADMIN">
@@ -188,6 +201,15 @@ function App() {
                     }
                   />
                 </Route>
+
+                <Route
+                  path="/portal/:token"
+                  element={
+                    <ErrorBoundary>
+                      <Portal />
+                    </ErrorBoundary>
+                  }
+                />
 
                 <Route
                   path="*"

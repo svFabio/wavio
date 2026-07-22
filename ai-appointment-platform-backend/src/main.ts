@@ -31,15 +31,17 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  // Swagger / OpenAPI
-  const config = new DocumentBuilder()
-    .setTitle('Wavio API')
-    .setDescription('AI-powered appointment management platform API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger / OpenAPI — disabled in production for security
+  if (env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Wavio API')
+      .setDescription('AI-powered appointment management platform API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   await app.listen(Number(env.PORT), '0.0.0.0');
 }

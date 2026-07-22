@@ -32,7 +32,10 @@ interface DatosNuevaCita {
   clienteTelefono: string;
   fecha: string;
   horario: string;
+  servicioId?: number;
+  staffId?: number;
 }
+
 
 interface CalendarioViewProps {
   eventos: EventoCalendario[];
@@ -53,6 +56,7 @@ interface CalendarioViewProps {
   onReprogramarDesdeDetalle: () => void;
   onNoAsistio: () => void;
   onGuardarDescripcion: (citaId: string, descripcion: string) => Promise<{ success: boolean }>;
+  isLoadingNoShow?: boolean;
   modalNuevaCitaAbierto: boolean;
   fechaInicialNuevaCita?: Date;
   onCerrarNuevaCita: () => void;
@@ -83,6 +87,7 @@ export const CalendarioView = ({
   onReprogramarDesdeDetalle,
   onNoAsistio,
   onGuardarDescripcion,
+  isLoadingNoShow = false,
   modalNuevaCitaAbierto,
   fechaInicialNuevaCita,
   onCerrarNuevaCita,
@@ -149,6 +154,7 @@ export const CalendarioView = ({
           onReprogramar={onReprogramarDesdeDetalle}
           onNoAsistio={onNoAsistio}
           onGuardarDescripcion={onGuardarDescripcion}
+          isLoadingNoShow={isLoadingNoShow}
         />
       )}
 

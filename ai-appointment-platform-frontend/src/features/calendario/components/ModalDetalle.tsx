@@ -11,6 +11,7 @@ interface ModalDetalleProps {
   onReprogramar: () => void;
   onNoAsistio: () => void;
   onGuardarDescripcion: (citaId: string, descripcion: string) => Promise<{ success: boolean }>;
+  isLoadingNoShow?: boolean;
 }
 
 export const ModalDetalle = ({
@@ -19,6 +20,7 @@ export const ModalDetalle = ({
   onReprogramar,
   onNoAsistio,
   onGuardarDescripcion,
+  isLoadingNoShow = false,
 }: ModalDetalleProps) => {
   const [descripcion, setDescripcion] = useState(event?.resource?.descripcion || '');
   const [guardando, setGuardando] = useState(false);
@@ -97,6 +99,7 @@ export const ModalDetalle = ({
           onReprogramar={onReprogramar}
           onNoAsistio={onNoAsistio}
           onClose={onClose}
+          isLoadingNoShow={isLoadingNoShow}
         />
       </div>
     </div>
