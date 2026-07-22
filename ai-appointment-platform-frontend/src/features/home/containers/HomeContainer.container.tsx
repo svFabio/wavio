@@ -27,13 +27,7 @@ export const HomeContainer = () => {
 
   return (
     <ErrorBoundary>
-      <HomeView
-        data={data}
-        loading={loading}
-        citas={citasData || []}
-        citasLoading={citasLoading}
-        error={error}
-      />
+      <HomeView data={data} loading={loading} citas={citasData || []} error={error} />
     </ErrorBoundary>
   );
 };
