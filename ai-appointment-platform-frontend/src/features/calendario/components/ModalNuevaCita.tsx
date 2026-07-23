@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
 import {
@@ -43,7 +43,7 @@ export const ModalNuevaCita = ({
   config,
   horariosDisponibles,
   loadingHorarios,
-}: ModalNuevaCitaProps): JSX.Element | null => {
+}: ModalNuevaCitaProps): React.JSX.Element | null => {
   const [formData, setFormData] = useState<DatosNuevaCita>({
     clienteNombre: '',
     clienteTelefono: '',

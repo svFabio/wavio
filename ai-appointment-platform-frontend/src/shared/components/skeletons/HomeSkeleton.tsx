@@ -1,7 +1,8 @@
+import React from 'react';
 import { PageHeaderSkeleton } from './PageHeaderSkeleton';
 import { StatCardSkeleton } from './StatCardSkeleton';
 
-export const HomeSkeleton = (): JSX.Element => (
+export const HomeSkeleton = (): React.JSX.Element => (
   <div className="space-y-6">
     <PageHeaderSkeleton />
 

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Loader2, AlertCircle, Eye, EyeOff, Building2 } from 'lucide-react';
 import type { LoginResponse, Tab } from '../types';
 

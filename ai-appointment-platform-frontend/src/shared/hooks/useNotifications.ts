@@ -25,6 +25,7 @@ const loadFromStorage = (): Notification[] => {
 export interface UseNotificationsReturn {
   notifications: Notification[];
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => string;
+  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
   dismissNotification: (id: string) => void;
   clearAll: () => void;
 }
@@ -56,9 +57,22 @@ export const useNotifications = (): UseNotificationsReturn => {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const showNotification = useCallback(
+    (message: string, _type?: 'success' | 'error' | 'info') => {
+      addNotification({
+        message,
+        clienteNombre: '',
+        fecha: '',
+        horario: '',
+      });
+    },
+    [addNotification],
+  );
+
   return {
     notifications,
     addNotification,
+    showNotification,
     dismissNotification,
     clearAll,
   };

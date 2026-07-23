@@ -5,21 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { CheckCircle2, AlertCircle, Unplug } from 'lucide-react';
 import { DevCredentialsForm } from './DevCredentialsForm';
 
-interface FBLoginResponse {
-  authResponse: unknown;
-}
-
-declare global {
-  interface Window {
-    FB: {
-      init: (params: unknown) => void;
-      login: (cb: (response: FBLoginResponse) => void, params: unknown) => void;
-    };
-    fbAsyncInit: () => void;
-  }
-}
-
-export const AdminWhatsapp = () => {
+export const AdminWhatsapp = (): React.JSX.Element => {
   useAuth();
   const queryClient = useQueryClient();
 

@@ -1,10 +1,11 @@
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { HomeView } from '../components/HomeView';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import type { ResumenData } from '../types';
 
-export const HomeContainer = () => {
+export const HomeContainer = (): React.JSX.Element => {
   const {
     data,
     isLoading: loading,
@@ -14,11 +15,7 @@ export const HomeContainer = () => {
     queryFn: () => api.obtenerResumen(),
   });
 
-  const {
-    data: citasData,
-    isLoading: citasLoading,
-    isError: isErrorCitas,
-  } = useQuery({
+  const { data: citasData, isError: isErrorCitas } = useQuery({
     queryKey: ['citas', 'hoy'],
     queryFn: () => api.obtenerCitas(new Date().toISOString().split('T')[0]),
   });

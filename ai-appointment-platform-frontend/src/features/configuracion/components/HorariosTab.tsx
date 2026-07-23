@@ -1,3 +1,4 @@
+import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { DIAS_SEMANA } from '../types';
 import type { HorarioNegocio } from '../types';
@@ -16,7 +17,7 @@ export const HorariosTab = ({
   onSave,
   isLoading,
   isSaving,
-}: HorariosTabProps): JSX.Element => {
+}: HorariosTabProps): React.JSX.Element => {
   const {
     localHorarios,
     handleToggle,

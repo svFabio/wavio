@@ -1,4 +1,5 @@
-export const UsersSkeleton = (): JSX.Element => (
+import React from 'react';
+export const UsersSkeleton = (): React.JSX.Element => (
   <div>
     {/* Desktop skeleton */}
     <div className="hidden md:block card-modern overflow-hidden">

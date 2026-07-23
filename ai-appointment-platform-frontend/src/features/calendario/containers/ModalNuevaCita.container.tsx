@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
 import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';
@@ -16,7 +17,7 @@ export const ModalNuevaCitaContainer = ({
   onClose,
   fechaInicial,
   onSubmit,
-}: ModalNuevaCitaContainerProps): JSX.Element | null => {
+}: ModalNuevaCitaContainerProps): React.JSX.Element | null => {
   const { data: servicios = [] } = useQuery({
     queryKey: ['servicios'],
     queryFn: api.getServicios,

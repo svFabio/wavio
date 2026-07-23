@@ -62,3 +62,14 @@ export const DEFAULT_CHAT_FLOW: ChatFlowStep[] = [
     activo: true,
   },
 ];
+
+export interface Configuracion {
+  triggerWord?: string;
+  mensajeBienvenida?: string;
+  mensajeConfirmacion?: string;
+  cobrarAdelanto?: boolean;
+  porcentajeAdelanto?: number;
+  chatFlow?: ChatFlowStep[];
+  qrFotoUrl?: string | null;
+  negocioNombre?: string;
+}

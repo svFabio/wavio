@@ -1,3 +1,4 @@
+import React from 'react';
 import { Calendar, Clock, TrendingUp, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,7 +23,7 @@ const getGreeting = () => {
   return 'Buenas noches';
 };
 
-export const HomeView = ({ data, loading, citas, error }: HomeViewProps): JSX.Element => {
+export const HomeView = ({ data, loading, citas, error }: HomeViewProps): React.JSX.Element => {
   if (loading || !data) return <HomeSkeleton />;
 
   if (error) {

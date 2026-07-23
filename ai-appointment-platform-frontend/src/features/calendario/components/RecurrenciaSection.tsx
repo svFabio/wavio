@@ -1,3 +1,4 @@
+import React from 'react';
 import { format } from 'date-fns';
 import { Repeat } from 'lucide-react';
 
@@ -19,7 +20,7 @@ export const RecurrenciaSection = ({
   onToggle,
   onFrequencyChange,
   onEndDateChange,
-}: RecurrenciaSectionProps): JSX.Element => (
+}: RecurrenciaSectionProps): React.JSX.Element => (
   <div className="border-t border-border pt-4">
     <label className="flex items-center gap-2 cursor-pointer w-max">
       <input

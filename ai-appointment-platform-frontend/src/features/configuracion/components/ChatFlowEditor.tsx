@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { Toggle } from '../../../shared/components/Toggle';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -10,7 +11,7 @@ interface ChatFlowEditorProps {
   onChange: (flow: ChatFlowStep[]) => void;
 }
 
-export const ChatFlowEditor = ({ chatFlow, onChange }: ChatFlowEditorProps): JSX.Element => {
+export const ChatFlowEditor = ({ chatFlow, onChange }: ChatFlowEditorProps): React.JSX.Element => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const steps = chatFlow && chatFlow.length > 0 ? chatFlow : DEFAULT_CHAT_FLOW;
