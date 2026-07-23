@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -11,6 +12,7 @@ import { createLogger } from '../lib/logger';
 
 const logger = createLogger('events-gateway');
 
+@Injectable()
 @WebSocketGateway({
   cors: {
     origin: env.CORS_ORIGINS

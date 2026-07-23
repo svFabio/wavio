@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReportesService } from './reportes.service';
-import { CitasRepository } from '../citas/citas.repository';
+import { CitasService } from '../citas/citas.service';
 
 describe('ReportesService', () => {
   let service: ReportesService;
-  let mockCitasRepository: {
+  let mockCitasService: {
     getAgenda: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
-    mockCitasRepository = {
+    mockCitasService = {
       getAgenda: vi.fn(),
     };
-    service = new ReportesService(mockCitasRepository as unknown as CitasRepository);
+    service = new ReportesService(mockCitasService as unknown as CitasService);
   });
 
   describe('exportCitasCSV', () => {
@@ -46,7 +46,7 @@ describe('ReportesService', () => {
         },
       ];
 
-      mockCitasRepository.getAgenda.mockResolvedValue({
+      mockCitasService.getAgenda.mockResolvedValue({
         data: mockCitas,
         pagination: { total: 2, totalPages: 1 },
       });
@@ -72,7 +72,7 @@ describe('ReportesService', () => {
         { id: 4, servicio: 'Corte', estado: 'NO_ASISTIO', monto: 250 },
       ];
 
-      mockCitasRepository.getAgenda.mockResolvedValue({
+      mockCitasService.getAgenda.mockResolvedValue({
         data: mockCitas,
         pagination: { total: 4, totalPages: 1 },
       });
@@ -99,7 +99,7 @@ describe('ReportesService', () => {
     });
 
     it('should return empty summary when no citas exist', async () => {
-      mockCitasRepository.getAgenda.mockResolvedValue({
+      mockCitasService.getAgenda.mockResolvedValue({
         data: [],
         pagination: { total: 0, totalPages: 0 },
       });

@@ -4,7 +4,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/utils/jwt';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { googleLoginSchema, emailAuthSchema, avatarSchema, nombreSchema } from './dto/auth.dto';
 

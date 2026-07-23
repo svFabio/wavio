@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CitasRepository } from './citas.repository';
 import { AvailabilityRepository } from './availability.repository';
-import { ConfiguracionRepository } from '../negocio/configuracion.repository';
-import { NegocioRepository } from '../negocio/negocio.repository';
-import { ChatRepository } from '../chat/chat.repository';
+import { NegocioService } from '../negocio/negocio.service';
+import { ChatService } from '../chat/chat.service';
 import { EventsService } from '../events/events.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
-import { Cita } from '../domain/types';
+import { Cita, Slot, DisponibilidadParams } from '../domain/types';
 import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 
@@ -17,9 +16,8 @@ export class CitasService {
   constructor(
     private readonly citasRepository: CitasRepository,
     private readonly availabilityRepository: AvailabilityRepository,
-    private readonly configuracionRepository: ConfiguracionRepository,
-    private readonly negocioRepository: NegocioRepository,
-    private readonly chatRepository: ChatRepository,
+    private readonly negocioService: NegocioService,
+    private readonly chatService: ChatService,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -85,12 +83,12 @@ export class CitasService {
       }
 
       if (mensaje) {
-        const ultimoMsg = await this.chatRepository.getUltimoMensajeEntrantePorTelefono(
+        const ultimoMsg = await this.chatService.getUltimoMensajeEntrantePorTelefono(
           negocioId,
           citaActualizada.clienteTelefono,
         );
         const jid = ultimoMsg?.remoteJid || citaActualizada.clienteTelefono;
-        const waCreds = await this.negocioRepository.findByIdForInternal(negocioId);
+        const waCreds = await this.negocioService.findByIdForInternal(negocioId);
         if (waCreds?.waAccessToken && waCreds.waPhoneNumberId) {
           await this.eventsService.sendWhatsAppMessage(
             { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
@@ -184,7 +182,7 @@ export class CitasService {
       resolvedServicioId = primerServicio.id;
     }
 
-    const config = await this.configuracionRepository.getOrCreateByNegocioId(negocioId);
+    const config = await this.negocioService.getConfiguracion(negocioId);
     const slots = await getSlotsDisponibles(this.availabilityRepository, {
       negocioId,
       servicioId: resolvedServicioId,
@@ -457,5 +455,13 @@ export class CitasService {
 
   async getSeriesRecurente(recurrenceId: string): Promise<Cita[]> {
     return this.citasRepository.findRecurringSeries(recurrenceId);
+  }
+
+  async getByIdAndNegocio(id: number, negocioId: number): Promise<Cita | null> {
+    return this.citasRepository.getByIdAndNegocio(id, negocioId);
+  }
+
+  async getSlotDisponibles(params: DisponibilidadParams): Promise<Slot[]> {
+    return getSlotsDisponibles(this.availabilityRepository, params);
   }
 }

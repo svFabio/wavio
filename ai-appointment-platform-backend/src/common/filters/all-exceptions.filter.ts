@@ -1,7 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppError } from '../../domain/errors';
-import { StructuredValidationError } from '../../common/errors/validation-error';
 import { createLogger } from '../../lib/logger';
 
 const logger = createLogger('exception-filter');
@@ -13,20 +12,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    if (exception instanceof StructuredValidationError) {
-      response.status(exception.statusCode).json({
-        error: exception.message,
-        code: exception.code,
-        errors: exception.errors,
-      });
-      return;
-    }
-
     if (exception instanceof AppError) {
-      response.status(exception.statusCode).json({
+      const body: Record<string, unknown> = {
         error: exception.message,
         code: exception.code,
-      });
+      };
+      if ('errors' in exception) {
+        body.errors = (exception as unknown as { errors: unknown }).errors;
+      }
+      response.status(exception.statusCode).json(body);
       return;
     }
 

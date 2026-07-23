@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { GoogleCalendarService } from './google-calendar.service';
-import { CitasRepository } from '../citas/citas.repository';
+import { CitasService } from '../citas/citas.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
@@ -20,7 +20,7 @@ import { NotFoundError, ValidationError } from '../domain/errors';
 export class CalendarController {
   constructor(
     private readonly googleCalendarService: GoogleCalendarService,
-    private readonly citasRepository: CitasRepository,
+    private readonly citasService: CitasService,
   ) {}
 
   @Get('/auth')
@@ -52,7 +52,7 @@ export class CalendarController {
     @TenantId() negocioId: number,
     @Param('citaId', ParseIntPipe) citaId: number,
   ): Promise<{ success: boolean; googleEventId: string | null }> {
-    const cita = await this.citasRepository.getByIdAndNegocio(citaId, negocioId);
+    const cita = await this.citasService.getByIdAndNegocio(citaId, negocioId);
     if (!cita) throw new NotFoundError('Cita');
 
     const googleEventId = await this.googleCalendarService.createEvent(negocioId, cita);
@@ -64,7 +64,7 @@ export class CalendarController {
     @TenantId() negocioId: number,
     @Param('citaId', ParseIntPipe) citaId: number,
   ): Promise<{ success: boolean }> {
-    const cita = await this.citasRepository.getByIdAndNegocio(citaId, negocioId);
+    const cita = await this.citasService.getByIdAndNegocio(citaId, negocioId);
     if (!cita) throw new NotFoundError('Cita');
 
     const deleted = await this.googleCalendarService.deleteEvent(negocioId, String(citaId));

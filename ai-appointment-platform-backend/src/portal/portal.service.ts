@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { PortalRepository } from './portal.repository';
 import { NotFoundError, ValidationError } from '../domain/errors';

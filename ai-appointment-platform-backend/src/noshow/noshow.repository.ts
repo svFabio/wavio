@@ -85,6 +85,13 @@ export class NoShowRepository {
     return cliente?.blocked ?? false;
   }
 
+  async getActiveBusinessIds(): Promise<number[]> {
+    const result = await this.prisma.negocio.findMany({
+      select: { id: true },
+    });
+    return result.map((n) => n.id);
+  }
+
   async getExpiredInProgressAppointments(
     negocioId: number,
     minutesAgo: number,

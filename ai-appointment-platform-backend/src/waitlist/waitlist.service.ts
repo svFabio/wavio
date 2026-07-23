@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { WaitlistRepository } from './waitlist.repository';
 import { EventsService } from '../events/events.service';
-import { NegocioRepository } from '../negocio/negocio.repository';
+import { NegocioService } from '../negocio/negocio.service';
 
 @Injectable()
 export class WaitlistService {
@@ -10,7 +10,7 @@ export class WaitlistService {
   constructor(
     private readonly waitlistRepository: WaitlistRepository,
     private readonly eventsService: EventsService,
-    private readonly negocioRepository: NegocioRepository,
+    private readonly negocioService: NegocioService,
   ) {}
 
   async addToWaitlist(
@@ -41,7 +41,7 @@ export class WaitlistService {
 
     if (pendingEntries.length === 0) return 0;
 
-    const negocio = await this.negocioRepository.findByIdForInternal(negocioId);
+    const negocio = await this.negocioService.findByIdForInternal(negocioId);
     if (!negocio?.waAccessToken || !negocio.waPhoneNumberId) return 0;
 
     let notified = 0;

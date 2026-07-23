@@ -9,6 +9,6 @@ import { ConfiguracionRepository } from './configuracion.repository';
 @Module({
   controllers: [NegocioController, ConfiguracionController],
   providers: [NegocioService, ConfiguracionService, NegocioRepository, ConfiguracionRepository],
-  exports: [NegocioService, NegocioRepository, ConfiguracionRepository],
+  exports: [NegocioService],
 })
 export class NegocioModule {}

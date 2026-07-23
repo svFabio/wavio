@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { NoShowRepository } from './noshow.repository';
-import { NegocioRepository } from '../negocio/negocio.repository';
+import { NegocioService } from '../negocio/negocio.service';
+import { EventsService } from '../events/events.service';
 
 const BLOCK_THRESHOLD = 3;
 
@@ -11,7 +12,8 @@ export class NoShowService {
 
   constructor(
     private readonly noShowRepository: NoShowRepository,
-    private readonly negocioRepository: NegocioRepository,
+    private readonly negocioService: NegocioService,
+    private readonly eventsService: EventsService,
   ) {}
 
   /**
@@ -23,8 +25,31 @@ export class NoShowService {
     this.logger.debug('Checking for expired appointments…');
 
     try {
-      // This would need to iterate over all active businesses
-      // For now, we'll handle it via the validation endpoint
+      const businesses = await this.noShowRepository.getActiveBusinessIds();
+      for (const negocioId of businesses) {
+        const expired = await this.noShowRepository.getExpiredInProgressAppointments(negocioId, 60);
+        if (expired.length === 0) continue;
+
+        for (const cita of expired) {
+          await this.noShowRepository.markAsNoShow(cita.id);
+
+          await this.noShowRepository.incrementNoShowCount(negocioId, cita.clienteTelefono);
+
+          this.logger.log(`Marked cita ${cita.id} as NO_SHOW (expired in-progress)`);
+        }
+
+        const negocio = await this.negocioService.findByIdForInternal(negocioId);
+        if (negocio?.waAccessToken && negocio.waPhoneNumberId) {
+          const msg = `Se marcaron ${expired.length} citas como inasistencia por vencimiento.`;
+          try {
+            await this.eventsService.sendWhatsAppMessage(
+              { waAccessToken: negocio.waAccessToken, waPhoneNumberId: negocio.waPhoneNumberId },
+              negocio.waPhoneNumberId,
+              msg,
+            );
+          } catch { }
+        }
+      }
       this.logger.debug('No-show check completed');
     } catch (error) {
       this.logger.error('No-show check failed', error);
@@ -93,7 +118,7 @@ export class NoShowService {
     noShowCount: number,
   ): Promise<void> {
     try {
-      const negocio = await this.negocioRepository.findByIdForInternal(negocioId);
+      const negocio = await this.negocioService.findByIdForInternal(negocioId);
       if (!negocio?.waAccessToken || !negocio.waPhoneNumberId) return;
 
       const maskedPhone = clienteTelefono.slice(-4).padStart(clienteTelefono.length, '*');
@@ -102,9 +127,16 @@ export class NoShowService {
         `El cliente con teléfono ${maskedPhone} ha acumulado ${noShowCount} inasistencias.\n\n` +
         `Ha sido bloqueado automáticamente del sistema de agendamiento.`;
 
-      // This would send to the business owner's WhatsApp
-      // For now, just log it
-      this.logger.warn(`No-show alert for business ${negocioId}: ${mensaje}`);
+      const negocioPhone = negocio.waPhoneNumberId;
+      try {
+        await this.eventsService.sendWhatsAppMessage(
+          { waAccessToken: negocio.waAccessToken, waPhoneNumberId: negocioPhone },
+          negocioPhone,
+          mensaje,
+        );
+      } catch (sendErr) {
+        this.logger.error(`Failed to send no-show alert to business ${negocioId}: ${sendErr}`);
+      }
     } catch (error) {
       this.logger.error('Failed to send no-show alert', error);
     }

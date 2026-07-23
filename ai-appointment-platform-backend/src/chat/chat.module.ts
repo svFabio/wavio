@@ -10,6 +10,6 @@ import { EventsModule } from '../events/events.module';
   imports: [NegocioModule, EventsModule],
   controllers: [ChatController],
   providers: [ChatRepository, ChatService, SesionChatRepository],
-  exports: [ChatService, ChatRepository, SesionChatRepository],
+  exports: [ChatService],
 })
 export class ChatModule {}

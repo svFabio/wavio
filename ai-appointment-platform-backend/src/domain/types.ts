@@ -1,49 +1,17 @@
 export type Rol = 'ADMIN' | 'STAFF';
-export type DireccionMensaje = 'ENTRANTE' | 'SALIENTE';
-export type Plan = 'FREE' | 'PRO';
-
-export type EstadoCita =
-  'PENDIENTE' | 'EN_PROCESO' | 'VALIDACION_PENDIENTE' | 'CONFIRMADA' | 'CANCELADA' | 'NO_ASISTIO';
-export type EstadoPago = 'PENDIENTE' | 'ESPERANDO_COMPROBANTE' | 'VERIFICADO' | 'RECHAZADO';
 
 export interface Negocio {
   id: number;
   googleId: string;
   email: string;
   nombre: string;
-  plan: Plan;
+  plan: string;
   waAccessToken: string | null;
   waPhoneNumberId: string | null;
   waWabaId: string | null;
   waAppId: string | null;
   isWaConnected: boolean;
   creadoEn: Date;
-}
-
-export interface Usuario {
-  id: number;
-  nombre: string;
-  email: string;
-  password?: string | null;
-  googleId: string | null;
-  fotoPerfil: string | null;
-  rol: Rol;
-  creadoEn: Date;
-}
-
-export interface UsuarioNegocio {
-  usuarioId: number;
-  negocioId: number;
-  rol: string;
-  creadoEn: Date;
-}
-
-export interface SesionChat {
-  id: string; // remoteJid
-  estado: string;
-  datos: Record<string, unknown>; // Prisma Json
-  ultimoMensaje: Date;
-  negocioId: number;
 }
 
 export interface Servicio {
@@ -125,7 +93,7 @@ export interface MensajeChat {
   waMessageId: string | null;
   remoteJid: string;
   contenido: string;
-  direccion: DireccionMensaje;
+  direccion: string;
   estadoEntrega: string;
   timestamp: Date;
   negocioId: number;
@@ -154,8 +122,6 @@ export interface Configuracion {
   negocioId: number;
 }
 
-// ─── Availability Engine Types ─────────────────────────────────────────────
-
 export interface Slot {
   inicio: string; // "09:00"
   fin: string; // "10:00"
@@ -167,6 +133,7 @@ export interface DisponibilidadParams {
   servicioId: number;
   fecha: string; // "2025-07-15"
   staffId?: number;
+  timezone?: string;
 }
 
 export interface RangoHorario {

@@ -1,19 +1,8 @@
 import { AvailabilityRepository } from '../citas/availability.repository';
 import { ValidationError } from '../domain/errors';
+import type { Slot, DisponibilidadParams } from '../domain/types';
 
-export interface Slot {
-  inicio: string;
-  fin: string;
-  staffId: number | null;
-}
-
-interface DisponibilidadParams {
-  negocioId: number;
-  servicioId: number;
-  fecha: string;
-  staffId?: number;
-  timezone?: string;
-}
+export type { Slot, DisponibilidadParams };
 
 /**
  * Genera los slots disponibles reales para un negocio, servicio y fecha.

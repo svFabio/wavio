@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { AppointmentRepository } from './appointment.repository';
-import { NegocioRepository } from '../negocio/negocio.repository';
+import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class SurveyService {
 
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
-    private readonly negocioRepository: NegocioRepository,
+    private readonly negocioService: NegocioService,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -28,7 +28,7 @@ export class SurveyService {
       for (const cita of citas) {
         if (cita.encuestaEnviada) continue;
 
-        const waCreds = await this.negocioRepository.findByIdForInternal(cita.negocioId);
+        const waCreds = await this.negocioService.findByIdForInternal(cita.negocioId);
         if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
         const nombre = cita.clienteNombre || 'Cliente';

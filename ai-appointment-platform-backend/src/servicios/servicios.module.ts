@@ -18,6 +18,6 @@ import { HorariosStaffRepository } from './horariosStaff.repository';
     HorariosEspecialesRepository,
     HorariosStaffRepository,
   ],
-  exports: [ServiciosRepository],
+  exports: [ServiciosService],
 })
 export class ServiciosModule {}
