@@ -72,3 +72,51 @@ export interface Conversacion {
   clienteNombre?: string | null;
   telefonoReal?: string;
 }
+
+export interface HorarioNegocio {
+  id: number;
+  diaSemana: number; // 0=domingo, 1=lunes, ..., 6=sabado
+  horaInicio: string;
+  horaFin: string;
+  activo: boolean;
+}
+
+export interface HorarioEspecial {
+  id: number;
+  fecha: string;
+  cerrado: boolean;
+  horaInicio: string | null;
+  horaFin: string | null;
+}
+
+export type InputType = 'texto' | 'lista' | 'boton';
+
+export interface ChatFlowStep {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  tipoInput: InputType;
+  opciones?: string[];
+  activo: boolean;
+}
+
+export interface Configuracion {
+  triggerWord?: string;
+  mensajeBienvenida?: string;
+  mensajeConfirmacion?: string;
+  cobrarAdelanto?: boolean;
+  porcentajeAdelanto?: number;
+  chatFlow?: ChatFlowStep[];
+  qrFotoUrl?: string | null;
+  negocioNombre?: string;
+}
+
+export interface Servicio {
+  id: number;
+  nombre: string;
+  categoria?: string;
+  duracionMinutos: number;
+  bufferMinutos: number;
+  precio: number;
+  activo: boolean;
+}
