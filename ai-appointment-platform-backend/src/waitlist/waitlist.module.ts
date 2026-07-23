@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { WaitlistController } from './waitlist.controller';
 import { WaitlistService } from './waitlist.service';
-import { WaitlistRepository } from '../repositories/waitlist.repository';
+import { WaitlistRepository } from './waitlist.repository';
 import { EventsModule } from '../events/events.module';
 import { NegocioModule } from '../negocio/negocio.module';
 

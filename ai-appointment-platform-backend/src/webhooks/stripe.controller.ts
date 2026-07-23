@@ -1,9 +1,9 @@
 import { Controller, Post, Req, HttpCode } from '@nestjs/common';
 import { Request } from 'express';
 import { WebhookService } from './webhook.service';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'stripe-controller' });
+const logger = createLogger('stripe-controller');
 
 type RawBodyRequest = Request & { rawBody?: Buffer };
 

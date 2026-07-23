@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import webPush from 'web-push';
-import { PushRepository } from '../repositories/push.repository';
+import { PushRepository } from './push.repository';
 import { env } from '../config/env';
 
 @Injectable()

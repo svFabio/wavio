@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CitasRepository } from '../repositories/citas.repository';
+import { CitasRepository } from '../citas/citas.repository';
 import type { Cita } from '../domain/types';
 
 @Injectable()

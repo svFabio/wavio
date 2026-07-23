@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { GoogleCalendarService } from './google-calendar.service';
-import { CitasRepository } from '../repositories/citas.repository';
+import { CitasRepository } from '../citas/citas.repository';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';

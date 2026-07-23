@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { WaitlistRepository } from '../repositories/waitlist.repository';
+import { WaitlistRepository } from './waitlist.repository';
 import { EventsService } from '../events/events.service';
-import { NegocioRepository } from '../repositories/negocio.repository';
+import { NegocioRepository } from '../negocio/negocio.repository';
 
 @Injectable()
 export class WaitlistService {

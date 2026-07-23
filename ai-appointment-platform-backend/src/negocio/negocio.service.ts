@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { NegocioRepository } from '../repositories/negocio.repository';
+import { NegocioRepository } from './negocio.repository';
 import { ValidationError, NotFoundError } from '../domain/errors';
 import type { Negocio } from '../domain/types';
 

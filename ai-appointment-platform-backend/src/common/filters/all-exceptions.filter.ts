@@ -2,9 +2,9 @@ import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/co
 import { Request, Response } from 'express';
 import { AppError } from '../../domain/errors';
 import { StructuredValidationError } from '../../common/errors/validation-error';
-import pino from 'pino';
+import { createLogger } from '../../lib/logger';
 
-const logger = pino();
+const logger = createLogger('exception-filter');
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { AppointmentRepository } from '../repositories/appointment.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
+import { AppointmentRepository } from './appointment.repository';
+import { NegocioRepository } from '../negocio/negocio.repository';
 import { EventsService } from '../events/events.service';
 
 @Injectable()

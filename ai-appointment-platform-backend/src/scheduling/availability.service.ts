@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AvailabilityRepository } from '../repositories/availability.repository';
+import { AvailabilityRepository } from '../citas/availability.repository';
 import { getSlotsDisponibles } from './availability-engine';
 import type { Slot } from './availability-engine';
 

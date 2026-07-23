@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { CleanupRepository } from '../repositories/cleanup.repository';
+import { CleanupRepository } from './cleanup.repository';
 
 const EXPIRY_MINUTES = 30;
 

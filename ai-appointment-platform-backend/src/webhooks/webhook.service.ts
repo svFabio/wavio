@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { ChatRepository } from '../repositories/chat.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
-import { ConfiguracionRepository } from '../repositories/configuracion.repository';
-import { ServiciosRepository } from '../repositories/servicios.repository';
-import { AvailabilityRepository } from '../repositories/availability.repository';
-import { SesionChatRepository } from '../repositories/sesion-chat.repository';
+import { ChatRepository } from '../chat/chat.repository';
+import { NegocioRepository } from '../negocio/negocio.repository';
+import { ConfiguracionRepository } from '../negocio/configuracion.repository';
+import { ServiciosRepository } from '../servicios/servicios.repository';
+import { AvailabilityRepository } from '../citas/availability.repository';
+import { SesionChatRepository } from '../chat/sesion-chat.repository';
 import { CitasService } from '../citas/citas.service';
 import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
 import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
 import type { Servicio, Negocio, ChatFlowStep } from '../domain/types';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'webhook-service' });
+const logger = createLogger('webhook-service');
 
 interface NegocioCache {
   servicios: Servicio[];

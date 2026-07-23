@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReportesService } from './reportes.service';
-import { CitasRepository } from '../repositories/citas.repository';
+import { CitasRepository } from '../citas/citas.repository';
 
 describe('ReportesService', () => {
   let service: ReportesService;

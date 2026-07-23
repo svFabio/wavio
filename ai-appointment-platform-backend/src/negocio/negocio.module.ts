@@ -3,8 +3,8 @@ import { NegocioController } from './negocio.controller';
 import { ConfiguracionController } from './configuracion.controller';
 import { NegocioService } from './negocio.service';
 import { ConfiguracionService } from './configuracion.service';
-import { NegocioRepository } from '../repositories/negocio.repository';
-import { ConfiguracionRepository } from '../repositories/configuracion.repository';
+import { NegocioRepository } from './negocio.repository';
+import { ConfiguracionRepository } from './configuracion.repository';
 
 @Module({
   controllers: [NegocioController, ConfiguracionController],

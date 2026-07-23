@@ -7,9 +7,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { verifyJwt } from '../common/utils/jwt';
 import { env } from '../config/env';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'events-gateway' });
+const logger = createLogger('events-gateway');
 
 @WebSocketGateway({
   cors: {

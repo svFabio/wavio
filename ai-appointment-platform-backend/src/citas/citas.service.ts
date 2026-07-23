@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CitasRepository } from '../repositories/citas.repository';
-import { AvailabilityRepository } from '../repositories/availability.repository';
-import { ConfiguracionRepository } from '../repositories/configuracion.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
-import { ChatRepository } from '../repositories/chat.repository';
+import { CitasRepository } from './citas.repository';
+import { AvailabilityRepository } from './availability.repository';
+import { ConfiguracionRepository } from '../negocio/configuracion.repository';
+import { NegocioRepository } from '../negocio/negocio.repository';
+import { ChatRepository } from '../chat/chat.repository';
 import { EventsService } from '../events/events.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita } from '../domain/types';

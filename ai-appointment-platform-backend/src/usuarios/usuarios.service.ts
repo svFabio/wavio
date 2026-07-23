@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UsuariosRepository } from '../repositories/usuarios.repository';
+import { UsuariosRepository } from './usuarios.repository';
 import { ValidationError, ConflictError, NotFoundError } from '../domain/errors';
 import { Rol } from '../domain/types';
 import { BCRYPT_SALT_ROUNDS } from '../config';

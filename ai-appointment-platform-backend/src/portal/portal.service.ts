@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PortalRepository } from '../repositories/portal.repository';
+import { PortalRepository } from './portal.repository';
 import { NotFoundError, ValidationError } from '../domain/errors';
 import type { Cita } from '../domain/types';
 

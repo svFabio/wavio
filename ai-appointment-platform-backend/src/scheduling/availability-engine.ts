@@ -1,4 +1,4 @@
-import { AvailabilityRepository } from '../repositories/availability.repository';
+import { AvailabilityRepository } from '../citas/availability.repository';
 import { ValidationError } from '../domain/errors';
 
 export interface Slot {

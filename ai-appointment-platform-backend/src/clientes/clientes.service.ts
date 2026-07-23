@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ClientesRepository } from '../repositories/clientes.repository';
+import { ClientesRepository } from './clientes.repository';
 import { NotFoundError, ConflictError } from '../domain/errors';
 import type { Cliente } from '../domain/types';
 

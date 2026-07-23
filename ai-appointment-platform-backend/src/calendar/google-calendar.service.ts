@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { google } from 'googleapis';
 import { env } from '../config/env';
-import { CalendarRepository } from '../repositories/calendar.repository';
+import { CalendarRepository } from './calendar.repository';
 import type { Cita } from '../domain/types';
 import { ExternalServiceError, NotFoundError } from '../domain/errors';
 

@@ -3,10 +3,10 @@ import { ServiciosController } from './servicios.controller';
 import { HorariosController } from './horarios.controller';
 import { ServiciosService } from './servicios.service';
 import { HorariosService } from './horarios.service';
-import { ServiciosRepository } from '../repositories/servicios.repository';
-import { HorariosNegocioRepository } from '../repositories/horariosNegocio.repository';
-import { HorariosEspecialesRepository } from '../repositories/horariosEspeciales.repository';
-import { HorariosStaffRepository } from '../repositories/horariosStaff.repository';
+import { ServiciosRepository } from './servicios.repository';
+import { HorariosNegocioRepository } from './horariosNegocio.repository';
+import { HorariosEspecialesRepository } from './horariosEspeciales.repository';
+import { HorariosStaffRepository } from './horariosStaff.repository';
 
 @Module({
   controllers: [ServiciosController, HorariosController],

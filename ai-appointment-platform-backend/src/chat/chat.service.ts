@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { ChatRepository, ConversacionRaw } from '../repositories/chat.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
+import { ChatRepository, ConversacionRaw } from './chat.repository';
+import { NegocioRepository } from '../negocio/negocio.repository';
 import { EventsService } from '../events/events.service';
 import { enviarMensaje, resolverTelefonoReal } from '../lib/whatsapp';
 import { ValidationError, AppError } from '../domain/errors';
 import { MensajeChat } from '../domain/types';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'chat-service' });
+const logger = createLogger('chat-service');
 
 @Injectable()
 export class ChatService {

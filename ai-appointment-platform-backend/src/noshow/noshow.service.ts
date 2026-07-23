@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { NoShowRepository } from '../repositories/noshow.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
+import { NoShowRepository } from './noshow.repository';
+import { NegocioRepository } from '../negocio/negocio.repository';
 
 const BLOCK_THRESHOLD = 3;
 
