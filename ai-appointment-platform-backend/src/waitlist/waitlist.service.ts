@@ -74,6 +74,45 @@ export class WaitlistService {
     return notified;
   }
 
+  async remove(negocioId: number, id: number): Promise<void> {
+    await this.waitlistRepository.cancelEntry(id);
+    this.logger.log(`Cancelled waitlist entry ${id} for negocio ${negocioId}`);
+  }
+
+  async notifySpecificEntry(
+    negocioId: number,
+    id: number,
+  ): Promise<void> {
+    const entry = (await this.waitlistRepository.getAll(negocioId)).find(
+      (e) => e.id === id,
+    );
+    if (!entry) {
+      this.logger.warn(`Waitlist entry ${id} not found for negocio ${negocioId}`);
+      return;
+    }
+
+    const negocio = await this.negocioService.findByIdForInternal(negocioId);
+    if (!negocio?.waAccessToken || !negocio.waPhoneNumberId) return;
+
+    const mensaje =
+      `Hola ${entry.clienteNombre}! 🎉\n\n` +
+      `Se ha liberado un espacio para el ${new Date(entry.fechaPreferida).toLocaleDateString('es-ES')}.\n\n` +
+      `${entry.horarioPreferido ? `⏰ Horario preferido: ${entry.horarioPreferido}\n` : ''}` +
+      `¿Deseas agendar tu cita? Responde SÍ para confirmar.`;
+
+    await this.eventsService.sendWhatsAppMessage(
+      {
+        waAccessToken: negocio.waAccessToken,
+        waPhoneNumberId: negocio.waPhoneNumberId,
+      },
+      entry.clienteTelefono,
+      mensaje,
+    );
+
+    await this.waitlistRepository.markNotified(entry.id);
+    this.logger.log(`Notified waitlist entry ${id}`);
+  }
+
   async getAll(negocioId: number): Promise<unknown[]> {
     return this.waitlistRepository.getAll(negocioId);
   }
