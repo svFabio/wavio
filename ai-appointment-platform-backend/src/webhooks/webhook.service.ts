@@ -5,14 +5,14 @@ import { ServiciosService } from '../servicios/servicios.service';
 import { CitasService } from '../citas/citas.service';
 import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
 import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
-import type { Servicio, Negocio, ChatFlowStep } from '../domain/types';
+import type { Servicio, Negocio, Configuracion } from '../domain/types';
 import { createLogger } from '../lib/logger';
 
 const logger = createLogger('webhook-service');
 
 interface NegocioCache {
   servicios: Servicio[];
-  config: Record<string, unknown>;
+  config: Configuracion;
 }
 
 @Injectable()
@@ -77,7 +77,7 @@ export class WebhookService {
                   this.serviciosService.getAll(negocio.id),
                   this.negocioService.getConfiguracion(negocio.id),
                 ]);
-                cached = { servicios, config: config as unknown as Record<string, unknown> };
+                cached = { servicios, config };
                 negocioCache.set(negocio.id, cached);
               }
 
@@ -95,7 +95,7 @@ export class WebhookService {
                 (s) => `${s.nombre} ($${s.precio})`,
               );
 
-              const chatFlow = (cached.config.chatFlow ?? []) as ChatFlowStep[];
+              const chatFlow = cached.config.chatFlow ?? [];
 
               let slotsDisponibles: string[] = [];
               if (contexto.datos.fecha) {
@@ -201,9 +201,9 @@ export class WebhookService {
           });
 
           const config = cached.config;
-          const cobrarAdelanto = config.cobrarAdelanto as boolean;
-          const porcentajeAdelanto = config.porcentajeAdelanto as number;
-          const qrFotoUrl = config.qrFotoUrl as string | null;
+          const cobrarAdelanto = config.cobrarAdelanto;
+          const porcentajeAdelanto = config.porcentajeAdelanto;
+          const qrFotoUrl = config.qrFotoUrl;
 
           let confirmationMsg =
             `¡Tu cita ha sido creada! 🎉\n\n` +

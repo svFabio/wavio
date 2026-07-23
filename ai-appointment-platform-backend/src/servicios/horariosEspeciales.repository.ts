@@ -11,14 +11,14 @@ export class HorariosEspecialesRepository {
       where: { negocioId },
       orderBy: { fecha: 'asc' },
     });
-    return records as unknown as HorarioEspecial[];
+    return records;
   }
 
   async findByNegocioIdYFecha(negocioId: number, fecha: Date): Promise<HorarioEspecial | null> {
     const record = await this.prisma.horarioEspecial.findFirst({
       where: { negocioId, fecha },
     });
-    return record as unknown as HorarioEspecial | null;
+    return record;
   }
 
   async findByNegocioIdRange(
@@ -36,7 +36,7 @@ export class HorariosEspecialesRepository {
       },
       orderBy: { fecha: 'asc' },
     });
-    return records as unknown as HorarioEspecial[];
+    return records;
   }
 
   async create(data: {
@@ -51,20 +51,20 @@ export class HorariosEspecialesRepository {
         ...data,
       },
     });
-    return record as unknown as HorarioEspecial;
+    return record;
   }
 
   async findById(id: number): Promise<HorarioEspecial | null> {
     const record = await this.prisma.horarioEspecial.findUnique({
       where: { id },
     });
-    return record as unknown as HorarioEspecial | null;
+    return record;
   }
 
   async deleteById(id: number): Promise<HorarioEspecial> {
     const record = await this.prisma.horarioEspecial.delete({
       where: { id },
     });
-    return record as unknown as HorarioEspecial;
+    return record;
   }
 }

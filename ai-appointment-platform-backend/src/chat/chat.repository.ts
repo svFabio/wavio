@@ -28,7 +28,7 @@ export class ChatRepository {
       orderBy: { timestamp: 'desc' },
       select: { remoteJid: true },
     });
-    return msg as unknown as Partial<MensajeChat>;
+    return msg;
   }
 
   async getConversaciones(
@@ -82,7 +82,7 @@ export class ChatRepository {
       }),
       this.prisma.mensajeChat.count({ where }),
     ]);
-    return { data: data as unknown as MensajeChat[], total, page, limit };
+    return { data, total, page, limit };
   }
 
   async createMensaje(data: {
@@ -94,7 +94,7 @@ export class ChatRepository {
     negocioId: number;
   }): Promise<MensajeChat> {
     const msg = await this.prisma.mensajeChat.create({ data });
-    return msg as unknown as MensajeChat;
+    return msg;
   }
 
   async updateEstadoEntrega(waMessageId: string, estado: string): Promise<void> {

@@ -18,7 +18,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         code: exception.code,
       };
       if ('errors' in exception) {
-        body.errors = (exception as unknown as { errors: unknown }).errors;
+        body.errors = (exception as { errors: unknown }).errors;
       }
       response.status(exception.statusCode).json(body);
       return;

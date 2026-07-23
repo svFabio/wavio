@@ -27,7 +27,7 @@ export class CitasRepository {
       }),
       this.prisma.cita.count({ where }),
     ]);
-    return { data: data as unknown as Cita[], total, page, limit };
+    return { data: data.map((c) => ({ ...c, monto: Number(c.monto) })), total, page, limit };
   }
 
   async getAgenda(
@@ -51,7 +51,7 @@ export class CitasRepository {
       }),
       this.prisma.cita.count({ where }),
     ]);
-    return { data: data as unknown as Cita[], total, page, limit };
+    return { data: data.map((c) => ({ ...c, monto: Number(c.monto) })), total, page, limit };
   }
 
   async getCitasCount(negocioId: number, query: CitaCountWhere): Promise<number> {
@@ -69,7 +69,7 @@ export class CitasRepository {
       orderBy: { horario: 'asc' },
       take,
     });
-    return citas as unknown as Cita[];
+    return citas.map((c) => ({ ...c, monto: Number(c.monto) }));
   }
 
   async getOcupadas(negocioId: number, inicio: Date, fin: Date): Promise<{ horario: string }[]> {
@@ -81,7 +81,7 @@ export class CitasRepository {
 
   async getByIdAndNegocio(id: number, negocioId: number): Promise<Cita | null> {
     const cita = await this.prisma.cita.findFirst({ where: { id, negocioId } });
-    return cita as unknown as Cita;
+    return cita ? { ...cita, monto: Number(cita.monto) } : null;
   }
 
   async checkOcupado(
@@ -117,7 +117,7 @@ export class CitasRepository {
       const cita = await tx.cita.create({
         data: { ...data, negocioId, fecha, horario },
       });
-      return cita as unknown as Cita;
+      return { ...cita, monto: Number(cita.monto) };
     });
   }
 
@@ -126,7 +126,7 @@ export class CitasRepository {
     data: Partial<Omit<Cita, 'id' | 'creadoEn' | 'negocioId'>>,
   ): Promise<Cita> {
     const cita = await this.prisma.cita.update({ where: { id }, data });
-    return cita as unknown as Cita;
+    return { ...cita, monto: Number(cita.monto) };
   }
 
   async reprogramarIfSlotAvailable(
@@ -140,7 +140,8 @@ export class CitasRepository {
         where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' }, NOT: { id } },
       });
       if (occupied) return null;
-      return tx.cita.update({ where: { id }, data: { fecha, horario } }) as unknown as Cita;
+      const updated = await tx.cita.update({ where: { id }, data: { fecha, horario } });
+      return { ...updated, monto: Number(updated.monto) };
     });
   }
 
@@ -172,7 +173,7 @@ export class CitasRepository {
       where: { recurrenceId },
       orderBy: { fecha: 'asc' },
     });
-    return citas as unknown as Cita[];
+    return citas.map((c) => ({ ...c, monto: Number(c.monto) }));
   }
 
   async createRecurringInstances(

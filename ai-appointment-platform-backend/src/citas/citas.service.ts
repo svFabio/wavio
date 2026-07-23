@@ -98,7 +98,7 @@ export class CitasService {
         }
       }
     } catch (msgError) {
-      this.logger.error(`[Validar] Error enviando notificación WhatsApp: ${msgError}`);
+      this.logger.error({ err: msgError }, '[Validar] Error enviando notificación WhatsApp');
     }
 
     return citaActualizada;

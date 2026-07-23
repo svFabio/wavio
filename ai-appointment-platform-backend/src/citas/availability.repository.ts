@@ -15,7 +15,7 @@ export class AvailabilityRepository {
     const record = await this.prisma.servicio.findFirst({
       where: { id: servicioId, negocioId, activo: true },
     });
-    return record as unknown as Servicio | null;
+    return record;
   }
 
   async findPrimerServicioActivo(negocioId: number): Promise<Servicio | null> {
@@ -23,28 +23,28 @@ export class AvailabilityRepository {
       where: { negocioId, activo: true },
       orderBy: { id: 'asc' },
     });
-    return record as unknown as Servicio | null;
+    return record;
   }
 
   async findHorarioEspecial(negocioId: number, fecha: Date): Promise<HorarioEspecial | null> {
     const record = await this.prisma.horarioEspecial.findFirst({
       where: { negocioId, fecha },
     });
-    return record as unknown as HorarioEspecial | null;
+    return record;
   }
 
   async findHorariosNegocio(negocioId: number, diaSemana: number): Promise<HorarioNegocio[]> {
     const records = await this.prisma.horarioNegocio.findMany({
       where: { negocioId, diaSemana, activo: true },
     });
-    return records as unknown as HorarioNegocio[];
+    return records;
   }
 
   async findHorarioStaff(usuarioId: number, diaSemana: number): Promise<HorarioStaff | null> {
     const record = await this.prisma.horarioStaff.findFirst({
       where: { usuarioId, diaSemana, activo: true },
     });
-    return record as unknown as HorarioStaff | null;
+    return record;
   }
 
   async findCitasDelDia(
@@ -65,6 +65,6 @@ export class AvailabilityRepository {
       where,
       select: { horario: true, duracionMinutos: true },
     });
-    return records as unknown as CitaParaDisponibilidad[];
+    return records;
   }
 }

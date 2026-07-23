@@ -23,7 +23,7 @@ export class ClientesRepository {
       this.prisma.cliente.count({ where: { negocioId } }),
     ]);
     return {
-      data: records as unknown as Cliente[],
+      data: records,
       total,
       page,
       limit,
@@ -35,14 +35,14 @@ export class ClientesRepository {
     const record = await this.prisma.cliente.findFirst({
       where: { id, negocioId },
     });
-    return record as unknown as Cliente | null;
+    return record;
   }
 
   async findByTelefono(telefono: string, negocioId: number): Promise<Cliente | null> {
     const record = await this.prisma.cliente.findUnique({
       where: { negocioId_telefono: { negocioId, telefono } },
     });
-    return record as unknown as Cliente | null;
+    return record;
   }
 
   async create(data: {
@@ -53,7 +53,7 @@ export class ClientesRepository {
     notas?: string;
   }): Promise<Cliente> {
     const record = await this.prisma.cliente.create({ data });
-    return record as unknown as Cliente;
+    return record;
   }
 
   async update(
@@ -70,7 +70,7 @@ export class ClientesRepository {
       where: { id },
       data,
     });
-    return record as unknown as Cliente;
+    return record;
   }
 
   async delete(id: number, negocioId: number): Promise<void> {

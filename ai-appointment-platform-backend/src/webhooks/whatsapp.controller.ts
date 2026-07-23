@@ -58,7 +58,7 @@ export class WhatsAppController {
       // Meta expects 200 OK immediately; process asynchronously
       res.sendStatus(200);
 
-      this.webhookService.processWhatsAppPayload(req.body).catch((error) => {
+      this.webhookService.processWhatsAppPayload(req.body).catch((error: unknown) => {
         logger.error({ error }, '[Webhook] Error processing Meta payload');
       });
     } catch (error) {

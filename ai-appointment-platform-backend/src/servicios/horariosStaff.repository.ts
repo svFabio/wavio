@@ -11,7 +11,7 @@ export class HorariosStaffRepository {
       where: { usuarioId, activo: true },
       orderBy: [{ diaSemana: 'asc' }, { horaInicio: 'asc' }],
     });
-    return records as unknown as HorarioStaff[];
+    return records;
   }
 
   async findByUsuarioIdYDia(usuarioId: number, diaSemana: number): Promise<HorarioStaff[]> {
@@ -19,7 +19,7 @@ export class HorariosStaffRepository {
       where: { usuarioId, diaSemana, activo: true },
       orderBy: { horaInicio: 'asc' },
     });
-    return records as unknown as HorarioStaff[];
+    return records;
   }
 
   async findByNegocioId(negocioId: number): Promise<
@@ -71,7 +71,7 @@ export class HorariosStaffRepository {
         activo: true,
       },
     });
-    return record as unknown as HorarioStaff;
+    return record;
   }
 
   async deleteByUsuarioId(usuarioId: number): Promise<number> {

@@ -11,7 +11,7 @@ export class HorariosNegocioRepository {
       where: { negocioId, activo: true },
       orderBy: [{ diaSemana: 'asc' }, { horaInicio: 'asc' }],
     });
-    return records as unknown as HorarioNegocio[];
+    return records;
   }
 
   async findByNegocioIdYDia(negocioId: number, diaSemana: number): Promise<HorarioNegocio[]> {
@@ -19,7 +19,7 @@ export class HorariosNegocioRepository {
       where: { negocioId, diaSemana, activo: true },
       orderBy: { horaInicio: 'asc' },
     });
-    return records as unknown as HorarioNegocio[];
+    return records;
   }
 
   async upsert(
@@ -48,7 +48,7 @@ export class HorariosNegocioRepository {
         activo: true,
       },
     });
-    return record as unknown as HorarioNegocio;
+    return record;
   }
 
   async deleteByNegocioId(negocioId: number): Promise<number> {

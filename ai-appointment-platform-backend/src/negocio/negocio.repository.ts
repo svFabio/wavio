@@ -14,7 +14,7 @@ export class NegocioRepository {
       where: { waPhoneNumberId },
       select: { ...NEGOCIO_SAFE_SELECT, configuracion: true },
     });
-    return negocio as unknown as Omit<Negocio, 'waAccessToken'> & { configuracion: unknown };
+    return negocio;
   }
 
   async findByWaPhoneNumberIdForInternal(waPhoneNumberId: string): Promise<Negocio | null> {
@@ -22,7 +22,7 @@ export class NegocioRepository {
       where: { waPhoneNumberId },
       select: { ...NEGOCIO_SAFE_SELECT, waAccessToken: true, configuracion: true },
     });
-    return negocio as unknown as Negocio;
+    return negocio;
   }
 
   async findById(id: number): Promise<Omit<Negocio, 'waAccessToken'> | null> {

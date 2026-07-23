@@ -57,7 +57,7 @@ export class PortalRepository {
       },
       orderBy: { fecha: 'desc' },
     });
-    return citas as unknown as Cita[];
+    return citas.map((c) => ({ ...c, monto: Number(c.monto) }));
   }
 
   async findServiciosActivos(

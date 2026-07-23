@@ -28,7 +28,7 @@ export class ConfiguracionRepository {
       update: {},
       create: { negocioId },
     });
-    return mapConfig(config as unknown as Record<string, unknown>);
+    return mapConfig(config);
   }
 
   async upsert(negocioId: number, data: Record<string, unknown>): Promise<Configuracion> {
@@ -37,6 +37,6 @@ export class ConfiguracionRepository {
       update: data,
       create: { negocioId, ...data },
     });
-    return mapConfig(config as unknown as Record<string, unknown>);
+    return mapConfig(config);
   }
 }

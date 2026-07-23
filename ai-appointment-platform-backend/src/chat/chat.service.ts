@@ -102,7 +102,7 @@ export class ChatService {
 
     try {
       this.eventsService.emitConversacionEliminada(negocioId, { remoteJid: jid });
-    } catch (e) {
+    } catch (e: unknown) {
       logger.warn({ err: e }, 'Socket error on deleteConversacion');
     }
 
