@@ -1,9 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 import { CheckCircle2, AlertCircle, Unplug } from 'lucide-react';
 import { DevCredentialsForm } from './DevCredentialsForm';
+
+interface FBLoginResponse {
+  authResponse: unknown;
+}
+
+declare global {
+  interface Window {
+    FB: {
+      init: (params: unknown) => void;
+      login: (cb: (response: FBLoginResponse) => void, params: unknown) => void;
+    };
+    fbAsyncInit: () => void;
+  }
+}
 
 export const AdminWhatsapp = () => {
   useAuth();
@@ -96,11 +110,13 @@ export const AdminWhatsapp = () => {
     disconnectMutation.mutate();
   };
 
+  const getErrorMessage = (err: unknown): string => (err instanceof Error ? err.message : '');
+
   const displayError =
     error ||
-    queryError?.message ||
-    saveMutation.error?.message ||
-    disconnectMutation.error?.message;
+    getErrorMessage(queryError) ||
+    getErrorMessage(saveMutation.error) ||
+    getErrorMessage(disconnectMutation.error);
 
   if (loading) {
     return (

@@ -1,4 +1,12 @@
 // src/types/index.ts
+export interface Usuario {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: 'ADMIN' | 'STAFF';
+  fotoPerfil?: string;
+}
+
 export type EstadoCita =
   | 'PENDIENTE_PAGO'
   | 'VALIDANDO'

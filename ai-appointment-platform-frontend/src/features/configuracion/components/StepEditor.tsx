@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import type { ChatFlowStep, InputType } from './ChatFlowEditor';
+import type { ChatFlowStep, InputType } from '../types/domain';
 
 interface StepEditorProps {
   step: ChatFlowStep;

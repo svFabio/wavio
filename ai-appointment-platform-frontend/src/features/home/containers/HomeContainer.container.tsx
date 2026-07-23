@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { HomeView } from '../components/HomeView';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import type { ResumenData } from '../types';

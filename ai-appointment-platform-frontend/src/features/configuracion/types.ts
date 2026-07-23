@@ -1,4 +1,4 @@
-import type { ChatFlowStep } from './components/ChatFlowEditor';
+import type { ChatFlowStep } from './types/domain';
 
 export type { ChatFlowStep };
 

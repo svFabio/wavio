@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { ConfiguracionView } from '../components/ConfiguracionView';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import type { Servicio, HorarioNegocio, HorarioEspecial } from '../types';

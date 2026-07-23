@@ -1,30 +1,26 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
 import type { MensajeChat, Conversacion } from '../types';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useNotifications } from '../../../shared/hooks/useNotifications';
 import { ChatView } from '../components/ChatView';
 
 const formatJid = (jid: string) => jid.split('@')[0];
 const formatTimestamp = (ts: string) => {
-  try {
-    return format(new Date(ts), 'HH:mm', { locale: es });
-  } catch {
-    return '';
-  }
+  const date = new Date(ts);
+  return isValid(date) ? format(date, 'HH:mm', { locale: es }) : '';
 };
 const formatDate = (ts: string) => {
-  try {
-    return format(new Date(ts), 'dd MMM, HH:mm', { locale: es });
-  } catch {
-    return '';
-  }
+  const date = new Date(ts);
+  return isValid(date) ? format(date, 'dd MMM, HH:mm', { locale: es }) : '';
 };
 
 export const ChatContainer = () => {
   const queryClient = useQueryClient();
+  const { showNotification } = useNotifications();
   const [selectedJid, setSelectedJid] = useState<string | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -129,8 +125,8 @@ export const ChatContainer = () => {
       if (result.success) {
         setNuevoMensaje('');
       }
-    } catch {
-      // Error silenciado — el usuario puede reintentar
+    } catch (error) {
+      showNotification('Error enviando mensaje. Intenta de nuevo.', 'error');
     } finally {
       setEnviando(false);
     }
@@ -148,8 +144,8 @@ export const ChatContainer = () => {
         });
         if (selectedJid === jid) setSelectedJid(null);
       }
-    } catch {
-      // Error silenciado — el usuario puede reintentar
+    } catch (error) {
+      showNotification('Error eliminando conversación.', 'error');
     }
   };
 

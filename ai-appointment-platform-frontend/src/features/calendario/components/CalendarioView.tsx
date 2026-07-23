@@ -5,7 +5,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { EventoCalendario } from '../types';
 import { ModalDetalle } from './ModalDetalle';
-import { ModalNuevaCita } from './ModalNuevaCita';
+import { ModalNuevaCitaContainer } from '../containers/ModalNuevaCita.container';
 import { ModalReprogramar } from './ModalReprogramar';
 import { CustomEventDay } from './CustomEventDay';
 import { CustomEventMonth } from './CustomEventMonth';
@@ -138,7 +138,7 @@ export const CalendarioView = ({
       </div>
 
       {modalNuevaCitaAbierto && (
-        <ModalNuevaCita
+        <ModalNuevaCitaContainer
           isOpen={modalNuevaCitaAbierto}
           onClose={onCerrarNuevaCita}
           fechaInicial={fechaInicialNuevaCita}

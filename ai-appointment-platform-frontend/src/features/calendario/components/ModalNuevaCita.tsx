@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
-import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../../../services/api';
 import {
   X,
   Plus,
@@ -14,29 +11,26 @@ import {
   AlertCircle,
   Scissors,
   UserCheck,
-  Repeat,
 } from 'lucide-react';
 
 import { HorariosGrid } from './HorariosGrid';
 import { ResumenPrecio } from './ResumenPrecio';
+import { RecurrenciaSection, calcularFechaFinPorDefecto } from './RecurrenciaSection';
+import type { Servicio } from '../../configuracion/types';
+import type { Configuracion } from '../../configuracion/types/domain';
+import type { DatosNuevaCita } from '../types';
+import type { Usuario } from '../../../types';
 
-interface DatosNuevaCita {
-  clienteNombre: string;
-  clienteTelefono: string;
-  fecha: string;
-  horario: string;
-  servicioId?: number;
-  staffId?: number;
-  esRecurrente?: boolean;
-  recurrence?: 'weekly' | 'biweekly' | 'monthly';
-  recurrenceEnd?: string;
-}
-
-interface ModalNuevaCitaProps {
+export interface ModalNuevaCitaProps {
   isOpen: boolean;
   onClose: () => void;
   fechaInicial?: Date;
   onSubmit: (data: DatosNuevaCita) => Promise<{ success: boolean; error?: string }>;
+  servicios: Servicio[];
+  staffList: Usuario[];
+  config: Configuracion | undefined;
+  horariosDisponibles: string[];
+  loadingHorarios: boolean;
 }
 
 export const ModalNuevaCita = ({
@@ -44,7 +38,12 @@ export const ModalNuevaCita = ({
   onClose,
   fechaInicial,
   onSubmit,
-}: ModalNuevaCitaProps) => {
+  servicios,
+  staffList,
+  config,
+  horariosDisponibles,
+  loadingHorarios,
+}: ModalNuevaCitaProps): JSX.Element | null => {
   const [formData, setFormData] = useState<DatosNuevaCita>({
     clienteNombre: '',
     clienteTelefono: '',
@@ -59,24 +58,6 @@ export const ModalNuevaCita = ({
 
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
-
-  const { data: servicios = [] } = useQuery({
-    queryKey: ['servicios'],
-    queryFn: api.getServicios,
-  });
-
-  const { data: staffList = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: api.getUsers,
-  });
-
-  const { data: config } = useQuery({
-    queryKey: ['configuracion'],
-    queryFn: api.getConfiguracion,
-  });
-
-  const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
-    useHorariosDisponiblesQuery(formData.fecha, isOpen && !!formData.fecha, formData.servicioId);
 
   const { handleKeyDown } = useModalAccessibility({
     isOpen,
@@ -101,14 +82,13 @@ export const ModalNuevaCita = ({
     }
   }, [isOpen, horariosDisponibles, formData.horario]);
 
-  // Set initial service
   useEffect(() => {
     if (servicios.length > 0 && !formData.servicioId) {
       setFormData((prev) => ({ ...prev, servicioId: servicios[0].id }));
     }
   }, [servicios, formData.servicioId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError(null);
 
@@ -123,28 +103,32 @@ export const ModalNuevaCita = ({
     }
 
     setLoading(true);
-    const result = await onSubmit(formData);
-    setLoading(false);
-
-    if (result.success) {
-      setFormData({
-        clienteNombre: '',
-        clienteTelefono: '',
-        fecha: format(new Date(), 'yyyy-MM-dd'),
-        horario: '',
-        servicioId: servicios[0]?.id,
-        staffId: undefined,
-        esRecurrente: false,
-        recurrence: undefined,
-        recurrenceEnd: undefined,
-      });
-      onClose();
-    } else {
-      setError(result.error || 'Error al crear la cita');
+    try {
+      const result = await onSubmit(formData);
+      if (result.success) {
+        setFormData({
+          clienteNombre: '',
+          clienteTelefono: '',
+          fecha: format(new Date(), 'yyyy-MM-dd'),
+          horario: '',
+          servicioId: servicios[0]?.id,
+          staffId: undefined,
+          esRecurrente: false,
+          recurrence: undefined,
+          recurrenceEnd: undefined,
+        });
+        onClose();
+      } else {
+        setError(result.error || 'Error al crear la cita');
+      }
+    } catch (error) {
+      setError('Error inesperado: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setError(null);
     setFormData({
       clienteNombre: '',
@@ -160,7 +144,7 @@ export const ModalNuevaCita = ({
     onClose();
   };
 
-  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const valor = e.target.value.replace(/\D/g, '');
     setFormData((prev) => ({ ...prev, clienteTelefono: valor }));
   };
@@ -287,7 +271,7 @@ export const ModalNuevaCita = ({
                   className="input-modern pl-10 appearance-none bg-surface"
                 >
                   <option value="">Sin asignar</option>
-                  {staffList.map((u) => (
+                  {(staffList as Array<{ id: number; nombre: string; rol: string }>).map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.nombre} ({u.rol})
                     </option>
@@ -307,65 +291,22 @@ export const ModalNuevaCita = ({
             />
           </div>
 
-          <div className="border-t border-border pt-4">
-            <label className="flex items-center gap-2 cursor-pointer w-max">
-              <input
-                type="checkbox"
-                checked={!!formData.esRecurrente}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    esRecurrente: e.target.checked,
-                    recurrence: e.target.checked ? 'weekly' : undefined,
-                    recurrenceEnd: e.target.checked
-                      ? format(
-                          new Date(
-                            new Date(prev.fecha).setMonth(new Date(prev.fecha).getMonth() + 1),
-                          ),
-                          'yyyy-MM-dd',
-                        )
-                      : undefined,
-                  }))
-                }
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm font-semibold text-txt">Repetir cita</span>
-              <Repeat className="w-4 h-4 text-txt-muted" />
-            </label>
-
-            {formData.esRecurrente && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <select
-                    value={formData.recurrence || 'weekly'}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        recurrence: e.target.value as 'weekly' | 'biweekly' | 'monthly',
-                      }))
-                    }
-                    className="input-modern appearance-none bg-surface"
-                  >
-                    <option value="weekly">Semanal</option>
-                    <option value="biweekly">Quincenal</option>
-                    <option value="monthly">Mensual</option>
-                  </select>
-                </div>
-                <div>
-                  <input
-                    type="date"
-                    required={formData.esRecurrente}
-                    value={formData.recurrenceEnd || ''}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, recurrenceEnd: e.target.value }))
-                    }
-                    min={formData.fecha}
-                    className="input-modern"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <RecurrenciaSection
+            esRecurrente={!!formData.esRecurrente}
+            recurrence={formData.recurrence}
+            recurrenceEnd={formData.recurrenceEnd}
+            fechaBase={formData.fecha}
+            onToggle={(checked) =>
+              setFormData((prev) => ({
+                ...prev,
+                esRecurrente: checked,
+                recurrence: checked ? 'weekly' : undefined,
+                recurrenceEnd: checked ? calcularFechaFinPorDefecto(prev.fecha) : undefined,
+              }))
+            }
+            onFrequencyChange={(value) => setFormData((prev) => ({ ...prev, recurrence: value }))}
+            onEndDateChange={(value) => setFormData((prev) => ({ ...prev, recurrenceEnd: value }))}
+          />
 
           <div className="flex gap-3 pt-4 border-t border-border">
             <button type="button" onClick={handleClose} className="btn-secondary flex-1">

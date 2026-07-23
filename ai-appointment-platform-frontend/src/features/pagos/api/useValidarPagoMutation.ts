@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { api } from '../../../services/api';
-import { toast } from 'sonner';
+import { api } from '../../../lib/api';
+import { useNotifications } from '../../../shared/hooks/useNotifications';
 
 export const useValidarPagoMutation = (): UseMutationResult<
   void,
@@ -9,6 +9,7 @@ export const useValidarPagoMutation = (): UseMutationResult<
   { id: string; accion: 'APROBAR' | 'RECHAZAR' }
 > => {
   const queryClient = useQueryClient();
+  const { showNotification } = useNotifications();
 
   return useMutation({
     mutationFn: ({ id, accion }: { id: string; accion: 'APROBAR' | 'RECHAZAR' }) =>
@@ -16,11 +17,11 @@ export const useValidarPagoMutation = (): UseMutationResult<
         if (!success) throw new Error('Error al realizar la acción');
       }),
     onSuccess: () => {
-      toast.success('Acción realizada con éxito');
+      showNotification('Acción realizada con éxito', 'success');
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },
     onError: () => {
-      toast.error('Error de conexión');
+      showNotification('Error de conexión', 'error');
     },
   });
 };
