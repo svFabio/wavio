@@ -238,6 +238,16 @@ No Redux, no Zustand unless a measurable performance problem requires it and is 
 
 ## Frontend Quality Rules (GGA enforces these on every commit)
 
+### Architectural Boundaries — No API Monoliths
+
+**BLOCK the commit if any staged file:**
+
+- Creates or modifies a monolithic API file (e.g., `src/lib/api.ts`) that contains endpoints for multiple domains.
+- Exports raw fetch calls or React Query hooks from a directory other than `src/features/<domain>/api/` (except cross-feature singletons in `src/shared/api/`).
+- Defines API calls outside of their respective feature domain.
+
+**Correct pattern**: All domain API calls must live in `src/features/<domain>/api/<domain>.api.ts` or as specific hooks (e.g., `useCitasQuery.ts`).
+
 ### Design Tokens — No Hardcoded Values
 
 **BLOCK the commit if any staged `.tsx` or `.css` file contains:**
@@ -277,10 +287,11 @@ className = "text-blue-500 mt-6 text-sm z-modal";
 
 - Contains a JSX block of 5+ lines that is structurally identical or near-identical to an existing component already in `shared/components/` or the same feature's `components/` folder.
 - Defines a button, input, badge, card, modal, or spinner inline in a page or container when a shared component for that pattern already exists.
-- Duplicates loading state UI (spinners, skeletons) — these belong in `shared/components/`.
+- Duplicates loading state UI (spinners, skeletons) — these MUST go in `src/shared/components/skeletons/`.
 - Duplicates error state UI — use the shared `ErrorFallback` component.
+- Defines a base wrapper or focus-trap logic for a modal outside of `src/shared/components/` or `src/shared/hooks/` (like `useModalAccessibility`).
 
-**The rule**: if a UI pattern appears in 2+ places, it must be a component. If a component is domain-agnostic, it belongs in `shared/components/`.
+**The rule**: if a UI pattern appears in 2+ places, it must be a component. If a component is domain-agnostic or a structural skeleton, it belongs in `shared/components/`.
 
 ### React Anti-Patterns
 
