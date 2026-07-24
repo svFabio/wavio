@@ -4,6 +4,7 @@ import { env } from '../../config/env';
 export interface JwtPayload {
   id: number;
   email: string;
+  negocioId: number;
   rol: string;
 }
 

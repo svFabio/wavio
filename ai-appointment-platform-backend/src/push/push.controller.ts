@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/utils/jwt';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { subscribePushSchema, type SubscribePushDto } from './push.dto';
 

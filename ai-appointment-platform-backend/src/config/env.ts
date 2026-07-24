@@ -24,9 +24,11 @@ const envSchema = z.object({
   GOOGLE_CALENDAR_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CALENDAR_REDIRECT_URI: z.string().optional(),
   BACKEND_URL: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_EMAIL: z.string().optional(),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 
 const _env = envSchema.safeParse(process.env);

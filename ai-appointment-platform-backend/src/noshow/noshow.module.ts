@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { NoShowService } from './noshow.service';
-import { NoShowRepository } from '../repositories/noshow.repository';
+import { NoShowRepository } from './noshow.repository';
 import { NegocioModule } from '../negocio/negocio.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [NegocioModule],
+  imports: [NegocioModule, EventsModule],
   providers: [NoShowService, NoShowRepository],
   exports: [NoShowService],
 })

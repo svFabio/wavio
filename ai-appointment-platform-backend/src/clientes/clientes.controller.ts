@@ -27,8 +27,7 @@ export class ClientesController {
 
   @Get('/')
   async getAll(@TenantId() negocioId: number, @Req() req: Request) {
-    const pagination = (req as unknown as Record<string, unknown>).pagination as
-      { page: number; limit: number } | undefined;
+    const pagination = (req as { pagination?: { page: number; limit: number } }).pagination;
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;
 

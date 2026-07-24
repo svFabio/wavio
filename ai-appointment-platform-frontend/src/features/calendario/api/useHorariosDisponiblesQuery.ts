@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 
 export function useHorariosDisponiblesQuery(
   fecha: string,

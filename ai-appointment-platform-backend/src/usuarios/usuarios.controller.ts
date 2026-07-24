@@ -19,7 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../common/decorators/current-user.decorator';
+import type { JwtPayload } from '../common/utils/jwt';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { createUserSchema, updateUserSchema } from './dto/usuarios.dto';
 
@@ -31,8 +31,7 @@ export class UsuariosController {
 
   @Get('/')
   async getAll(@TenantId() negocioId: number, @Req() req: Request) {
-    const pagination = (req as unknown as Record<string, unknown>).pagination as
-      { page: number; limit: number } | undefined;
+    const pagination = (req as { pagination?: { page: number; limit: number } }).pagination;
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;
 

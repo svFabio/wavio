@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CitasRepository } from '../repositories/citas.repository';
-import { AvailabilityRepository } from '../repositories/availability.repository';
-import { ConfiguracionRepository } from '../repositories/configuracion.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
-import { ChatRepository } from '../repositories/chat.repository';
+import { CitasRepository } from './citas.repository';
+import { AvailabilityRepository } from './availability.repository';
+import { NegocioService } from '../negocio/negocio.service';
+import { ChatService } from '../chat/chat.service';
 import { EventsService } from '../events/events.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
-import { Cita } from '../domain/types';
+import { Cita, Slot, DisponibilidadParams } from '../domain/types';
 import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 
@@ -17,9 +16,8 @@ export class CitasService {
   constructor(
     private readonly citasRepository: CitasRepository,
     private readonly availabilityRepository: AvailabilityRepository,
-    private readonly configuracionRepository: ConfiguracionRepository,
-    private readonly negocioRepository: NegocioRepository,
-    private readonly chatRepository: ChatRepository,
+    private readonly negocioService: NegocioService,
+    private readonly chatService: ChatService,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -85,12 +83,12 @@ export class CitasService {
       }
 
       if (mensaje) {
-        const ultimoMsg = await this.chatRepository.getUltimoMensajeEntrantePorTelefono(
+        const ultimoMsg = await this.chatService.getUltimoMensajeEntrantePorTelefono(
           negocioId,
           citaActualizada.clienteTelefono,
         );
         const jid = ultimoMsg?.remoteJid || citaActualizada.clienteTelefono;
-        const waCreds = await this.negocioRepository.findByIdForInternal(negocioId);
+        const waCreds = await this.negocioService.findByIdForInternal(negocioId);
         if (waCreds?.waAccessToken && waCreds.waPhoneNumberId) {
           await this.eventsService.sendWhatsAppMessage(
             { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
@@ -100,7 +98,7 @@ export class CitasService {
         }
       }
     } catch (msgError) {
-      this.logger.error(`[Validar] Error enviando notificación WhatsApp: ${msgError}`);
+      this.logger.error({ err: msgError }, '[Validar] Error enviando notificación WhatsApp');
     }
 
     return citaActualizada;
@@ -108,6 +106,7 @@ export class CitasService {
 
   async getAgenda(
     negocioId: number,
+    queryFecha?: string,
     queryDesde?: string,
     queryHasta?: string,
     page?: number,
@@ -116,11 +115,19 @@ export class CitasService {
     data: Cita[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    const fechaDesde = queryDesde
-      ? new Date(queryDesde)
+    let desdeStr = queryDesde;
+    let hastaStr = queryHasta;
+
+    if (queryFecha && !desdeStr && !hastaStr) {
+      desdeStr = `${queryFecha}T00:00:00.000Z`;
+      hastaStr = `${queryFecha}T23:59:59.999Z`;
+    }
+
+    const fechaDesde = desdeStr
+      ? new Date(desdeStr)
       : new Date(Date.now() - AGENDA_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
-    const fechaHasta = queryHasta
-      ? new Date(queryHasta)
+    const fechaHasta = hastaStr
+      ? new Date(hastaStr)
       : new Date(Date.now() + AGENDA_LOOKAHEAD_DAYS * 24 * 60 * 60 * 1000);
     const p = page || 1;
     const l = limit || 20;
@@ -184,7 +191,7 @@ export class CitasService {
       resolvedServicioId = primerServicio.id;
     }
 
-    const config = await this.configuracionRepository.getOrCreateByNegocioId(negocioId);
+    const config = await this.negocioService.getConfiguracion(negocioId);
     const slots = await getSlotsDisponibles(this.availabilityRepository, {
       negocioId,
       servicioId: resolvedServicioId,
@@ -391,15 +398,12 @@ export class CitasService {
       recurrenceEnd: recurrenceEndDate,
     });
 
-    // Generate future instances
-    const instances: Array<{ fecha: string; horario: string }> = [];
+    let instancesCreated = 0;
     const baseDate = new Date(baseCita.fecha);
-
     const nextDate = new Date(baseDate);
-    const maxInstances = 52; // Max 1 year of weekly appointments
+    const maxInstances = 52;
 
     for (let i = 0; i < maxInstances; i++) {
-      // Calculate next date based on recurrence type
       switch (data.recurrence) {
         case 'weekly':
           nextDate.setDate(nextDate.getDate() + 7);
@@ -415,18 +419,42 @@ export class CitasService {
       // Stop if past end date
       if (nextDate > recurrenceEndDate) break;
 
-      instances.push({
-        fecha: nextDate.toISOString().split('T')[0],
-        horario: data.horario,
-      });
-    }
+      const fechaStr = nextDate.toISOString().split('T')[0];
+      let slotDisponible = true;
 
-    // Create instances in batch
-    if (instances.length > 0) {
-      await this.citasRepository.createRecurringInstances(
-        instances.map((inst) => ({
-          fecha: new Date(inst.fecha),
-          horario: inst.horario,
+      if (data.servicioId) {
+        const slots = await getSlotsDisponibles(this.availabilityRepository, {
+          negocioId,
+          servicioId: data.servicioId,
+          fecha: fechaStr,
+          staffId: data.staffId ?? undefined,
+        });
+
+        slotDisponible = !!slots.find((s) => s.inicio === data.horario);
+      } else {
+        const checkDate = new Date(nextDate);
+        const [horas, minutos] = data.horario.split(':').map(Number);
+        checkDate.setHours(horas, minutos, 0, 0);
+        const ocupado = await this.citasRepository.checkOcupado(negocioId, checkDate, data.horario);
+        slotDisponible = !ocupado;
+      }
+
+      if (!slotDisponible) {
+        this.logger.warn(
+          `Horario ${data.horario} no disponible para la fecha ${fechaStr}, omitiendo instancia recurrente.`,
+        );
+        continue;
+      }
+
+      const instanceDate = new Date(nextDate);
+      const [horas, minutos] = data.horario.split(':').map(Number);
+      instanceDate.setHours(horas, minutos, 0, 0);
+
+      const instancia = await this.citasRepository.createIfSlotAvailable(
+        negocioId,
+        instanceDate,
+        data.horario,
+        {
           clienteNombre: data.clienteNombre,
           clienteTelefono: data.clienteTelefono,
           servicioId: data.servicioId ?? null,
@@ -439,14 +467,17 @@ export class CitasService {
           recurrence: data.recurrence,
           recurrenceId,
           recurrenceEnd: recurrenceEndDate,
-        })),
-        negocioId,
+        },
       );
+
+      if (instancia) {
+        instancesCreated++;
+      }
     }
 
     this.eventsService.emitCambioCitas(negocioId);
 
-    return { base: baseCita, instancesCreated: instances.length };
+    return { base: baseCita, instancesCreated };
   }
 
   async cancelarSerieRecurente(recurrenceId: string, negocioId: number): Promise<number> {
@@ -457,5 +488,21 @@ export class CitasService {
 
   async getSeriesRecurente(recurrenceId: string): Promise<Cita[]> {
     return this.citasRepository.findRecurringSeries(recurrenceId);
+  }
+
+  async getByIdAndNegocio(id: number, negocioId: number): Promise<Cita | null> {
+    return this.citasRepository.getByIdAndNegocio(id, negocioId);
+  }
+
+  async getSlotDisponibles(params: DisponibilidadParams): Promise<Slot[]> {
+    return getSlotsDisponibles(this.availabilityRepository, params);
+  }
+
+  async updateLastAppointmentRating(
+    negocioId: number,
+    clienteTelefono: string,
+    rating: number,
+  ): Promise<boolean> {
+    return this.citasRepository.updateLastAppointmentRating(negocioId, clienteTelefono, rating);
   }
 }

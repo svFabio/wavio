@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import type { JwtPayload } from '../decorators/current-user.decorator';
+import type { JwtPayload } from '../utils/jwt';
 
 @Injectable()
 export class TenantGuard implements CanActivate {

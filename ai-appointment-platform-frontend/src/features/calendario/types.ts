@@ -19,3 +19,15 @@ export interface EventoCalendario {
   allDay?: boolean;
   resource?: RecursoEvento;
 }
+
+export interface DatosNuevaCita {
+  clienteNombre: string;
+  clienteTelefono: string;
+  fecha: string;
+  horario: string;
+  servicioId?: number;
+  staffId?: number;
+  esRecurrente?: boolean;
+  recurrence?: 'weekly' | 'biweekly' | 'monthly';
+  recurrenceEnd?: string;
+}

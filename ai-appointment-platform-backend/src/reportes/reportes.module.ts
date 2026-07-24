@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ReportesService } from './reportes.service';
-import { CitasModule } from '../citas/citas.module';
+import { ReportesRepository } from './reportes.repository';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [CitasModule],
-  providers: [ReportesService],
+  imports: [PrismaModule],
+  providers: [ReportesService, ReportesRepository],
   exports: [ReportesService],
 })
 export class ReportesModule {}

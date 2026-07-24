@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { Cita } from '../../../types';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 
 export const useCitasQuery = (fecha?: string): UseQueryResult<Cita[], Error> => {
   return useQuery({

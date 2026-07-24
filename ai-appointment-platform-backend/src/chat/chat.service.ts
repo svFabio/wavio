@@ -1,19 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { ChatRepository, ConversacionRaw } from '../repositories/chat.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
+import { ChatRepository, ConversacionRaw } from './chat.repository';
+import { SesionChatRepository } from './sesion-chat.repository';
+import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
 import { enviarMensaje, resolverTelefonoReal } from '../lib/whatsapp';
 import { ValidationError, AppError } from '../domain/errors';
 import { MensajeChat } from '../domain/types';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'chat-service' });
+const logger = createLogger('chat-service');
 
 @Injectable()
 export class ChatService {
   constructor(
     private readonly chatRepository: ChatRepository,
-    private readonly negocioRepository: NegocioRepository,
+    private readonly sesionChatRepository: SesionChatRepository,
+    private readonly negocioService: NegocioService,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -67,7 +69,7 @@ export class ChatService {
       throw new ValidationError('Texto requerido y debe ser texto válido');
     }
 
-    const waCreds = await this.negocioRepository.findByIdForInternal(negocioId);
+    const waCreds = await this.negocioService.findByIdForInternal(negocioId);
     if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) {
       throw new AppError('WhatsApp no conectado', 502, 'WHATSAPP_ERROR');
     }
@@ -100,10 +102,64 @@ export class ChatService {
 
     try {
       this.eventsService.emitConversacionEliminada(negocioId, { remoteJid: jid });
-    } catch (e) {
+    } catch (e: unknown) {
       logger.warn({ err: e }, 'Socket error on deleteConversacion');
     }
 
     return { success: true, eliminados: count };
+  }
+
+  async createMensaje(data: {
+    remoteJid: string;
+    contenido: string;
+    direccion: 'ENTRANTE' | 'SALIENTE';
+    waMessageId?: string | null;
+    estadoEntrega: string;
+    negocioId: number;
+  }): Promise<MensajeChat> {
+    return this.chatRepository.createMensaje(data);
+  }
+
+  async updateEstadoEntrega(waMessageId: string, estado: string): Promise<void> {
+    await this.chatRepository.updateEstadoEntrega(waMessageId, estado);
+  }
+
+  async getUltimoMensajeEntrantePorTelefono(
+    negocioId: number,
+    telefono: string,
+  ): Promise<Partial<MensajeChat> | null> {
+    return this.chatRepository.getUltimoMensajeEntrantePorTelefono(negocioId, telefono);
+  }
+
+  async findSessionByJid(
+    jid: string,
+    negocioId: number,
+  ): Promise<{
+    id: string;
+    estado: string;
+    datos: Record<string, unknown>;
+    ultimoMensaje: Date;
+    negocioId: number;
+  } | null> {
+    const sesion = await this.sesionChatRepository.findByJid(jid, negocioId);
+    if (!sesion) return null;
+
+    let datosSeguros: Record<string, unknown> = {};
+    if (sesion.datos && typeof sesion.datos === 'object' && !Array.isArray(sesion.datos)) {
+      datosSeguros = sesion.datos as Record<string, unknown>;
+    }
+
+    return {
+      ...sesion,
+      datos: datosSeguros,
+    };
+  }
+
+  async upsertSession(
+    jid: string,
+    negocioId: number,
+    data: { estado: string; datos: Record<string, unknown> },
+  ): Promise<void> {
+    await this.sesionChatRepository.upsert(jid, negocioId, data);
   }
 }

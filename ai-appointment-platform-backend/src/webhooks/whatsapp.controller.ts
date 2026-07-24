@@ -5,9 +5,9 @@ import crypto from 'crypto';
 import { WebhookService } from './webhook.service';
 import { ENV_CONFIG } from '../config/config.module';
 import type { env as EnvType } from '../config/env';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'whatsapp-controller' });
+const logger = createLogger('whatsapp-controller');
 
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
@@ -58,7 +58,7 @@ export class WhatsAppController {
       // Meta expects 200 OK immediately; process asynchronously
       res.sendStatus(200);
 
-      this.webhookService.processWhatsAppPayload(req.body).catch((error) => {
+      this.webhookService.processWhatsAppPayload(req.body).catch((error: unknown) => {
         logger.error({ error }, '[Webhook] Error processing Meta payload');
       });
     } catch (error) {

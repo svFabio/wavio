@@ -1,5 +1,7 @@
 import pino from 'pino';
-import { prisma } from '../src/repositories/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const logger = pino();
 

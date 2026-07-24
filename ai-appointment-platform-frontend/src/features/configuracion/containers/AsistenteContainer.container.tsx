@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { AsistenteView } from '../components/AsistenteView';
 import type { ConfigData } from '../types';
-import type { ChatFlowStep } from '../components/ChatFlowEditor';
+import type { ChatFlowStep } from '../types/domain';
 
 export const AsistenteContainer = () => {
   const [error, setError] = useState<string | null>(null);
@@ -23,16 +23,18 @@ export const AsistenteContainer = () => {
   const [qrFotoUrl, setQrFotoUrl] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  if (config && !initialized) {
-    setTrigger(config.trigger);
-    setMensajeBienvenida(config.mensajeBienvenida);
-    setMensajeConfirmacion(config.mensajeConfirmacion);
-    setCobrarAdelanto(config.cobrarAdelanto);
-    setPorcentajeAdelanto(config.porcentajeAdelanto);
-    setChatFlow(config.chatFlow || []);
-    setQrFotoUrl(config.qrFotoUrl || null);
-    setInitialized(true);
-  }
+  useEffect(() => {
+    if (config && !initialized) {
+      setTrigger(config.trigger);
+      setMensajeBienvenida(config.mensajeBienvenida);
+      setMensajeConfirmacion(config.mensajeConfirmacion);
+      setCobrarAdelanto(config.cobrarAdelanto);
+      setPorcentajeAdelanto(config.porcentajeAdelanto);
+      setChatFlow(config.chatFlow || []);
+      setQrFotoUrl(config.qrFotoUrl || null);
+      setInitialized(true);
+    }
+  }, [config, initialized]);
 
   const saveMutation = useMutation({
     mutationFn: () =>

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfiguracionRepository } from '../repositories/configuracion.repository';
+import { ConfiguracionRepository } from './configuracion.repository';
 import { ValidationError } from '../domain/errors';
 import { uploadBase64Image } from '../lib/cloudinary';
 import type { Configuracion } from '../domain/types';

@@ -1,33 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { ChatRepository } from '../repositories/chat.repository';
-import { NegocioRepository } from '../repositories/negocio.repository';
-import { ConfiguracionRepository } from '../repositories/configuracion.repository';
-import { ServiciosRepository } from '../repositories/servicios.repository';
-import { AvailabilityRepository } from '../repositories/availability.repository';
-import { SesionChatRepository } from '../repositories/sesion-chat.repository';
+import { ChatService } from '../chat/chat.service';
+import { NegocioService } from '../negocio/negocio.service';
+import { ServiciosService } from '../servicios/servicios.service';
 import { CitasService } from '../citas/citas.service';
-import { getSlotsDisponibles } from '../scheduling/availability-engine';
 import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
 import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
-import type { Servicio, Negocio, ChatFlowStep } from '../domain/types';
-import pino from 'pino';
+import type { Servicio, Negocio, Configuracion } from '../domain/types';
+import { createLogger } from '../lib/logger';
 
-const logger = pino({ name: 'webhook-service' });
+const logger = createLogger('webhook-service');
 
 interface NegocioCache {
   servicios: Servicio[];
-  config: Record<string, unknown>;
+  config: Configuracion;
 }
 
 @Injectable()
 export class WebhookService {
   constructor(
-    private readonly chatRepository: ChatRepository,
-    private readonly negocioRepository: NegocioRepository,
-    private readonly configuracionRepository: ConfiguracionRepository,
-    private readonly serviciosRepository: ServiciosRepository,
-    private readonly availabilityRepository: AvailabilityRepository,
-    private readonly sesionChatRepository: SesionChatRepository,
+    private readonly chatService: ChatService,
+    private readonly negocioService: NegocioService,
+    private readonly serviciosService: ServiciosService,
     private readonly citasService: CitasService,
   ) {}
 
@@ -58,7 +51,7 @@ export class WebhookService {
               if (!phoneNumberId || !from || !textBody) continue;
 
               const negocio =
-                await this.negocioRepository.findByWaPhoneNumberIdForInternal(phoneNumberId);
+                await this.negocioService.findByWaPhoneNumberIdForInternal(phoneNumberId);
               if (!negocio) {
                 logger.warn(
                   { phoneNumberId },
@@ -67,7 +60,7 @@ export class WebhookService {
                 continue;
               }
 
-              await this.chatRepository.createMensaje({
+              await this.chatService.createMensaje({
                 remoteJid: from,
                 contenido: textBody,
                 direccion: 'ENTRANTE',
@@ -78,18 +71,38 @@ export class WebhookService {
 
               logger.info({ negocio: negocio.nombre, from }, '[Webhook] Mensaje recibido');
 
+              const isSurveyResponse = /^[1-5]$/.test(textBody.trim());
+              if (isSurveyResponse) {
+                const updated = await this.citasService.updateLastAppointmentRating(
+                  negocio.id,
+                  from,
+                  parseInt(textBody.trim(), 10),
+                );
+                if (updated) {
+                  await enviarMensaje(
+                    {
+                      waAccessToken: negocio.waAccessToken ?? '',
+                      waPhoneNumberId: negocio.waPhoneNumberId ?? '',
+                    },
+                    from,
+                    '¡Gracias por tu feedback! Lo apreciamos mucho.',
+                  );
+                  continue;
+                }
+              }
+
               let cached = negocioCache.get(negocio.id);
               if (!cached) {
                 const [servicios, config] = await Promise.all([
-                  this.serviciosRepository.findByNegocioId(negocio.id),
-                  this.configuracionRepository.getOrCreateByNegocioId(negocio.id),
+                  this.serviciosService.getAll(negocio.id),
+                  this.negocioService.getConfiguracion(negocio.id),
                 ]);
-                cached = { servicios, config: config as unknown as Record<string, unknown> };
+                cached = { servicios, config };
                 negocioCache.set(negocio.id, cached);
               }
 
               const sessionJid = `${from}`;
-              const sesion = await this.sesionChatRepository.findByJid(sessionJid, negocio.id);
+              const sesion = await this.chatService.findSessionByJid(sessionJid, negocio.id);
               const contexto: ContextoConversacion = sesion
                 ? {
                     estado: sesion.estado as ContextoConversacion['estado'],
@@ -102,7 +115,7 @@ export class WebhookService {
                 (s) => `${s.nombre} ($${s.precio})`,
               );
 
-              const chatFlow = (cached.config.chatFlow ?? []) as ChatFlowStep[];
+              const chatFlow = cached.config.chatFlow ?? [];
 
               let slotsDisponibles: string[] = [];
               if (contexto.datos.fecha) {
@@ -113,7 +126,7 @@ export class WebhookService {
                       contexto.datos.fecha instanceof Date
                         ? contexto.datos.fecha.toISOString().split('T')[0]
                         : String(contexto.datos.fecha);
-                    const slots = await getSlotsDisponibles(this.availabilityRepository, {
+                    const slots = await this.citasService.getSlotDisponibles({
                       negocioId: negocio.id,
                       servicioId,
                       fecha: fechaStr,
@@ -133,7 +146,7 @@ export class WebhookService {
                 chatFlow,
               );
 
-              await this.sesionChatRepository.upsert(sessionJid, negocio.id, {
+              await this.chatService.upsertSession(sessionJid, negocio.id, {
                 estado: contexto.estado,
                 datos: contexto.datos,
               });
@@ -151,7 +164,7 @@ export class WebhookService {
         const statuses = value.statuses as Array<Record<string, unknown>> | undefined;
         if (statuses && statuses.length > 0) {
           for (const status of statuses) {
-            await this.chatRepository.updateEstadoEntrega(
+            await this.chatService.updateEstadoEntrega(
               status.id as string,
               status.status as string,
             );
@@ -208,9 +221,9 @@ export class WebhookService {
           });
 
           const config = cached.config;
-          const cobrarAdelanto = config.cobrarAdelanto as boolean;
-          const porcentajeAdelanto = config.porcentajeAdelanto as number;
-          const qrFotoUrl = config.qrFotoUrl as string | null;
+          const cobrarAdelanto = config.cobrarAdelanto;
+          const porcentajeAdelanto = config.porcentajeAdelanto;
+          const qrFotoUrl = config.qrFotoUrl;
 
           let confirmationMsg =
             `¡Tu cita ha sido creada! 🎉\n\n` +
@@ -261,7 +274,7 @@ export class WebhookService {
             contexto.estado = 'ESPERANDO_SERVICIO';
             return;
           }
-          const slots = await getSlotsDisponibles(this.availabilityRepository, {
+          const slots = await this.citasService.getSlotDisponibles({
             negocioId: negocio.id,
             servicioId: fallbackServicioId,
             fecha: fechaStr,

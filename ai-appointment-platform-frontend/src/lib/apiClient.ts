@@ -18,7 +18,10 @@ async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Pro
   const token = auth.getToken();
 
   const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -62,19 +65,19 @@ export const apiClient = {
     fetchWrapper<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     }),
   put: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
     fetchWrapper<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     }),
   patch: <T>(endpoint: string, body?: unknown, options?: RequestInit) =>
     fetchWrapper<T>(endpoint, {
       ...options,
       method: 'PATCH',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
     }),
   delete: <T>(endpoint: string, options?: RequestInit) =>
     fetchWrapper<T>(endpoint, { ...options, method: 'DELETE' }),

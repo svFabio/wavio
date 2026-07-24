@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useReducer, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
-import { api } from '../../services/api';
+import { api } from '../../lib/api';
 import { AvatarSection } from './AvatarSection';
 import { NameEditSection } from './NameEditSection';
 
@@ -11,23 +11,69 @@ interface ProfileModalProps {
   onClose: () => void;
 }
 
+interface ProfileModalState {
+  avatarLoading: boolean;
+  nombreLoading: boolean;
+  error: string | null;
+  editingNombre: boolean;
+  nombreValue: string;
+}
+
+type ProfileModalAction =
+  | { type: 'SET_AVATAR_LOADING'; payload: boolean }
+  | { type: 'SET_NOMBRE_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_EDITING_NOMBRE'; payload: boolean }
+  | { type: 'SET_NOMBRE_VALUE'; payload: string }
+  | { type: 'RESET_NOMBRE'; payload: string };
+
+const profileReducer = (
+  state: ProfileModalState,
+  action: ProfileModalAction,
+): ProfileModalState => {
+  switch (action.type) {
+    case 'SET_AVATAR_LOADING':
+      return { ...state, avatarLoading: action.payload };
+    case 'SET_NOMBRE_LOADING':
+      return { ...state, nombreLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_EDITING_NOMBRE':
+      return { ...state, editingNombre: action.payload };
+    case 'SET_NOMBRE_VALUE':
+      return { ...state, nombreValue: action.payload };
+    case 'RESET_NOMBRE':
+      return { ...state, editingNombre: false, nombreValue: action.payload };
+    default:
+      return state;
+  }
+};
+
 export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
   const { usuario, setFotoPerfil, setNombre } = useAuth();
 
-  const [avatarLoading, setAvatarLoading] = useState(false);
-  const [nombreLoading, setNombreLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(profileReducer, {
+    avatarLoading: false,
+    nombreLoading: false,
+    error: null,
+    editingNombre: false,
+    nombreValue: usuario?.nombre ?? '',
+  });
 
-  const [editingNombre, setEditingNombre] = useState(false);
-  const [nombreValue, setNombreValue] = useState(usuario?.nombre ?? '');
+  const { avatarLoading, nombreLoading, error, editingNombre, nombreValue } = state;
+
   const nombreInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    if (usuario?.nombre) setNombreValue(usuario.nombre);
-  }, [usuario?.nombre]);
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editingNombre) nombreInputRef.current?.focus();
@@ -47,70 +93,83 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
     if (!file) return;
 
     if (file.size > 3 * 1024 * 1024) {
-      setError('La imagen no debe superar los 3MB');
+      dispatch({ type: 'SET_ERROR', payload: 'La imagen no debe superar los 3MB' });
       return;
     }
 
-    setAvatarLoading(true);
-    setError(null);
+    dispatch({ type: 'SET_AVATAR_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
       try {
-        const base64 = reader.result as string;
-        const res = await api.updateAvatar(base64);
-        setFotoPerfil(res.url);
+        const result = reader.result;
+        if (typeof result !== 'string') throw new Error('Error al procesar la imagen');
+        const res = await api.updateAvatar(result);
+        if (isMounted.current) setFotoPerfil(res.url);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Error al subir la imagen');
+        if (isMounted.current) {
+          dispatch({
+            type: 'SET_ERROR',
+            payload: err instanceof Error ? err.message : 'Error al subir la imagen',
+          });
+        }
       } finally {
-        setAvatarLoading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (isMounted.current) {
+          dispatch({ type: 'SET_AVATAR_LOADING', payload: false });
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
       }
     };
     reader.onerror = () => {
-      setError('Error al leer el archivo');
-      setAvatarLoading(false);
+      dispatch({ type: 'SET_ERROR', payload: 'Error al leer el archivo' });
+      dispatch({ type: 'SET_AVATAR_LOADING', payload: false });
     };
   };
 
   const handleDelete = async () => {
-    setAvatarLoading(true);
-    setError(null);
+    dispatch({ type: 'SET_AVATAR_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
     try {
       await api.deleteAvatar();
       setFotoPerfil(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar la foto');
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : 'Error al eliminar la foto',
+      });
     } finally {
-      setAvatarLoading(false);
+      dispatch({ type: 'SET_AVATAR_LOADING', payload: false });
     }
   };
 
   const handleSaveNombre = async () => {
     const trimmed = nombreValue.trim();
     if (!trimmed || trimmed === usuario.nombre) {
-      setEditingNombre(false);
+      dispatch({ type: 'SET_EDITING_NOMBRE', payload: false });
       return;
     }
-    setNombreLoading(true);
-    setError(null);
+    dispatch({ type: 'SET_NOMBRE_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
     try {
       const res = await api.updateNombre(trimmed);
       setNombre(res.nombre);
-      setEditingNombre(false);
+      dispatch({ type: 'SET_EDITING_NOMBRE', payload: false });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar el nombre');
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : 'Error al actualizar el nombre',
+      });
     } finally {
-      setNombreLoading(false);
+      dispatch({ type: 'SET_NOMBRE_LOADING', payload: false });
     }
   };
 
   const handleNombreKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSaveNombre();
     if (e.key === 'Escape') {
-      setNombreValue(usuario.nombre);
-      setEditingNombre(false);
+      dispatch({ type: 'RESET_NOMBRE', payload: usuario.nombre });
     }
   };
 
@@ -156,9 +215,9 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
               <NameEditSection
                 nombre={usuario.nombre}
                 editingNombre={editingNombre}
-                setEditingNombre={setEditingNombre}
+                setEditingNombre={(v) => dispatch({ type: 'SET_EDITING_NOMBRE', payload: v })}
                 nombreValue={nombreValue}
-                setNombreValue={setNombreValue}
+                setNombreValue={(v) => dispatch({ type: 'SET_NOMBRE_VALUE', payload: v })}
                 nombreLoading={nombreLoading}
                 onSave={handleSaveNombre}
                 nombreInputRef={nombreInputRef}

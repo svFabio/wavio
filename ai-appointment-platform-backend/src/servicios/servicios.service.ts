@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ServiciosRepository } from '../repositories/servicios.repository';
+import { ServiciosRepository } from './servicios.repository';
 import { AppError } from '../domain/errors';
 import type { Servicio } from '../domain/types';
 

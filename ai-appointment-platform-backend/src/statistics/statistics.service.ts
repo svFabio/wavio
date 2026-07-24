@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { StatisticsRepository } from '../repositories/statistics.repository';
+import { StatisticsRepository } from './statistics.repository';
 import { ValidationError } from '../domain/errors';
 
 @Injectable()

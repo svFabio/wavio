@@ -1,18 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CitasRepository } from '../repositories/citas.repository';
+import { ReportesRepository } from './reportes.repository';
 import type { Cita } from '../domain/types';
 
 @Injectable()
 export class ReportesService {
   private readonly logger = new Logger(ReportesService.name);
 
-  constructor(private readonly citasRepository: CitasRepository) {}
+  constructor(private readonly reportesRepository: ReportesRepository) {}
 
   async exportCitasCSV(negocioId: number, fechaDesde: string, fechaHasta: string): Promise<string> {
     const desde = new Date(fechaDesde);
     const hasta = new Date(fechaHasta);
 
-    const { data: citas } = await this.citasRepository.getAgenda(negocioId, desde, hasta, 1, 10000);
+    const citas = await this.reportesRepository.findCitasByDateRange(negocioId, desde, hasta);
 
     const sanitizeCsvCell = (value: string): string => {
       if (/^[=+\-@\t\r]/.test(value)) {
@@ -70,7 +70,7 @@ export class ReportesService {
     const inicio = new Date(year, month - 1, 1);
     const fin = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const { data: citas } = await this.citasRepository.getAgenda(negocioId, inicio, fin, 1, 10000);
+    const citas = await this.reportesRepository.findCitasByDateRange(negocioId, inicio, fin);
 
     const totalCitas = citas.length;
     const confirmadas = citas.filter((c: Cita) => c.estado === 'CONFIRMADA').length;
@@ -80,7 +80,6 @@ export class ReportesService {
       .filter((c: Cita) => c.estado === 'CONFIRMADA')
       .reduce((sum: number, c: Cita) => sum + Number(c.monto), 0);
 
-    // Group by service
     const servicioMap = new Map<string, { count: number; ingresos: number }>();
     for (const cita of citas) {
       const existing = servicioMap.get(cita.servicio) ?? { count: 0, ingresos: 0 };
@@ -96,13 +95,6 @@ export class ReportesService {
       ...data,
     }));
 
-    return {
-      totalCitas,
-      confirmadas,
-      canceladas,
-      noShows,
-      ingresos,
-      servicios,
-    };
+    return { totalCitas, confirmadas, canceladas, noShows, ingresos, servicios };
   }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { OnboardingView } from '../components/OnboardingView';
 
 export const OnboardingContainer = () => {
@@ -22,7 +22,7 @@ export const OnboardingContainer = () => {
     try {
       await api.configurarNegocio(nombre.trim());
       navigate('/dashboard', { replace: true });
-    } catch {
+    } catch (error) {
       setError('Error al configurar el negocio. Intenta de nuevo.');
     } finally {
       setLoading(false);

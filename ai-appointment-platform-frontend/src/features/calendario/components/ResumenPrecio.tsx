@@ -1,12 +1,18 @@
+import React from 'react';
 import type { Servicio } from '../../configuracion/types';
+import type { Configuracion } from '../../configuracion/types/domain';
 
 interface ResumenPrecioProps {
   servicioId: number | null | undefined;
   servicios: Servicio[];
-  config: { cobrarAdelanto: boolean; porcentajeAdelanto: number } | null | undefined;
+  config: Configuracion | null | undefined;
 }
 
-export const ResumenPrecio = ({ servicioId, servicios, config }: ResumenPrecioProps) => {
+export const ResumenPrecio = ({
+  servicioId,
+  servicios,
+  config,
+}: ResumenPrecioProps): React.JSX.Element | null => {
   if (!servicioId) return null;
 
   const servicio = servicios.find((s) => s.id === servicioId);

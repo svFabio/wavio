@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventsGateway } from './events.gateway';
-import { enviarMensaje, WaCredentials } from '../lib/whatsapp';
+import { WhatsAppService } from '../lib/whatsapp.service';
+import type { WaCredentials } from '../lib/whatsapp';
 
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
 
-  constructor(private readonly gateway: EventsGateway) {}
+  constructor(
+    private readonly gateway: EventsGateway,
+    private readonly whatsApp: WhatsAppService,
+  ) {}
 
   emitCambioCitas(negocioId: number, data?: Record<string, unknown>): void {
     this.gateway.server.to(`negocio:${negocioId}`).emit('cambio-citas', data);
@@ -25,6 +29,6 @@ export class EventsService {
   }
 
   async sendWhatsAppMessage(waCreds: WaCredentials, to: string, message: string): Promise<void> {
-    await enviarMensaje(waCreds, to, message);
+    await this.whatsApp.sendMessage(waCreds, to, message);
   }
 }

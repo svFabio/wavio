@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, HttpCode, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  HttpCode,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { WaitlistService } from './waitlist.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -36,5 +46,25 @@ export class WaitlistController {
   async notify(@TenantId() negocioId: number): Promise<{ notified: number }> {
     const notified = await this.waitlistService.notifyAvailableSlot(negocioId, new Date());
     return { notified };
+  }
+
+  @Post('/:id/notify')
+  @HttpCode(200)
+  async notifyEntry(
+    @TenantId() negocioId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ notified: boolean }> {
+    await this.waitlistService.notifySpecificEntry(negocioId, id);
+    return { notified: true };
+  }
+
+  @Delete('/:id')
+  @HttpCode(200)
+  async remove(
+    @TenantId() negocioId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ success: boolean }> {
+    await this.waitlistService.remove(negocioId, id);
+    return { success: true };
   }
 }
