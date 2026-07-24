@@ -8,7 +8,9 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 ## ADR-001 — Backend architecture: Layered Clean
 
 **Date**: 2026-07-11
-**Status**: Accepted
+**Status**: Superseded by ADR-006
+
+**Note**: The layered principles from this ADR remain valid, but the framework and module structure have been replaced by NestJS. See ADR-006 for the current backend architecture.
 
 **Context**: The backend had no defined architecture. Controllers imported Prisma directly, services mixed HTTP concerns with business logic, and cron jobs were bootstrapped inline in `server.ts`.
 
@@ -91,3 +93,79 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Context**: Pino was installed but unused. Console.log calls were scattered through the codebase.
 
 **Decision**: All structured logging uses Pino. `console.log` is allowed only in development scripts and bootstrap messages. ESLint rule `no-console` set to `warn` for src/, `error` for production builds.
+
+---
+
+## ADR-006 — Migrate backend from Express to NestJS
+
+**Date**: 2026-07-16
+**Status**: Accepted
+
+**Context**: The backend started as Express 5 with the layered architecture defined in ADR-001. As the codebase grew, several structural problems emerged:
+- Manual dependency injection: services instantiated `new Repository(prisma)` inline, creating tight coupling and making testing painful.
+- No module boundaries: routes, services, and repositories were organized by folder but had no enforcement of dependency direction.
+- Inconsistent auth, validation, and error handling: guards were ad-hoc middleware, validation was mixed between Zod and manual checks, and error responses varied by endpoint.
+- No standardized request lifecycle: interceptors, pipes, and filters were absent — each route handled its own concerns.
+
+**Options considered**:
+- Stay on Express with manual DI container (e.g., tsyringe): adds complexity without framework benefits; still no module enforcement.
+- Fastify with plugin architecture: faster raw throughput, but similar gaps in DI and module boundaries.
+- NestJS: opinionated framework with DI, module system, guards, pipes, interceptors, and filters built in. Strong TypeScript support. Large ecosystem.
+
+**Decision**: Migrate to NestJS with a phased approach over 4 commits on 2026-07-16:
+1. **Phase 1** — Scaffold NestJS, PrismaModule, AppConfigModule, AuthModule, HealthModule, decorators (`@CurrentUser`, `@TenantId`, `@Roles`), guards (`JwtAuthGuard`, `TenantGuard`, `RolesGuard`), and `AllExceptionsFilter`.
+2. **Phase 2** — Convert CRUD modules: Usuarios, Servicios, Clientes, Negocio, Citas.
+3. **Phase 3** — Convert EventsModule (WebSocket/Socket.IO gateway), ChatModule, WebhookModule.
+4. **Phase 4** — Convert StatisticsModule, SchedulingModule, add ThrottlerModule, Swagger. Remove all Express legacy code.
+
+**Module structure** (20 modules registered in `app.module.ts`):
+```
+PrismaModule (@Global)      — database access, injected everywhere
+AppConfigModule             — env parsing via config/env.ts
+AuthModule                  — JWT auth, Passport strategy
+UsuariosModule              — user CRUD
+ServiciosModule             — service CRUD
+ClientesModule              — client CRUD
+NegocioModule               — business settings
+CitasModule                 — appointment management
+EventsModule                — WebSocket gateway (Socket.IO)
+ChatModule                  — AI chat with Gemini
+WebhookModule               — WhatsApp Cloud API webhooks
+StatisticsModule            — analytics and reporting
+SchedulingModule            — automated scheduling logic
+WaitlistModule              — waitlist management
+NoShowModule                — no-show tracking
+ReportesModule              — PDF/structured reports
+CalendarModule              — calendar integration
+PortalModule                — client-facing portal
+PushModule                  — push notifications
+HealthModule                — liveness/readiness probes
+```
+
+**Common infrastructure** (`src/common/`):
+```
+guards/     JwtAuthGuard, TenantGuard, RolesGuard
+decorators/ @CurrentUser, @TenantId, @Roles, @Pagination
+pipes/      ZodValidationPipe
+interceptors/ PaginationInterceptor
+filters/    AllExceptionsFilter (registered globally via APP_FILTER)
+```
+
+**Consequences**:
+
+### Positive
+- **Dependency injection container**: services and repositories are constructed by NestJS, eliminating manual `new` calls and making the dependency graph explicit.
+- **Module boundaries**: each module owns its controllers, services, repositories, and DTOs. Cross-module dependencies go through `exports`, not direct imports.
+- **Standardized cross-cutting concerns**: auth (`JwtAuthGuard`), validation (`ZodValidationPipe`), error handling (`AllExceptionsFilter`), and pagination (`PaginationInterceptor`) are configured once and applied uniformly.
+- **Global PrismaModule**: `PrismaService` is `@Global()`, available to all modules without explicit imports.
+- **Better testability**: NestJS `Test.createTestingModule()` provides isolated module containers for unit and integration tests.
+- **Swagger integration**: auto-generated API docs from decorators.
+
+### Negative
+- **NestJS boilerplate**: simple CRUD endpoints require controller + service + repository + module + DTO files, even when the logic is trivial.
+- **Learning curve**: team must understand NestJS-specific concepts (decorators, IoC container, execution context, module system).
+- **Migration cost**: the phased migration took a full day of focused work. Some Express middleware needed manual adaptation.
+
+### Risks
+- **Over-engineering**: for small modules like WaitlistModule or NoShowModule, the NestJS structure adds files without proportional benefit. Acceptable tradeoff for consistency.
+- **Express under the hood**: NestJS uses Express (or Fastify) as the HTTP adapter. Debugging may require understanding both frameworks.
