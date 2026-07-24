@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ReportesService } from './reportes.service';
-import { CitasService } from '../citas/citas.service';
+import { ReportesRepository } from './reportes.repository';
 
 describe('ReportesService', () => {
   let service: ReportesService;
-  let mockCitasService: {
-    getAgenda: ReturnType<typeof vi.fn>;
+  let mockReportesRepository: {
+    findCitasByDateRange: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
-    mockCitasService = {
-      getAgenda: vi.fn(),
+    mockReportesRepository = {
+      findCitasByDateRange: vi.fn(),
     };
-    service = new ReportesService(mockCitasService as unknown as CitasService);
+    service = new ReportesService(mockReportesRepository as unknown as ReportesRepository);
   });
 
   describe('exportCitasCSV', () => {
@@ -46,10 +46,7 @@ describe('ReportesService', () => {
         },
       ];
 
-      mockCitasService.getAgenda.mockResolvedValue({
-        data: mockCitas,
-        pagination: { total: 2, totalPages: 1 },
-      });
+      mockReportesRepository.findCitasByDateRange.mockResolvedValue(mockCitas);
 
       const csv = await service.exportCitasCSV(1, '2025-01-01', '2025-01-31');
 
@@ -72,10 +69,7 @@ describe('ReportesService', () => {
         { id: 4, servicio: 'Corte', estado: 'NO_ASISTIO', monto: 250 },
       ];
 
-      mockCitasService.getAgenda.mockResolvedValue({
-        data: mockCitas,
-        pagination: { total: 4, totalPages: 1 },
-      });
+      mockReportesRepository.findCitasByDateRange.mockResolvedValue(mockCitas);
 
       const resumen = await service.getResumenMensual(1, 2025, 1);
 
@@ -99,10 +93,7 @@ describe('ReportesService', () => {
     });
 
     it('should return empty summary when no citas exist', async () => {
-      mockCitasService.getAgenda.mockResolvedValue({
-        data: [],
-        pagination: { total: 0, totalPages: 0 },
-      });
+      mockReportesRepository.findCitasByDateRange.mockResolvedValue([]);
 
       const resumen = await service.getResumenMensual(1, 2025, 1);
 
