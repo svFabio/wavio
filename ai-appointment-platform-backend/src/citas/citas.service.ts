@@ -398,15 +398,12 @@ export class CitasService {
       recurrenceEnd: recurrenceEndDate,
     });
 
-    // Generate future instances
-    const instances: Array<{ fecha: string; horario: string }> = [];
+    let instancesCreated = 0;
     const baseDate = new Date(baseCita.fecha);
-
     const nextDate = new Date(baseDate);
-    const maxInstances = 52; // Max 1 year of weekly appointments
+    const maxInstances = 52;
 
     for (let i = 0; i < maxInstances; i++) {
-      // Calculate next date based on recurrence type
       switch (data.recurrence) {
         case 'weekly':
           nextDate.setDate(nextDate.getDate() + 7);
@@ -423,6 +420,7 @@ export class CitasService {
       if (nextDate > recurrenceEndDate) break;
 
       const fechaStr = nextDate.toISOString().split('T')[0];
+      let slotDisponible = true;
 
       if (data.servicioId) {
         const slots = await getSlotsDisponibles(this.availabilityRepository, {
@@ -432,25 +430,31 @@ export class CitasService {
           staffId: data.staffId ?? undefined,
         });
 
-        const slotValido = slots.find((s) => s.inicio === data.horario);
-        if (!slotValido) {
-          this.logger.warn(`Horario ${data.horario} no disponible para la fecha ${fechaStr}, omitiendo instancia recurrente.`);
-          continue; // Skip this instance
-        }
+        slotDisponible = !!slots.find((s) => s.inicio === data.horario);
+      } else {
+        const checkDate = new Date(nextDate);
+        const [horas, minutos] = data.horario.split(':').map(Number);
+        checkDate.setHours(horas, minutos, 0, 0);
+        const ocupado = await this.citasRepository.checkOcupado(negocioId, checkDate, data.horario);
+        slotDisponible = !ocupado;
       }
 
-      instances.push({
-        fecha: fechaStr,
-        horario: data.horario,
-      });
-    }
+      if (!slotDisponible) {
+        this.logger.warn(
+          `Horario ${data.horario} no disponible para la fecha ${fechaStr}, omitiendo instancia recurrente.`,
+        );
+        continue;
+      }
 
-    // Create instances in batch
-    if (instances.length > 0) {
-      await this.citasRepository.createRecurringInstances(
-        instances.map((inst) => ({
-          fecha: new Date(inst.fecha),
-          horario: inst.horario,
+      const instanceDate = new Date(nextDate);
+      const [horas, minutos] = data.horario.split(':').map(Number);
+      instanceDate.setHours(horas, minutos, 0, 0);
+
+      const instancia = await this.citasRepository.createIfSlotAvailable(
+        negocioId,
+        instanceDate,
+        data.horario,
+        {
           clienteNombre: data.clienteNombre,
           clienteTelefono: data.clienteTelefono,
           servicioId: data.servicioId ?? null,
@@ -463,14 +467,17 @@ export class CitasService {
           recurrence: data.recurrence,
           recurrenceId,
           recurrenceEnd: recurrenceEndDate,
-        })),
-        negocioId,
+        },
       );
+
+      if (instancia) {
+        instancesCreated++;
+      }
     }
 
     this.eventsService.emitCambioCitas(negocioId);
 
-    return { base: baseCita, instancesCreated: instances.length };
+    return { base: baseCita, instancesCreated };
   }
 
   async cancelarSerieRecurente(recurrenceId: string, negocioId: number): Promise<number> {
@@ -491,7 +498,11 @@ export class CitasService {
     return getSlotsDisponibles(this.availabilityRepository, params);
   }
 
-  async updateLastAppointmentRating(negocioId: number, clienteTelefono: string, rating: number): Promise<boolean> {
+  async updateLastAppointmentRating(
+    negocioId: number,
+    clienteTelefono: string,
+    rating: number,
+  ): Promise<boolean> {
     return this.citasRepository.updateLastAppointmentRating(negocioId, clienteTelefono, rating);
   }
 }

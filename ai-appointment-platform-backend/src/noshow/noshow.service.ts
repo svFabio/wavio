@@ -43,7 +43,9 @@ export class NoShowService {
           // Si tuviéramos un teléfono de dueño diferente al bot, enviaríamos la notificación.
           // Como waPhoneNumberId es el bot, enviar un mensaje al mismo número fallará.
           // Omitimos el envío para evitar errores silenciosos.
-          this.logger.log(`Omitiendo notificación al dueño (mismo número que el bot) para el negocio ${negocioId}`);
+          this.logger.log(
+            `Omitiendo notificación al dueño (mismo número que el bot) para el negocio ${negocioId}`,
+          );
         }
       }
       this.logger.debug('No-show check completed');
@@ -123,9 +125,18 @@ export class NoShowService {
         `El cliente con teléfono ${maskedPhone} ha acumulado ${noShowCount} inasistencias.\n\n` +
         `Ha sido bloqueado automáticamente del sistema de agendamiento.`;
 
-      const negocioPhone = negocio.waPhoneNumberId;
-      // Skip sending to the bot's own number to avoid errors
-      this.logger.log(`Omitiendo notificación de bloqueo al dueño (mismo número que el bot) para el negocio ${negocioId}`);
+      const negocioPhone = (negocio as any).telefonoOwner;
+      if (!negocioPhone) {
+        this.logger.log(`No hay telefonoOwner configurado para notificar al negocio ${negocioId}`);
+        return;
+      }
+
+      await this.eventsService.sendWhatsAppMessage(
+        { waAccessToken: negocio.waAccessToken, waPhoneNumberId: negocio.waPhoneNumberId },
+        negocioPhone,
+        mensaje,
+      );
+      this.logger.log(`Alerta de bloqueo enviada al dueño del negocio ${negocioId}`);
     } catch (error) {
       this.logger.error('Failed to send no-show alert', error);
     }

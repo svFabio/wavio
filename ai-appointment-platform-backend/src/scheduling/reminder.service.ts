@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { AppointmentRepository } from './appointment.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
@@ -65,14 +65,18 @@ export class ReminderService {
   /**
    * Send 1-hour appointment reminders — runs every 15 minutes.
    */
-  @Cron('*/15 * * * *')
+  @Cron(CronExpression.EVERY_HOUR)
   async handleReminders1h(): Promise<void> {
     this.logger.debug('Checking for 1h appointment reminders…');
 
     try {
       const negocios = await this.negocioService.getActiveBusinessIds();
       for (const negocioId of negocios) {
-        const citas = await this.appointmentRepository.findUpcomingForReminder(negocioId, 0.75, 1.25);
+        const citas = await this.appointmentRepository.findUpcomingForReminder(
+          negocioId,
+          0.75,
+          1.25,
+        );
 
         for (const cita of citas) {
           if (cita.recordatorio1h) continue;
