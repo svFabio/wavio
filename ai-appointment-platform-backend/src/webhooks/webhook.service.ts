@@ -7,6 +7,7 @@ import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
 import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
 import type { Servicio, Negocio, Configuracion } from '../domain/types';
 import { createLogger } from '../lib/logger';
+import type Stripe from 'stripe';
 
 const logger = createLogger('webhook-service');
 
@@ -174,10 +175,69 @@ export class WebhookService {
     }
   }
 
-  async processStripeEvent(body: Record<string, unknown>): Promise<void> {
-    // TODO: implement Stripe webhook signature verification and event handling
-    const eventType = body.type as string | undefined;
-    logger.info({ eventType }, '[Webhook] Stripe event received (stub)');
+  async processStripeEvent(event: Stripe.Event): Promise<void> {
+    logger.info(
+      { eventType: event.type, eventId: event.id },
+      '[Stripe] Event received',
+    );
+
+    switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        logger.info(
+          {
+            paymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            customerId: paymentIntent.customer,
+            metadata: paymentIntent.metadata,
+          },
+          '[Stripe] Payment succeeded',
+        );
+        // TODO: link payment to appointment via metadata appointmentId,
+        // update appointment payment status in DB
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        logger.info(
+          {
+            invoiceId: invoice.id,
+            amountPaid: invoice.amount_paid,
+            currency: invoice.currency,
+            customerId: invoice.customer,
+          },
+          '[Stripe] Invoice payment succeeded',
+        );
+        // TODO: mark invoice as paid, trigger post-payment flows
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const lastError = paymentIntent.last_payment_error;
+        logger.warn(
+          {
+            paymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            errorCode: lastError?.code,
+            errorMessage: lastError?.message,
+            customerId: paymentIntent.customer,
+          },
+          '[Stripe] Payment failed',
+        );
+        // TODO: notify client via WhatsApp, mark appointment as pending payment
+        break;
+      }
+
+      default:
+        logger.debug(
+          { eventType: event.type, eventId: event.id },
+          '[Stripe] Unhandled event type',
+        );
+    }
   }
 
   private async handleAIResponse(

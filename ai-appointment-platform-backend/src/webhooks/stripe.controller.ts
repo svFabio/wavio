@@ -42,9 +42,7 @@ export class StripeController {
     }
 
     try {
-      await this.webhookService.processStripeEvent(
-        event.data?.object as unknown as Record<string, unknown>,
-      );
+      await this.webhookService.processStripeEvent(event);
     } catch (err) {
       logger.error({ err, type: event.type }, 'Stripe webhook processing failed');
     }
