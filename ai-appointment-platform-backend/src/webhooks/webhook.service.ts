@@ -71,6 +71,23 @@ export class WebhookService {
 
               logger.info({ negocio: negocio.nombre, from }, '[Webhook] Mensaje recibido');
 
+              const isSurveyResponse = /^[1-5]$/.test(textBody.trim());
+              if (isSurveyResponse) {
+                const updated = await this.citasService.updateLastAppointmentRating(
+                  negocio.id,
+                  from,
+                  parseInt(textBody.trim(), 10),
+                );
+                if (updated) {
+                  await enviarMensaje(
+                    { waAccessToken: negocio.waAccessToken ?? '', waPhoneNumberId: negocio.waPhoneNumberId ?? '' },
+                    from,
+                    '¡Gracias por tu feedback! Lo apreciamos mucho.',
+                  );
+                  continue;
+                }
+              }
+
               let cached = negocioCache.get(negocio.id);
               if (!cached) {
                 const [servicios, config] = await Promise.all([

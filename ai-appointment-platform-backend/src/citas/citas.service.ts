@@ -106,6 +106,7 @@ export class CitasService {
 
   async getAgenda(
     negocioId: number,
+    queryFecha?: string,
     queryDesde?: string,
     queryHasta?: string,
     page?: number,
@@ -114,11 +115,19 @@ export class CitasService {
     data: Cita[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    const fechaDesde = queryDesde
-      ? new Date(queryDesde)
+    let desdeStr = queryDesde;
+    let hastaStr = queryHasta;
+
+    if (queryFecha && !desdeStr && !hastaStr) {
+      desdeStr = `${queryFecha}T00:00:00.000Z`;
+      hastaStr = `${queryFecha}T23:59:59.999Z`;
+    }
+
+    const fechaDesde = desdeStr
+      ? new Date(desdeStr)
       : new Date(Date.now() - AGENDA_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
-    const fechaHasta = queryHasta
-      ? new Date(queryHasta)
+    const fechaHasta = hastaStr
+      ? new Date(hastaStr)
       : new Date(Date.now() + AGENDA_LOOKAHEAD_DAYS * 24 * 60 * 60 * 1000);
     const p = page || 1;
     const l = limit || 20;
@@ -413,8 +422,25 @@ export class CitasService {
       // Stop if past end date
       if (nextDate > recurrenceEndDate) break;
 
+      const fechaStr = nextDate.toISOString().split('T')[0];
+
+      if (data.servicioId) {
+        const slots = await getSlotsDisponibles(this.availabilityRepository, {
+          negocioId,
+          servicioId: data.servicioId,
+          fecha: fechaStr,
+          staffId: data.staffId ?? undefined,
+        });
+
+        const slotValido = slots.find((s) => s.inicio === data.horario);
+        if (!slotValido) {
+          this.logger.warn(`Horario ${data.horario} no disponible para la fecha ${fechaStr}, omitiendo instancia recurrente.`);
+          continue; // Skip this instance
+        }
+      }
+
       instances.push({
-        fecha: nextDate.toISOString().split('T')[0],
+        fecha: fechaStr,
         horario: data.horario,
       });
     }
@@ -463,5 +489,9 @@ export class CitasService {
 
   async getSlotDisponibles(params: DisponibilidadParams): Promise<Slot[]> {
     return getSlotsDisponibles(this.availabilityRepository, params);
+  }
+
+  async updateLastAppointmentRating(negocioId: number, clienteTelefono: string, rating: number): Promise<boolean> {
+    return this.citasRepository.updateLastAppointmentRating(negocioId, clienteTelefono, rating);
   }
 }

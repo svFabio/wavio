@@ -200,4 +200,23 @@ export class CitasRepository {
     });
     return count;
   }
+
+  async updateLastAppointmentRating(negocioId: number, clienteTelefono: string, rating: number): Promise<boolean> {
+    const cita = await this.prisma.cita.findFirst({
+      where: {
+        negocioId,
+        clienteTelefono,
+        encuestaEnviada: true,
+        rating: null,
+      },
+      orderBy: { fecha: 'desc' },
+    });
+    if (!cita) return false;
+    
+    await this.prisma.cita.update({
+      where: { id: cita.id },
+      data: { rating },
+    });
+    return true;
+  }
 }

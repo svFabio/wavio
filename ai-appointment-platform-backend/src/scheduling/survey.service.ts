@@ -23,34 +23,37 @@ export class SurveyService {
     this.logger.debug('Checking for post-appointment surveys…');
 
     try {
-      const citas = await this.appointmentRepository.findCompletedForSurvey(0, 24);
+      const negocios = await this.negocioService.getActiveBusinessIds();
+      for (const negocioId of negocios) {
+        const citas = await this.appointmentRepository.findCompletedForSurvey(negocioId, 24);
 
-      for (const cita of citas) {
-        if (cita.encuestaEnviada) continue;
+        for (const cita of citas) {
+          if (cita.encuestaEnviada) continue;
 
-        const waCreds = await this.negocioService.findByIdForInternal(cita.negocioId);
-        if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
+          const waCreds = await this.negocioService.findByIdForInternal(cita.negocioId);
+          if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
-        const nombre = cita.clienteNombre || 'Cliente';
-        const mensaje =
-          `Hola ${nombre}! 👋\n\n` +
-          `Gracias por tu visita. 🙏\n\n` +
-          `¿Cómo fue tu experiencia? Por favor, envíanos un número del 1 al 5:\n\n` +
-          `⭐ 1 - Mala\n` +
-          `⭐⭐ 2 - Regular\n` +
-          `⭐⭐⭐ 3 - Buena\n` +
-          `⭐⭐⭐⭐ 4 - Muy buena\n` +
-          `⭐⭐⭐⭐⭐ 5 - Excelente\n\n` +
-          `También puedes escribir un comentario.`;
+          const nombre = cita.clienteNombre || 'Cliente';
+          const mensaje =
+            `Hola ${nombre}! 👋\n\n` +
+            `Gracias por tu visita. 🙏\n\n` +
+            `¿Cómo fue tu experiencia? Por favor, envíanos un número del 1 al 5:\n\n` +
+            `⭐ 1 - Mala\n` +
+            `⭐⭐ 2 - Regular\n` +
+            `⭐⭐⭐ 3 - Buena\n` +
+            `⭐⭐⭐⭐ 4 - Muy buena\n` +
+            `⭐⭐⭐⭐⭐ 5 - Excelente\n\n` +
+            `También puedes escribir un comentario.`;
 
-        await this.eventsService.sendWhatsAppMessage(
-          { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
-          cita.clienteTelefono,
-          mensaje,
-        );
+          await this.eventsService.sendWhatsAppMessage(
+            { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
+            cita.clienteTelefono,
+            mensaje,
+          );
 
-        await this.appointmentRepository.markSurveySent(cita.id);
-        this.logger.log(`Sent survey for cita ${cita.id}`);
+          await this.appointmentRepository.markSurveySent(cita.id);
+          this.logger.log(`Sent survey for cita ${cita.id}`);
+        }
       }
     } catch (error) {
       this.logger.error('Survey cron failed', error);

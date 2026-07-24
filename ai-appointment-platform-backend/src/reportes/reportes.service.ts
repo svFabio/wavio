@@ -12,7 +12,7 @@ export class ReportesService {
     const desde = new Date(fechaDesde);
     const hasta = new Date(fechaHasta);
 
-    const { data: citas } = await this.citasService.getAgenda(negocioId, desde.toISOString(), hasta.toISOString(), 1, 10000);
+    const { data: citas } = await this.citasService.getAgenda(negocioId, undefined, desde.toISOString(), hasta.toISOString(), 1, 10000);
 
     const sanitizeCsvCell = (value: string): string => {
       if (/^[=+\-@\t\r]/.test(value)) {
@@ -70,7 +70,7 @@ export class ReportesService {
     const inicio = new Date(year, month - 1, 1);
     const fin = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const { data: citas } = await this.citasService.getAgenda(negocioId, inicio.toISOString(), fin.toISOString(), 1, 10000);
+    const { data: citas } = await this.citasService.getAgenda(negocioId, undefined, inicio.toISOString(), fin.toISOString(), 1, 10000);
 
     const totalCitas = citas.length;
     const confirmadas = citas.filter((c: Cita) => c.estado === 'CONFIRMADA').length;

@@ -46,4 +46,8 @@ export class NegocioService {
       phone: negocio?.waPhoneNumberId ?? undefined,
     };
   }
+
+  async getActiveBusinessIds(): Promise<number[]> {
+    return this.negocioRepository.getActiveBusinessIds();
+  }
 }

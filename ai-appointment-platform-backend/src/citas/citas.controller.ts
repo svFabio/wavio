@@ -27,6 +27,7 @@ import {
   agendaQuerySchema,
   horariosQuerySchema,
 } from './dto/citas.dto';
+import type { Cita } from '../domain/types';
 
 @Controller('api/v1/citas')
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
@@ -43,25 +44,28 @@ export class CitasController {
       desde?: string;
       hasta?: string;
     },
-  ) {
-    let desde = query.desde;
-    let hasta = query.hasta;
-
-    if (query.fecha && !desde && !hasta) {
-      desde = `${query.fecha}T00:00:00.000Z`;
-      hasta = `${query.fecha}T23:59:59.999Z`;
-    }
-
-    return this.citasService.getAgenda(negocioId, desde, hasta, pagination.page, pagination.limit);
+  ): Promise<{
+    data: Cita[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    return this.citasService.getAgenda(negocioId, query.fecha, query.desde, query.hasta, pagination.page, pagination.limit);
   }
 
   @Get('/pendientes')
-  async getPendientes(@TenantId() negocioId: number, @Pagination() pagination: PaginationParams) {
+  async getPendientes(@TenantId() negocioId: number, @Pagination() pagination: PaginationParams): Promise<{
+    data: Cita[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
     return this.citasService.getPendientes(negocioId, pagination.page, pagination.limit);
   }
 
   @Get('/resumen')
-  async getResumen(@TenantId() negocioId: number) {
+  async getResumen(@TenantId() negocioId: number): Promise<{
+    totalHoy: number;
+    pendientes: number;
+    completadas: number;
+    ingresos: number;
+  }> {
     return this.citasService.getResumen(negocioId);
   }
 
@@ -74,7 +78,7 @@ export class CitasController {
       servicioId?: number;
       staffId?: number;
     },
-  ) {
+  ): Promise<{ horarios: string[] }> {
     const horarios = await this.citasService.getHorariosDisponibles(
       negocioId,
       query.fecha,
@@ -101,7 +105,7 @@ export class CitasController {
       staffId?: number;
       duracionMinutos?: number;
     },
-  ) {
+  ): Promise<Cita> {
     return this.citasService.crearCitaAdmin(negocioId, body);
   }
 
@@ -112,7 +116,7 @@ export class CitasController {
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { accion: string },
-  ) {
+  ): Promise<Cita> {
     return this.citasService.validarCita(id, negocioId, body.accion);
   }
 
@@ -123,19 +127,19 @@ export class CitasController {
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { fecha: string; horario: string },
-  ) {
+  ): Promise<Cita> {
     return this.citasService.reprogramarCita(id, negocioId, body.fecha, body.horario);
   }
 
   @Put('/:id/no-asistio')
   @Roles('ADMIN')
-  async marcarNoAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
+  async marcarNoAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number): Promise<Cita> {
     return this.citasService.cambiarEstado(id, negocioId, 'NO_ASISTIO');
   }
 
   @Put('/:id/asistio')
   @Roles('ADMIN')
-  async marcarAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
+  async marcarAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number): Promise<Cita> {
     return this.citasService.cambiarEstado(id, negocioId, 'CONFIRMADA');
   }
 
@@ -146,7 +150,7 @@ export class CitasController {
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { descripcion?: string },
-  ) {
+  ): Promise<Cita> {
     return this.citasService.actualizarDescripcion(id, negocioId, body.descripcion ?? '');
   }
 }

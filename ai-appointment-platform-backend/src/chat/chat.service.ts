@@ -140,9 +140,15 @@ export class ChatService {
   } | null> {
     const sesion = await this.sesionChatRepository.findByJid(jid, negocioId);
     if (!sesion) return null;
+
+    let datosSeguros: Record<string, unknown> = {};
+    if (sesion.datos && typeof sesion.datos === 'object' && !Array.isArray(sesion.datos)) {
+      datosSeguros = sesion.datos as Record<string, unknown>;
+    }
+
     return {
       ...sesion,
-      datos: sesion.datos as Record<string, unknown>,
+      datos: datosSeguros,
     };
   }
 

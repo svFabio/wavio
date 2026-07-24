@@ -48,4 +48,11 @@ export class NegocioRepository {
     });
     return negocio;
   }
+
+  async getActiveBusinessIds(): Promise<number[]> {
+    const result = await this.prisma.negocio.findMany({
+      select: { id: true },
+    });
+    return result.map((n) => n.id);
+  }
 }

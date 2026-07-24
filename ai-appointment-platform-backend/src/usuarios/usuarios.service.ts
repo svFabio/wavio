@@ -52,14 +52,7 @@ export class UsuariosService {
     if (!nombre || !email || !password) {
       throw new ValidationError('Nombre, email y contraseña son requeridos');
     }
-    if (
-      !email.includes('@') ||
-      !email.includes('.') ||
-      email.indexOf('@') < 1 ||
-      email.endsWith('.')
-    ) {
-      throw new ValidationError('Formato de email inválido');
-    }
+
     if (rol && !['ADMIN', 'STAFF'].includes(rol)) {
       throw new ValidationError('Rol inválido. Debe ser ADMIN o STAFF');
     }
@@ -104,14 +97,7 @@ export class UsuariosService {
     const updateData: { nombre?: string; email?: string; password?: string; rol?: Rol } = {};
     if (nombre) updateData.nombre = nombre;
     if (email) {
-      if (
-        !email.includes('@') ||
-        !email.includes('.') ||
-        email.indexOf('@') < 1 ||
-        email.endsWith('.')
-      ) {
-        throw new ValidationError('Formato de email inválido');
-      }
+
       const existente = await this.usuariosRepository.findByEmail(email);
       if (existente && existente.id !== userId) {
         throw new ConflictError('El email ya está registrado');

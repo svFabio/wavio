@@ -40,14 +40,10 @@ export class NoShowService {
 
         const negocio = await this.negocioService.findByIdForInternal(negocioId);
         if (negocio?.waAccessToken && negocio.waPhoneNumberId) {
-          const msg = `Se marcaron ${expired.length} citas como inasistencia por vencimiento.`;
-          try {
-            await this.eventsService.sendWhatsAppMessage(
-              { waAccessToken: negocio.waAccessToken, waPhoneNumberId: negocio.waPhoneNumberId },
-              negocio.waPhoneNumberId,
-              msg,
-            );
-          } catch { }
+          // Si tuviéramos un teléfono de dueño diferente al bot, enviaríamos la notificación.
+          // Como waPhoneNumberId es el bot, enviar un mensaje al mismo número fallará.
+          // Omitimos el envío para evitar errores silenciosos.
+          this.logger.log(`Omitiendo notificación al dueño (mismo número que el bot) para el negocio ${negocioId}`);
         }
       }
       this.logger.debug('No-show check completed');
@@ -128,15 +124,8 @@ export class NoShowService {
         `Ha sido bloqueado automáticamente del sistema de agendamiento.`;
 
       const negocioPhone = negocio.waPhoneNumberId;
-      try {
-        await this.eventsService.sendWhatsAppMessage(
-          { waAccessToken: negocio.waAccessToken, waPhoneNumberId: negocioPhone },
-          negocioPhone,
-          mensaje,
-        );
-      } catch (sendErr) {
-        this.logger.error(`Failed to send no-show alert to business ${negocioId}: ${sendErr}`);
-      }
+      // Skip sending to the bot's own number to avoid errors
+      this.logger.log(`Omitiendo notificación de bloqueo al dueño (mismo número que el bot) para el negocio ${negocioId}`);
     } catch (error) {
       this.logger.error('Failed to send no-show alert', error);
     }
