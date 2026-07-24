@@ -24,7 +24,6 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-
 interface CalendarioViewProps {
   eventos: EventoCalendario[];
   vista: View;

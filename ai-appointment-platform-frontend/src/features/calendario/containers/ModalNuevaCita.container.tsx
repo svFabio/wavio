@@ -64,7 +64,9 @@ export const ModalNuevaCitaContainer = ({
     enabled: isOpen,
   });
 
-  const [formData, setFormData] = useState<DatosNuevaCita>(() => makeInitialForm(fechaInicial, servicios[0]?.id));
+  const [formData, setFormData] = useState<DatosNuevaCita>(() =>
+    makeInitialForm(fechaInicial, servicios[0]?.id),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

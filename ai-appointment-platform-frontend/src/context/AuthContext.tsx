@@ -59,11 +59,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveNegocioId(null);
   }, [queryClient]);
 
-  const switchNegocio = useCallback((negocioId: number) => {
-    setActiveNegocioId(negocioId);
-    auth.setActiveNegocioId(negocioId);
-    queryClient.invalidateQueries();
-  }, [queryClient]);
+  const switchNegocio = useCallback(
+    (negocioId: number) => {
+      setActiveNegocioId(negocioId);
+      auth.setActiveNegocioId(negocioId);
+      queryClient.invalidateQueries();
+    },
+    [queryClient],
+  );
 
   const login = useCallback(
     (newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {

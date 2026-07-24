@@ -59,9 +59,7 @@ export const ConfirmModal = ({
           </button>
         </div>
 
-        <div className="p-6 text-txt-secondary text-sm">
-          {message}
-        </div>
+        <div className="p-6 text-txt-secondary text-sm">{message}</div>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 bg-surface-alt border-t border-border-light">
           <button
@@ -76,9 +74,7 @@ export const ConfirmModal = ({
               onClose();
             }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white ${
-              isDanger
-                ? 'bg-danger hover:bg-danger-dark'
-                : 'bg-primary hover:bg-primary-dark'
+              isDanger ? 'bg-danger hover:bg-danger-dark' : 'bg-primary hover:bg-primary-dark'
             }`}
           >
             {confirmText}

@@ -64,7 +64,10 @@ export const DayRow = ({
       {/* Ranges Container */}
       <div className="flex-1 space-y-3">
         {rangos.map((config, index) => (
-          <div key={`${dia.value}-${config.horaInicio}-${config.horaFin}-${index}`} className="flex items-center gap-3">
+          <div
+            key={`${dia.value}-${config.horaInicio}-${config.horaFin}-${index}`}
+            className="flex items-center gap-3"
+          >
             <input
               type="time"
               disabled={!diaActivo}

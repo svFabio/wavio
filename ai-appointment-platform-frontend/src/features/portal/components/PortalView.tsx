@@ -218,12 +218,15 @@ export const PortalView = ({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-txt truncate">{cita.servicio}</p>
                     <p className="text-xs text-txt-secondary">
-                      {new Date(cita.fecha.split('T')[0] + 'T00:00:00').toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}{' '}
+                      {new Date(cita.fecha.split('T')[0] + 'T00:00:00').toLocaleDateString(
+                        'es-ES',
+                        {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        },
+                      )}{' '}
                       — {cita.horario}
                     </p>
                   </div>
