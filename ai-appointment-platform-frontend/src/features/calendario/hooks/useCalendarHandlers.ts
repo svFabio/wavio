@@ -26,7 +26,6 @@ export function useCalendarHandlers({
   vista: View;
   setVista: (v: View) => void;
   setFecha: (d: Date) => void;
-  dataRaw: Cita[];
   markNoShow: UseMutationResult<{ success: boolean; error?: string }, Error, string, unknown>;
   markAsistio: UseMutationResult<{ success: boolean; error?: string }, Error, string, unknown>;
   citaSeleccionada: EventoCalendario | null;

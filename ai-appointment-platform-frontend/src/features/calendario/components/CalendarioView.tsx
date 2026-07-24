@@ -29,13 +29,22 @@ interface CalendarioViewProps {
   vista: View;
   fecha: Date;
   scrollToTime: Date;
-  eventStyleGetter: (event: EventoCalendario) => {
+  eventStyleGetter: (
+    event: EventoCalendario,
+    start: Date,
+    end: Date,
+    isSelected: boolean,
+  ) => {
     className?: string;
     style?: React.CSSProperties;
   };
   onNavigateFecha: (date: Date) => void;
   onNavigateVista: (view: View) => void;
-  onSelectSlot: (slot: { start: Date }) => void;
+  onSelectSlot: (slotInfo: {
+    start: Date;
+    end: Date;
+    action: 'select' | 'click' | 'doubleClick';
+  }) => void;
   onSelectEvent: (event: EventoCalendario) => void;
   onNuevaCita: () => void;
   citaSeleccionada: EventoCalendario | null;
