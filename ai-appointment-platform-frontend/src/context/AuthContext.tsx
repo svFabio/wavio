@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { authApi } from '../features/auth/api/auth.api';
 import { auth } from '../lib/auth';
 import type { Usuario } from '../types';
 
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['me'],
-    queryFn: api.me,
+    queryFn: authApi.me,
     enabled: !!token,
     retry: false,
   });
@@ -62,8 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const switchNegocio = useCallback((negocioId: number) => {
     setActiveNegocioId(negocioId);
     auth.setActiveNegocioId(negocioId);
-    window.location.reload();
-  }, []);
+    queryClient.invalidateQueries();
+  }, [queryClient]);
 
   const login = useCallback(
     (newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {

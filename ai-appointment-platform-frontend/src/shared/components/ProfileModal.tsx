@@ -66,6 +66,14 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (editingNombre) nombreInputRef.current?.focus();
@@ -99,15 +107,19 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
         const result = reader.result;
         if (typeof result !== 'string') throw new Error('Error al procesar la imagen');
         const res = await api.updateAvatar(result);
-        setFotoPerfil(res.url);
+        if (isMounted.current) setFotoPerfil(res.url);
       } catch (err: unknown) {
-        dispatch({
-          type: 'SET_ERROR',
-          payload: err instanceof Error ? err.message : 'Error al subir la imagen',
-        });
+        if (isMounted.current) {
+          dispatch({
+            type: 'SET_ERROR',
+            payload: err instanceof Error ? err.message : 'Error al subir la imagen',
+          });
+        }
       } finally {
-        dispatch({ type: 'SET_AVATAR_LOADING', payload: false });
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (isMounted.current) {
+          dispatch({ type: 'SET_AVATAR_LOADING', payload: false });
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
       }
     };
     reader.onerror = () => {

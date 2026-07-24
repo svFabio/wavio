@@ -5,14 +5,11 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { EventoCalendario } from '../types';
 import { ModalDetalle } from './ModalDetalle';
-import { ModalNuevaCitaContainer } from '../containers/ModalNuevaCita.container';
 import { ModalReprogramar } from './ModalReprogramar';
 import { CustomEventDay } from './CustomEventDay';
 import { CustomEventMonth } from './CustomEventMonth';
 import { CustomToolbar } from './CustomToolbar';
 import type { CustomToolbarProps } from './CustomToolbar';
-
-import '../../../index.css';
 
 const locales = { es: es };
 
@@ -27,14 +24,6 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-interface DatosNuevaCita {
-  clienteNombre: string;
-  clienteTelefono: string;
-  fecha: string;
-  horario: string;
-  servicioId?: number;
-  staffId?: number;
-}
 
 interface CalendarioViewProps {
   eventos: EventoCalendario[];
@@ -56,12 +45,8 @@ interface CalendarioViewProps {
   onNoAsistio: () => void;
   onGuardarDescripcion: (citaId: string, descripcion: string) => Promise<{ success: boolean }>;
   isLoadingNoShow?: boolean;
-  modalNuevaCitaAbierto: boolean;
-  fechaInicialNuevaCita?: Date;
-  onCerrarNuevaCita: () => void;
-  onCrearCita: (data: DatosNuevaCita) => Promise<{ success: boolean; error?: string }>;
   modalReprogramarAbierto: boolean;
-  citaReprogramar: EventoCalendario;
+  citaReprogramar?: EventoCalendario;
   onCerrarReprogramar: () => void;
   onReprogramarCita: (
     citaId: string,
@@ -87,10 +72,6 @@ export const CalendarioView = ({
   onNoAsistio,
   onGuardarDescripcion,
   isLoadingNoShow = false,
-  modalNuevaCitaAbierto,
-  fechaInicialNuevaCita,
-  onCerrarNuevaCita,
-  onCrearCita,
   modalReprogramarAbierto,
   citaReprogramar,
   onCerrarReprogramar,
@@ -136,15 +117,6 @@ export const CalendarioView = ({
           }}
         />
       </div>
-
-      {modalNuevaCitaAbierto && (
-        <ModalNuevaCitaContainer
-          isOpen={modalNuevaCitaAbierto}
-          onClose={onCerrarNuevaCita}
-          fechaInicial={fechaInicialNuevaCita}
-          onSubmit={onCrearCita}
-        />
-      )}
 
       {citaSeleccionada && (
         <ModalDetalle
