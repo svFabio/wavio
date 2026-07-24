@@ -58,7 +58,6 @@ export const CalendarioContainer = () => {
     vista,
     setVista,
     setFecha,
-    dataRaw,
     markNoShow,
     markAsistio,
     citaSeleccionada,
@@ -69,8 +68,6 @@ export const CalendarioContainer = () => {
     actualizarDesc,
     setModalNuevaCita,
     setModalReprogramar,
-    modalNuevaCita,
-    modalReprogramar,
   });
 
   if (loading && dataRaw.length === 0) {

@@ -79,13 +79,8 @@ export class WaitlistService {
     this.logger.log(`Cancelled waitlist entry ${id} for negocio ${negocioId}`);
   }
 
-  async notifySpecificEntry(
-    negocioId: number,
-    id: number,
-  ): Promise<void> {
-    const entry = (await this.waitlistRepository.getAll(negocioId)).find(
-      (e) => e.id === id,
-    );
+  async notifySpecificEntry(negocioId: number, id: number): Promise<void> {
+    const entry = (await this.waitlistRepository.getAll(negocioId)).find((e) => e.id === id);
     if (!entry) {
       this.logger.warn(`Waitlist entry ${id} not found for negocio ${negocioId}`);
       return;

@@ -131,7 +131,10 @@ export class ChatService {
     return this.chatRepository.getUltimoMensajeEntrantePorTelefono(negocioId, telefono);
   }
 
-  async findSessionByJid(jid: string, negocioId: number): Promise<{
+  async findSessionByJid(
+    jid: string,
+    negocioId: number,
+  ): Promise<{
     id: string;
     estado: string;
     datos: Record<string, unknown>;

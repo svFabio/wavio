@@ -10,11 +10,7 @@ import { EventsModule } from '../events/events.module';
 @Module({
   imports: [NegocioModule, ChatModule, EventsModule],
   controllers: [CitasController],
-  providers: [
-    CitasService,
-    CitasRepository,
-    AvailabilityRepository,
-  ],
+  providers: [CitasService, CitasRepository, AvailabilityRepository],
   exports: [CitasService],
 })
 export class CitasModule {}

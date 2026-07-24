@@ -80,7 +80,10 @@ export class WebhookService {
                 );
                 if (updated) {
                   await enviarMensaje(
-                    { waAccessToken: negocio.waAccessToken ?? '', waPhoneNumberId: negocio.waPhoneNumberId ?? '' },
+                    {
+                      waAccessToken: negocio.waAccessToken ?? '',
+                      waPhoneNumberId: negocio.waPhoneNumberId ?? '',
+                    },
                     from,
                     '¡Gracias por tu feedback! Lo apreciamos mucho.',
                   );
@@ -162,9 +165,9 @@ export class WebhookService {
         if (statuses && statuses.length > 0) {
           for (const status of statuses) {
             await this.chatService.updateEstadoEntrega(
-                status.id as string,
-                status.status as string,
-              );
+              status.id as string,
+              status.status as string,
+            );
           }
         }
       }

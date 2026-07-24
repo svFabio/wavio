@@ -97,7 +97,6 @@ export class UsuariosService {
     const updateData: { nombre?: string; email?: string; password?: string; rol?: Rol } = {};
     if (nombre) updateData.nombre = nombre;
     if (email) {
-
       const existente = await this.usuariosRepository.findByEmail(email);
       if (existente && existente.id !== userId) {
         throw new ConflictError('El email ya está registrado');

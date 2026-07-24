@@ -48,11 +48,21 @@ export class CitasController {
     data: Cita[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }> {
-    return this.citasService.getAgenda(negocioId, query.fecha, query.desde, query.hasta, pagination.page, pagination.limit);
+    return this.citasService.getAgenda(
+      negocioId,
+      query.fecha,
+      query.desde,
+      query.hasta,
+      pagination.page,
+      pagination.limit,
+    );
   }
 
   @Get('/pendientes')
-  async getPendientes(@TenantId() negocioId: number, @Pagination() pagination: PaginationParams): Promise<{
+  async getPendientes(
+    @TenantId() negocioId: number,
+    @Pagination() pagination: PaginationParams,
+  ): Promise<{
     data: Cita[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }> {
@@ -133,13 +143,19 @@ export class CitasController {
 
   @Put('/:id/no-asistio')
   @Roles('ADMIN')
-  async marcarNoAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number): Promise<Cita> {
+  async marcarNoAsistio(
+    @TenantId() negocioId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Cita> {
     return this.citasService.cambiarEstado(id, negocioId, 'NO_ASISTIO');
   }
 
   @Put('/:id/asistio')
   @Roles('ADMIN')
-  async marcarAsistio(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number): Promise<Cita> {
+  async marcarAsistio(
+    @TenantId() negocioId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Cita> {
     return this.citasService.cambiarEstado(id, negocioId, 'CONFIRMADA');
   }
 

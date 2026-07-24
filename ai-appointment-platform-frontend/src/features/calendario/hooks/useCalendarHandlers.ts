@@ -12,7 +12,6 @@ export function useCalendarHandlers({
   vista,
   setVista,
   setFecha,
-  dataRaw,
   markNoShow,
   markAsistio,
   citaSeleccionada,
@@ -23,8 +22,6 @@ export function useCalendarHandlers({
   actualizarDesc,
   setModalNuevaCita,
   setModalReprogramar,
-  modalNuevaCita,
-  modalReprogramar,
 }: {
   vista: View;
   setVista: (v: View) => void;
@@ -35,15 +32,32 @@ export function useCalendarHandlers({
   citaSeleccionada: EventoCalendario | null;
   setCitaSeleccionada: (c: EventoCalendario | null) => void;
   queryClient: QueryClient;
-  crearCita: UseMutationResult<{ success: boolean; error?: string }, Error, DatosNuevaCita, unknown>;
-  reprogramarCita: UseMutationResult<{ success: boolean; error?: string }, Error, { citaId: string; fecha: string; horario: string }, unknown>;
-  actualizarDesc: UseMutationResult<{ success: boolean; error?: string }, Error, { citaId: string; descripcion: string }, unknown>;
-  setModalNuevaCita: (s: { isOpen: boolean; defaultDate?: Date; defaultTime?: string }) => void;
-  setModalReprogramar: (s: { isOpen: boolean }) => void;
-  modalNuevaCita: { isOpen: boolean; defaultDate?: Date; defaultTime?: string };
-  modalReprogramar: { isOpen: boolean };
+  crearCita: UseMutationResult<
+    { success: boolean; error?: string },
+    Error,
+    DatosNuevaCita,
+    unknown
+  >;
+  reprogramarCita: UseMutationResult<
+    { success: boolean; error?: string },
+    Error,
+    { citaId: string; fecha: string; horario: string },
+    unknown
+  >;
+  actualizarDesc: UseMutationResult<
+    { success: boolean; error?: string },
+    Error,
+    { citaId: string; descripcion: string },
+    unknown
+  >;
+  setModalNuevaCita: (s: { isOpen: boolean; fecha?: Date }) => void;
+  setModalReprogramar: (s: { isOpen: boolean; cita?: EventoCalendario }) => void;
 }): {
-  handleSelectSlot: (slotInfo: { start: Date; end: Date; action: 'select' | 'click' | 'doubleClick' }) => void;
+  handleSelectSlot: (slotInfo: {
+    start: Date;
+    end: Date;
+    action: 'select' | 'click' | 'doubleClick';
+  }) => void;
   handleSelectEvent: (event: EventoCalendario) => void;
   handleNoAsistio: () => Promise<void>;
   handleNuevaCita: () => void;
@@ -53,7 +67,11 @@ export function useCalendarHandlers({
   handleCerrarNuevaCita: () => void;
   handleCrearCita: (data: DatosNuevaCita) => Promise<{ success: boolean; error?: string }>;
   handleCerrarReprogramar: () => void;
-  handleReprogramarCita: (citaId: string, fecha: string, horario: string) => Promise<{ success: boolean; error?: string }>;
+  handleReprogramarCita: (
+    citaId: string,
+    fecha: string,
+    horario: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 } {
   const handleCambio = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['citas'] });
@@ -62,7 +80,7 @@ export function useCalendarHandlers({
   useSocketEvent('cambio-citas', handleCambio);
 
   const handleSelectSlot = useCallback(
-    ({ start }: { start: Date }) => {
+    ({ start }: { start: Date; end: Date; action: 'select' | 'click' | 'doubleClick' }) => {
       if (vista === Views.MONTH) {
         setFecha(start);
         setVista(Views.DAY);
@@ -97,7 +115,10 @@ export function useCalendarHandlers({
     setCitaSeleccionada(null);
   }, [citaSeleccionada, markNoShow, markAsistio, setCitaSeleccionada]);
 
-  const handleNuevaCita = useCallback(() => setModalNuevaCita({ isOpen: true }), [setModalNuevaCita]);
+  const handleNuevaCita = useCallback(
+    () => setModalNuevaCita({ isOpen: true }),
+    [setModalNuevaCita],
+  );
 
   const handleCerrarDetalle = useCallback(() => setCitaSeleccionada(null), [setCitaSeleccionada]);
 
@@ -114,7 +135,10 @@ export function useCalendarHandlers({
     [actualizarDesc],
   );
 
-  const handleCerrarNuevaCita = useCallback(() => setModalNuevaCita({ isOpen: false }), [setModalNuevaCita]);
+  const handleCerrarNuevaCita = useCallback(
+    () => setModalNuevaCita({ isOpen: false }),
+    [setModalNuevaCita],
+  );
 
   const handleCrearCita = useCallback(
     async (data: DatosNuevaCita) => {
@@ -141,7 +165,10 @@ export function useCalendarHandlers({
     [crearCita],
   );
 
-  const handleCerrarReprogramar = useCallback(() => setModalReprogramar({ isOpen: false }), [setModalReprogramar]);
+  const handleCerrarReprogramar = useCallback(
+    () => setModalReprogramar({ isOpen: false }),
+    [setModalReprogramar],
+  );
 
   const handleReprogramarCita = useCallback(
     async (citaId: string, fecha: string, horario: string) => {

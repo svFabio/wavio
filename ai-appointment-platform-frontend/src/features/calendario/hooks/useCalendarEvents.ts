@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Views } from 'react-big-calendar';
 import { format, addWeeks, addMonths } from 'date-fns';
 import type { View } from 'react-big-calendar';
@@ -112,35 +112,43 @@ export function useCalendarEvents({
     });
   }, [dataRaw, vista, loading]);
 
-  const eventStyleGetter = useCallback((event: EventoCalendario) => {
-    if (event.resource?.tipo === 'resumen') {
-      return { className: '' };
-    }
+  const eventStyleGetter = useCallback(
+    (
+      event: EventoCalendario,
+      _start: Date,
+      _end: Date,
+      _isSelected: boolean,
+    ): { style: React.CSSProperties } => {
+      if (event.resource?.tipo === 'resumen') {
+        return { style: { cursor: 'pointer', fontWeight: 600 } };
+      }
 
-    const title = event.title || '';
-    let hash = 0;
-    for (let i = 0; i < title.length; i++) {
-      hash = title.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colorIndex = (Math.abs(hash) % 6) + 1;
+      const title = event.title || '';
+      let hash = 0;
+      for (let i = 0; i < title.length; i++) {
+        hash = title.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const colorIndex = (Math.abs(hash) % 6) + 1;
 
-    const border = `var(--color-event-${colorIndex}-bg)`;
+      const border = `var(--color-event-${colorIndex}-bg)`;
 
-    return {
-      style: {
-        backgroundColor: 'var(--color-surface-elevated)',
-        borderLeftColor: border,
-        borderLeftWidth: 'var(--border-width-thick, 4px)',
-        borderLeftStyle: 'solid' as const,
-        borderTop: `var(--border-width-default, 2px) solid ${border}`,
-        borderRight: `var(--border-width-default, 2px) solid ${border}`,
-        borderBottom: `var(--border-width-default, 2px) solid ${border}`,
-        borderRadius: 'var(--radius-md)',
-        color: 'var(--color-text)',
-        boxShadow: 'var(--shadow-event)',
-      },
-    };
-  }, []);
+      return {
+        style: {
+          backgroundColor: 'var(--color-surface-elevated)',
+          borderLeftColor: border,
+          borderLeftWidth: 'var(--border-width-thick, 4px)',
+          borderLeftStyle: 'solid' as const,
+          borderTop: `var(--border-width-default, 2px) solid ${border}`,
+          borderRight: `var(--border-width-default, 2px) solid ${border}`,
+          borderBottom: `var(--border-width-default, 2px) solid ${border}`,
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--color-text)',
+          boxShadow: 'var(--shadow-event)',
+        },
+      };
+    },
+    [],
+  );
 
   return { eventos, scrollToTime, eventStyleGetter };
 }
