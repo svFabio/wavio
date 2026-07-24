@@ -5,7 +5,6 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
 import type { EventoCalendario, DatosNuevaCita } from '../types';
-import type { Cita } from '../../../types';
 import { calcularFechasRecurrentes } from './useCalendarEvents';
 
 export function useCalendarHandlers({
