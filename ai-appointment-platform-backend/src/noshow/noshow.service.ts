@@ -72,16 +72,13 @@ export class NoShowService {
       cita.clienteTelefono,
     );
 
-    // Auto-block if threshold reached
+      // Auto-block if threshold reached
     let blocked = false;
     if (noShowCount >= BLOCK_THRESHOLD) {
       await this.noShowRepository.blockClient(negocioId, cita.clienteTelefono);
       blocked = true;
       const maskedPhone = cita.clienteTelefono.slice(-4).padStart(cita.clienteTelefono.length, '*');
       this.logger.warn(`Client ${maskedPhone} auto-blocked after ${noShowCount} no-shows`);
-
-      // Notify business owner
-      await this.notifyBusinessOfBlock(negocioId, cita.clienteTelefono, noShowCount);
     }
 
     return { success: true, noShowCount, blocked };
@@ -108,37 +105,5 @@ export class NoShowService {
 
   async isClientBlocked(negocioId: number, clienteTelefono: string): Promise<boolean> {
     return this.noShowRepository.isClientBlocked(negocioId, clienteTelefono);
-  }
-
-  private async notifyBusinessOfBlock(
-    negocioId: number,
-    clienteTelefono: string,
-    noShowCount: number,
-  ): Promise<void> {
-    try {
-      const negocio = await this.negocioService.findByIdForInternal(negocioId);
-      if (!negocio?.waAccessToken || !negocio.waPhoneNumberId) return;
-
-      const maskedPhone = clienteTelefono.slice(-4).padStart(clienteTelefono.length, '*');
-      const mensaje =
-        `⚠️ *Alerta de No-Show*\n\n` +
-        `El cliente con teléfono ${maskedPhone} ha acumulado ${noShowCount} inasistencias.\n\n` +
-        `Ha sido bloqueado automáticamente del sistema de agendamiento.`;
-
-      const negocioPhone = (negocio as any).telefonoOwner;
-      if (!negocioPhone) {
-        this.logger.log(`No hay telefonoOwner configurado para notificar al negocio ${negocioId}`);
-        return;
-      }
-
-      await this.eventsService.sendWhatsAppMessage(
-        { waAccessToken: negocio.waAccessToken, waPhoneNumberId: negocio.waPhoneNumberId },
-        negocioPhone,
-        mensaje,
-      );
-      this.logger.log(`Alerta de bloqueo enviada al dueño del negocio ${negocioId}`);
-    } catch (error) {
-      this.logger.error('Failed to send no-show alert', error);
-    }
   }
 }

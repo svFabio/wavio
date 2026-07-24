@@ -65,7 +65,7 @@ export class ReminderService {
   /**
    * Send 1-hour appointment reminders — runs every 15 minutes.
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron('*/15 * * * *')
   async handleReminders1h(): Promise<void> {
     this.logger.debug('Checking for 1h appointment reminders…');
 
