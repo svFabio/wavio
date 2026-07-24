@@ -9,9 +9,9 @@ async function main() {
       where: { email: emailToDelete },
     });
     console.log(`Usuario eliminado correctamente: ${deletedUser.email} (ID: ${deletedUser.id})`);
-  } catch (error) {
-    //
-    if (error.code === 'P2025') {
+  } catch (error: unknown) {
+    const err = error as { code?: string };
+    if (err.code === 'P2025') {
       console.log(`El usuario ${emailToDelete} no existe (ya fue borrado).`);
     } else {
       console.error('Error al eliminar usuario:', error);

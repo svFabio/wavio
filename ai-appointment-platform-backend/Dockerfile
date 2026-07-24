@@ -53,7 +53,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/v1/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
+  CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
 
 # Run migrations then start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]

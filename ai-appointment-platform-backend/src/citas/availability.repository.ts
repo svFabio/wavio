@@ -67,4 +67,49 @@ export class AvailabilityRepository {
     });
     return records;
   }
+
+  async findCitasForRange(
+    negocioId: number,
+    fechaInicio: Date,
+    fechaFin: Date,
+    staffId?: number,
+  ): Promise<Array<{ fecha: Date; horario: string; duracionMinutos: number }>> {
+    const where: Record<string, unknown> = {
+      negocioId,
+      fecha: { gte: fechaInicio, lte: fechaFin },
+      estado: { notIn: ['CANCELADA'] },
+    };
+    if (staffId) {
+      where.staffId = staffId;
+    }
+    return this.prisma.cita.findMany({
+      where,
+      select: { fecha: true, horario: true, duracionMinutos: true },
+    });
+  }
+
+  async findHorariosNegocioAll(negocioId: number): Promise<HorarioNegocio[]> {
+    return this.prisma.horarioNegocio.findMany({
+      where: { negocioId, activo: true },
+    });
+  }
+
+  async findHorariosEspecialesInRange(
+    negocioId: number,
+    fechaInicio: Date,
+    fechaFin: Date,
+  ): Promise<HorarioEspecial[]> {
+    return this.prisma.horarioEspecial.findMany({
+      where: {
+        negocioId,
+        fecha: { gte: fechaInicio, lte: fechaFin },
+      },
+    });
+  }
+
+  async findHorarioStaffAll(usuarioId: number): Promise<HorarioStaff[]> {
+    return this.prisma.horarioStaff.findMany({
+      where: { usuarioId, activo: true },
+    });
+  }
 }

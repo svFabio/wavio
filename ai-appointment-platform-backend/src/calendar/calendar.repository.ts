@@ -15,7 +15,7 @@ export class CalendarRepository {
       | 'googleCalendarRefreshToken'
       | 'googleCalendarId'
       | 'isGoogleCalendarConnected'
-    >
+    > | null
   > {
     return this.prisma.negocio.findUnique({
       where: { id: negocioId },
