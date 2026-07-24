@@ -1,17 +1,16 @@
+import { AppError } from '../../domain/errors';
+
 interface ValidationIssue {
   field: string;
   message: string;
 }
 
-export class StructuredValidationError extends Error {
-  public readonly statusCode = 400;
-  public readonly code = 'VALIDATION_ERROR';
+export class StructuredValidationError extends AppError {
   public readonly errors: ValidationIssue[];
 
   constructor(errors: ValidationIssue[]) {
-    super('Validation failed');
+    super('Validation failed', 400, 'VALIDATION_ERROR');
     this.name = 'StructuredValidationError';
     this.errors = errors;
-    Object.setPrototypeOf(this, StructuredValidationError.prototype);
   }
 }

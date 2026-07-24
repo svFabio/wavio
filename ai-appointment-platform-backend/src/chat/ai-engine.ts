@@ -2,9 +2,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import { env } from '../config/env';
 import type { ChatFlowStep } from '../domain/types';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino();
+const logger = createLogger('ai-engine');
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 

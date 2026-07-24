@@ -1,14 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { api } from '../services/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { authApi } from '../features/auth/api/auth.api';
 import { auth } from '../lib/auth';
-
-interface Usuario {
-  id: number;
-  nombre: string;
-  email: string;
-  rol: 'ADMIN' | 'STAFF';
-  fotoPerfil?: string;
-}
+import type { Usuario } from '../types';
 
 interface Negocio {
   id: number;
@@ -35,13 +29,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const queryClient = useQueryClient();
   const [activeNegocioId, setActiveNegocioId] = useState<number | null>(() => {
     return auth.getActiveNegocioId();
   });
   const [token, setToken] = useState<string | null>(auth.getToken());
-  const [loading, setLoading] = useState(true);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['me'],
+    queryFn: authApi.me,
+    enabled: !!token,
+    retry: false,
+  });
+
+  const usuario = data?.usuario || null;
+  const negocios = data?.negocios || [];
+  const loading = isLoading;
 
   const negocio = useMemo(
     () => negocios.find((n) => n.id === activeNegocioId) || null,
@@ -52,84 +55,76 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     auth.clearToken();
     auth.clearActiveNegocioId();
     setToken(null);
-    setUsuario(null);
-    setNegocios([]);
+    queryClient.setQueryData(['me'], null);
     setActiveNegocioId(null);
-  }, []);
+  }, [queryClient]);
 
-  const switchNegocio = useCallback((negocioId: number) => {
-    setActiveNegocioId(negocioId);
-    auth.setActiveNegocioId(negocioId);
-    window.location.reload();
-  }, []);
+  const switchNegocio = useCallback(
+    (negocioId: number) => {
+      setActiveNegocioId(negocioId);
+      auth.setActiveNegocioId(negocioId);
+      queryClient.invalidateQueries();
+    },
+    [queryClient],
+  );
 
-  const login = useCallback((newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {
-    auth.setToken(newToken);
-    setToken(newToken);
-    setUsuario(newUser);
-    setNegocios(newNegocios);
+  const login = useCallback(
+    (newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {
+      auth.setToken(newToken);
+      setToken(newToken);
+      queryClient.setQueryData(['me'], { usuario: newUser, negocios: newNegocios });
 
-    if (newNegocios.length > 0) {
-      const stored = auth.getActiveNegocioId();
-      if (!stored || !newNegocios.find((n) => n.id === stored)) {
-        setActiveNegocioId(newNegocios[0].id);
-        auth.setActiveNegocioId(newNegocios[0].id);
+      if (newNegocios.length > 0) {
+        const stored = auth.getActiveNegocioId();
+        if (!stored || !newNegocios.find((n) => n.id === stored)) {
+          setActiveNegocioId(newNegocios[0].id);
+          auth.setActiveNegocioId(newNegocios[0].id);
+        }
+      } else {
+        setActiveNegocioId(null);
+        auth.clearActiveNegocioId();
       }
-    } else {
-      setActiveNegocioId(null);
-      auth.clearActiveNegocioId();
-    }
-  }, []);
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
-    let isMounted = true;
-    const initAuth = async () => {
-      const storedToken = auth.getToken();
-      if (storedToken) {
-        try {
-          const data = await api.me();
-          if (!isMounted) return;
-          if (data) {
-            setUsuario({
-              id: data.usuario.id,
-              nombre: data.usuario.nombre,
-              email: data.usuario.email,
-              rol: data.usuario.rol,
-              fotoPerfil: data.usuario.fotoPerfil,
-            });
-            setNegocios(data.negocios || []);
-            if (data.negocios && data.negocios.length > 0) {
-              const stored = auth.getActiveNegocioId();
-              if (!stored || !data.negocios.find((n) => n.id === stored)) {
-                setActiveNegocioId(data.negocios[0].id);
-                auth.setActiveNegocioId(data.negocios[0].id);
-              }
-            } else {
-              setActiveNegocioId(null);
-              auth.clearActiveNegocioId();
-            }
-            setToken(storedToken);
-          } else {
-            logout();
-          }
-        } catch {
-          if (isMounted) logout();
-        }
-      }
-      if (isMounted) setLoading(false);
-    };
-    initAuth();
-    return () => {
-      isMounted = false;
-    };
-  }, [logout]);
+    if (isError) {
+      logout();
+    }
+  }, [isError, logout]);
 
-  const setFotoPerfil = useCallback((url: string | null) => {
-    setUsuario((prev) => (prev ? { ...prev, fotoPerfil: url || undefined } : null));
-  }, []);
-  const setNombre = useCallback((nombre: string) => {
-    setUsuario((prev) => (prev ? { ...prev, nombre } : null));
-  }, []);
+  useEffect(() => {
+    if (data?.negocios && data.negocios.length > 0) {
+      const stored = auth.getActiveNegocioId();
+      if (!stored || !data.negocios.find((n) => n.id === stored)) {
+        setActiveNegocioId(data.negocios[0].id);
+        auth.setActiveNegocioId(data.negocios[0].id);
+      }
+    }
+  }, [data]);
+
+  const setFotoPerfil = useCallback(
+    (url: string | null) => {
+      queryClient.setQueryData(
+        ['me'],
+        (old: { usuario: Usuario; negocios: Negocio[] } | undefined) =>
+          old ? { ...old, usuario: { ...old.usuario, fotoPerfil: url || undefined } } : old,
+      );
+    },
+    [queryClient],
+  );
+
+  const setNombre = useCallback(
+    (nombre: string) => {
+      queryClient.setQueryData(
+        ['me'],
+        (old: { usuario: Usuario; negocios: Negocio[] } | undefined) =>
+          old ? { ...old, usuario: { ...old.usuario, nombre } } : old,
+      );
+    },
+    [queryClient],
+  );
 
   const isAdmin = useMemo(() => usuario?.rol === 'ADMIN', [usuario]);
 

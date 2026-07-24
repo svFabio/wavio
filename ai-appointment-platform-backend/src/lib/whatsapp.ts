@@ -1,8 +1,8 @@
 import { env } from '../config/env';
 import { WhatsAppError, ExternalServiceError } from '../domain/errors';
-import pino from 'pino';
+import { createLogger } from '../lib/logger';
 
-const logger = pino();
+const logger = createLogger('whatsapp');
 
 // eslint-disable-next-line no-control-regex
 const sanitizeForLog = (value: unknown): string => String(value).replace(/[\x00-\x1F\x7F]/g, ' ');

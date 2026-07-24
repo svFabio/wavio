@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 
 export function useWaitlistQuery() {
   return useQuery({

@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import type { ChatFlowStep, InputType } from './ChatFlowEditor';
+import type { ChatFlowStep, InputType } from '../types/domain';
 
 interface StepEditorProps {
   step: ChatFlowStep;
@@ -54,7 +54,7 @@ export const StepEditor = ({
           </label>
           <div className="space-y-2">
             {step.opciones?.map((opt, idx) => (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={`${step.id}-opt-${opt}-${idx}`} className="flex items-center gap-2">
                 <input
                   value={opt}
                   onChange={(e) => updateOption(step.id, idx, e.target.value)}

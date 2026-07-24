@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 import { CheckCircle2, AlertCircle, Unplug } from 'lucide-react';
 import { DevCredentialsForm } from './DevCredentialsForm';
 
-export const AdminWhatsapp = () => {
+export const AdminWhatsapp = (): React.JSX.Element => {
   useAuth();
   const queryClient = useQueryClient();
 
@@ -96,11 +96,13 @@ export const AdminWhatsapp = () => {
     disconnectMutation.mutate();
   };
 
+  const getErrorMessage = (err: unknown): string => (err instanceof Error ? err.message : '');
+
   const displayError =
     error ||
-    queryError?.message ||
-    saveMutation.error?.message ||
-    disconnectMutation.error?.message;
+    getErrorMessage(queryError) ||
+    getErrorMessage(saveMutation.error) ||
+    getErrorMessage(disconnectMutation.error);
 
   if (loading) {
     return (

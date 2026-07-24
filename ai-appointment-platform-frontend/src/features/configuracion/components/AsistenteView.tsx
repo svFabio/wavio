@@ -1,6 +1,7 @@
 import { Toggle } from '../../../shared/components/Toggle';
 import { ImageUploader } from '../../../shared/components/ImageUploader';
-import { ChatFlowEditor, type ChatFlowStep } from './ChatFlowEditor';
+import { ChatFlowEditor } from './ChatFlowEditor';
+import type { ChatFlowStep } from '../types/domain';
 import { Loader2, Check, Save, Zap, MessageCircle, DollarSign } from 'lucide-react';
 
 interface AsistenteViewProps {

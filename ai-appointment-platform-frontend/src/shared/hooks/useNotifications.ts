@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Notification {
   id: string;
@@ -11,34 +11,30 @@ export interface Notification {
 
 const STORAGE_KEY = 'citas-notifications';
 
+const loadFromStorage = (): Notification[] => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored) as Notification[];
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return [];
+  }
+};
+
 export interface UseNotificationsReturn {
   notifications: Notification[];
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => string;
+  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
   dismissNotification: (id: string) => void;
   clearAll: () => void;
 }
 
 export const useNotifications = (): UseNotificationsReturn => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const isInitialLoad = useRef(true);
+  const [notifications, setNotifications] = useState<Notification[]>(loadFromStorage);
 
-  // Cargar notificaciones de localStorage al montar
+  // Persist to localStorage whenever notifications change
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Notification[];
-        setNotifications(parsed);
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-    isInitialLoad.current = false;
-  }, []);
-
-  // Guardar notificaciones en localStorage cuando cambian (skip initial load)
-  useEffect(() => {
-    if (isInitialLoad.current) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
 
@@ -61,9 +57,22 @@ export const useNotifications = (): UseNotificationsReturn => {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const showNotification = useCallback(
+    (message: string, _type?: 'success' | 'error' | 'info') => {
+      addNotification({
+        message,
+        clienteNombre: '',
+        fecha: '',
+        horario: '',
+      });
+    },
+    [addNotification],
+  );
+
   return {
     notifications,
     addNotification,
+    showNotification,
     dismissNotification,
     clearAll,
   };

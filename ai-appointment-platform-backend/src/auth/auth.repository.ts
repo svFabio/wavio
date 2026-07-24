@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NEGOCIO_SAFE_SELECT } from '../repositories/negocio-select';
+import { NEGOCIO_SAFE_SELECT } from '../negocio/negocio-select';
 
 type NegocioSafe = {
   id: number;

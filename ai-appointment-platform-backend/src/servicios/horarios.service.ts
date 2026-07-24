@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { HorariosNegocioRepository } from '../repositories/horariosNegocio.repository';
-import { HorariosEspecialesRepository } from '../repositories/horariosEspeciales.repository';
-import { HorariosStaffRepository } from '../repositories/horariosStaff.repository';
+import { HorariosNegocioRepository } from './horariosNegocio.repository';
+import { HorariosEspecialesRepository } from './horariosEspeciales.repository';
+import { HorariosStaffRepository } from './horariosStaff.repository';
 import { NotFoundError } from '../domain/errors';
 import type { HorarioEspecial, HorarioNegocio, HorarioStaff } from '../domain/types';
 

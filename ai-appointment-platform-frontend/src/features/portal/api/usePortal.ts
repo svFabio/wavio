@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { api } from '../../../services/api';
+import { api } from '../../../lib/api';
 import type { BookAppointmentPayload } from '../types';
 
 export function useValidateMagicLinkQuery(token: string) {
