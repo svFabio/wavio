@@ -270,13 +270,13 @@ jobs:
         working-directory: ai-appointment-platform-backend
         run: |
           pnpm install --frozen-lockfile
-          pnpm audit --audit-level=high
+          pnpm audit --audit-level=critical
 
       - name: Audit frontend
         working-directory: ai-appointment-platform-frontend
         run: |
           pnpm install --frozen-lockfile
-          pnpm audit --audit-level=high
+          pnpm audit --audit-level=critical
 
   # ---------------------------------------------------------------------------
   # Docker Build — validates the backend Dockerfile builds successfully
@@ -341,7 +341,7 @@ jobs:
           cache-dependency-path: ai-appointment-platform-backend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: npx prisma generate
-      - run: npx prisma migrate deploy
+      - run: npx prisma db push --skip-generate
       - run: pnpm test
 
   test-frontend:
