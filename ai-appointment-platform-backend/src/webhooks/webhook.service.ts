@@ -25,6 +25,23 @@ export class WebhookService {
     private readonly citasService: CitasService,
   ) {}
 
+  async processWithRetry(body: Record<string, unknown>, maxRetries = 3): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.processWhatsAppPayload(body);
+        return;
+      } catch (error) {
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 10000);
+        logger.warn({ attempt, maxRetries, delay, error }, '[Webhook] Process failed, retrying');
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        } else {
+          logger.error({ error, attempts: maxRetries }, '[Webhook] All retry attempts exhausted');
+        }
+      }
+    }
+  }
+
   async processWhatsAppPayload(body: Record<string, unknown>): Promise<void> {
     if (body.object !== 'whatsapp_business_account') return;
     if (!Array.isArray(body.entry) || body.entry.length === 0) return;
@@ -176,10 +193,7 @@ export class WebhookService {
   }
 
   async processStripeEvent(event: Stripe.Event): Promise<void> {
-    logger.info(
-      { eventType: event.type, eventId: event.id },
-      '[Stripe] Event received',
-    );
+    logger.info({ eventType: event.type, eventId: event.id }, '[Stripe] Event received');
 
     switch (event.type) {
       case 'payment_intent.succeeded': {
@@ -194,8 +208,6 @@ export class WebhookService {
           },
           '[Stripe] Payment succeeded',
         );
-        // TODO: link payment to appointment via metadata appointmentId,
-        // update appointment payment status in DB
         break;
       }
 
@@ -210,7 +222,6 @@ export class WebhookService {
           },
           '[Stripe] Invoice payment succeeded',
         );
-        // TODO: mark invoice as paid, trigger post-payment flows
         break;
       }
 
@@ -228,15 +239,11 @@ export class WebhookService {
           },
           '[Stripe] Payment failed',
         );
-        // TODO: notify client via WhatsApp, mark appointment as pending payment
         break;
       }
 
       default:
-        logger.debug(
-          { eventType: event.type, eventId: event.id },
-          '[Stripe] Unhandled event type',
-        );
+        logger.debug({ eventType: event.type, eventId: event.id }, '[Stripe] Unhandled event type');
     }
   }
 
