@@ -52,11 +52,7 @@ export class MessageRouterService {
     return this.negocioService.findByWaPhoneNumberIdForInternal(phoneNumberId);
   }
 
-  async handleSurveyResponse(
-    negocio: Negocio,
-    from: string,
-    textBody: string,
-  ): Promise<boolean> {
+  async handleSurveyResponse(negocio: Negocio, from: string, textBody: string): Promise<boolean> {
     if (!/^[1-5]$/.test(textBody.trim())) return false;
 
     const updated = await this.citasService.updateLastAppointmentRating(

@@ -2,6 +2,7 @@
   "name": "wavio",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.15.1",
   "scripts": {
     "prepare": "husky",
     "lint": "pnpm -r run lint",

@@ -16,13 +16,7 @@ const SIZE_CLASSES = {
   lg: 'max-w-lg',
 } as const;
 
-export const ModalShell = ({
-  isOpen,
-  onClose,
-  title,
-  children,
-  size = 'md',
-}: ModalShellProps) => {
+export const ModalShell = ({ isOpen, onClose, title, children, size = 'md' }: ModalShellProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 

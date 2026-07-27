@@ -22,7 +22,10 @@ describe('apiClient', () => {
     const result = await apiClient.get('/citas');
 
     expect(fetch).toHaveBeenCalledOnce();
-    expect(fetch).toHaveBeenCalledWith(`${BASE_URL}/citas`, expect.objectContaining({ method: 'GET' }));
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE_URL}/citas`,
+      expect.objectContaining({ method: 'GET' }),
+    );
 
     const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     const headers = init.headers as Headers;

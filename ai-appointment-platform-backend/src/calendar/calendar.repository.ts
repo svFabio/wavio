@@ -8,15 +8,13 @@ export class CalendarRepository {
 
   async getCalendarCredentials(
     negocioId: number,
-  ): Promise<
-    Pick<
-      Negocio,
-      | 'googleCalendarAccessToken'
-      | 'googleCalendarRefreshToken'
-      | 'googleCalendarId'
-      | 'isGoogleCalendarConnected'
-    > | null
-  > {
+  ): Promise<Pick<
+    Negocio,
+    | 'googleCalendarAccessToken'
+    | 'googleCalendarRefreshToken'
+    | 'googleCalendarId'
+    | 'isGoogleCalendarConnected'
+  > | null> {
     return this.prisma.negocio.findUnique({
       where: { id: negocioId },
       select: {

@@ -72,7 +72,7 @@ export class NoShowService {
       cita.clienteTelefono,
     );
 
-      // Auto-block if threshold reached
+    // Auto-block if threshold reached
     let blocked = false;
     if (noShowCount >= BLOCK_THRESHOLD) {
       await this.noShowRepository.blockClient(negocioId, cita.clienteTelefono);

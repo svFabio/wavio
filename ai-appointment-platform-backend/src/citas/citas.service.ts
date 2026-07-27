@@ -550,7 +550,9 @@ export class CitasService {
               slotDisponible = false;
             } else {
               rangos = rangos
-                .filter((r) => r.horaInicio < staffRange.horaFin && r.horaFin > staffRange.horaInicio)
+                .filter(
+                  (r) => r.horaInicio < staffRange.horaFin && r.horaFin > staffRange.horaInicio,
+                )
                 .map((r) => ({
                   horaInicio:
                     r.horaInicio < staffRange.horaInicio ? staffRange.horaInicio : r.horaInicio,

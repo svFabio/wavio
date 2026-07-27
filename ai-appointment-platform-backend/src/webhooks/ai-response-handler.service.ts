@@ -63,7 +63,16 @@ export class AIResponseHandlerService {
     const nombre = contexto.datos.nombre;
 
     if (fechaStr && horario && nombre) {
-      await this.createAppointment(negocio, from, contexto, cached, fechaStr, horario, nombre, waCreds);
+      await this.createAppointment(
+        negocio,
+        from,
+        contexto,
+        cached,
+        fechaStr,
+        horario,
+        nombre,
+        waCreds,
+      );
     } else if (fechaStr && horario) {
       await enviarMensaje(waCreds, from, '¿Cuál es tu nombre para completar la reserva?');
       contexto.estado = 'ESPERANDO_NOMBRE';
@@ -189,9 +198,7 @@ export class AIResponseHandlerService {
     cached: NegocioCache,
     waCreds: { waAccessToken: string; waPhoneNumberId: string },
   ): Promise<void> {
-    const listaServicios = cached.servicios
-      .map((s) => `• ${s.nombre} ($${s.precio})`)
-      .join('\n');
+    const listaServicios = cached.servicios.map((s) => `• ${s.nombre} ($${s.precio})`).join('\n');
     await enviarMensaje(
       waCreds,
       from,
