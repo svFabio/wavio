@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: wavio
+      POSTGRES_PASSWORD: wavio_dev
+      POSTGRES_DB: wavio
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wavio"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./ai-appointment-platform-backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://wavio:wavio_dev@db:5432/wavio
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      PORT: "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./ai-appointment-platform-backend/src:/app/src
+
+volumes:
+  pgdata:
