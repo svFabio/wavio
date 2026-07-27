@@ -15,7 +15,7 @@ export class AvailabilityRepository {
     const record = await this.prisma.servicio.findFirst({
       where: { id: servicioId, negocioId, activo: true },
     });
-    return record;
+    return record ? { ...record, precio: Number(record.precio) } : null;
   }
 
   async findPrimerServicioActivo(negocioId: number): Promise<Servicio | null> {
@@ -23,7 +23,7 @@ export class AvailabilityRepository {
       where: { negocioId, activo: true },
       orderBy: { id: 'asc' },
     });
-    return record;
+    return record ? { ...record, precio: Number(record.precio) } : null;
   }
 
   async findHorarioEspecial(negocioId: number, fecha: Date): Promise<HorarioEspecial | null> {
