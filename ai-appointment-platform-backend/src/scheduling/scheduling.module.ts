@@ -4,7 +4,7 @@ import { CleanupService } from './cleanup.service';
 import { ReminderService } from './reminder.service';
 import { SurveyService } from './survey.service';
 import { CleanupRepository } from './cleanup.repository';
-import { AppointmentRepository } from './appointment.repository';
+import { AppointmentRepository } from '../repositories/appointment.repository';
 import { EventsModule } from '../events/events.module';
 import { NegocioModule } from '../negocio/negocio.module';
 import { PrismaModule } from '../prisma/prisma.module';

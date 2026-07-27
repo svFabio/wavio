@@ -63,21 +63,23 @@ export class PortalRepository {
   async findServiciosActivos(
     negocioId: number,
   ): Promise<Array<{ id: number; nombre: string; duracionMinutos: number; precio: number }>> {
-    return this.prisma.servicio.findMany({
+    const records = await this.prisma.servicio.findMany({
       where: { negocioId, activo: true },
       select: { id: true, nombre: true, duracionMinutos: true, precio: true },
       orderBy: { nombre: 'asc' },
     });
+    return records.map((r) => ({ ...r, precio: Number(r.precio) }));
   }
 
   async findServicioById(
     servicioId: number,
     negocioId: number,
   ): Promise<{ id: number; nombre: string; duracionMinutos: number; precio: number } | null> {
-    return this.prisma.servicio.findFirst({
+    const record = await this.prisma.servicio.findFirst({
       where: { id: servicioId, negocioId, activo: true },
       select: { id: true, nombre: true, duracionMinutos: true, precio: true },
     });
+    return record ? { ...record, precio: Number(record.precio) } : null;
   }
 
   async findHorariosByDia(

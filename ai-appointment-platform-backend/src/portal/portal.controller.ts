@@ -9,6 +9,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PortalService } from './portal.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -38,6 +39,7 @@ export class PortalController {
   }
 
   @Get('/:token')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async validateMagicLink(@Param('token') token: string): Promise<{
     cliente: { id: number; nombre: string; telefono: string; email: string | null };
     negocio: { id: number; nombre: string };
@@ -46,11 +48,13 @@ export class PortalController {
   }
 
   @Get('/:token/appointments')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async getClientAppointments(@Param('token') token: string): Promise<Cita[]> {
     return this.portalService.getClientAppointments(token);
   }
 
   @Get('/:token/services')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async getServicios(
     @Param('token') token: string,
   ): Promise<Array<{ id: number; nombre: string; duracionMinutos: number; precio: number }>> {
@@ -58,6 +62,7 @@ export class PortalController {
   }
 
   @Get('/:token/available-slots')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async getAvailableSlots(
     @Param('token') token: string,
     @Query() query: { fecha: string; servicioId?: number },
@@ -67,6 +72,7 @@ export class PortalController {
 
   @Post('/:token/book')
   @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UsePipes(new ZodValidationPipe(bookAppointmentSchema))
   async bookAppointment(
     @Param('token') token: string,

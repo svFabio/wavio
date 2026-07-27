@@ -161,7 +161,7 @@ export class CitasRepository {
     const { count } = await this.prisma.cita.updateMany({
       where: {
         estado: 'EN_PROCESO',
-        creadoEn: { lt: olderThan },
+        fecha: { lt: olderThan },
       },
       data: { estado: 'CANCELADA' },
     });

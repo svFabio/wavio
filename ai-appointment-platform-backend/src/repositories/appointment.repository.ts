@@ -26,11 +26,16 @@ export class AppointmentRepository {
     const desde = new Date(ahora.getTime() + horasMinimas * 60 * 60 * 1000);
     const hasta = new Date(ahora.getTime() + horasMaximas * 60 * 60 * 1000);
 
-    return this.prisma.cita.findMany({
+    const fechaMin = new Date(desde);
+    fechaMin.setHours(0, 0, 0, 0);
+    const fechaMax = new Date(hasta);
+    fechaMax.setHours(23, 59, 59, 999);
+
+    const citas = await this.prisma.cita.findMany({
       where: {
         negocioId,
         estado: 'CONFIRMADA',
-        fecha: { gte: desde, lte: hasta },
+        fecha: { gte: fechaMin, lte: fechaMax },
       },
       select: {
         id: true,
@@ -43,6 +48,13 @@ export class AppointmentRepository {
         recordatorio1h: true,
         negocioId: true,
       },
+    });
+
+    return citas.filter((cita) => {
+      const [h, m] = cita.horario.split(':').map(Number);
+      const citaDateTime = new Date(cita.fecha);
+      citaDateTime.setHours(h, m, 0, 0);
+      return citaDateTime >= desde && citaDateTime <= hasta;
     });
   }
 
@@ -67,14 +79,17 @@ export class AppointmentRepository {
     }>
   > {
     const ahora = new Date();
-    const desde = new Date(ahora.getTime() - horasAtras * 60 * 60 * 1000);
+    const cutoff = new Date(ahora.getTime() - horasAtras * 60 * 60 * 1000);
 
-    return this.prisma.cita.findMany({
+    const fechaMin = new Date(cutoff);
+    fechaMin.setHours(0, 0, 0, 0);
+
+    const citas = await this.prisma.cita.findMany({
       where: {
         negocioId,
         estado: 'CONFIRMADA',
         encuestaEnviada: false,
-        fecha: { lt: desde },
+        fecha: { lt: new Date(cutoff.getTime() + 24 * 60 * 60 * 1000) },
       },
       select: {
         id: true,
@@ -82,7 +97,16 @@ export class AppointmentRepository {
         clienteTelefono: true,
         encuestaEnviada: true,
         negocioId: true,
+        fecha: true,
+        horario: true,
       },
+    });
+
+    return citas.filter((cita) => {
+      const [h, m] = cita.horario.split(':').map(Number);
+      const citaDateTime = new Date(cita.fecha);
+      citaDateTime.setHours(h, m, 0, 0);
+      return citaDateTime < cutoff;
     });
   }
 

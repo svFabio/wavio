@@ -57,33 +57,21 @@ export class AuthService {
     let nombre: string;
 
     const segments = googleToken.split('.');
-    if (segments.length === 3) {
-      const ticket = await this.googleClient.verifyIdToken({
-        idToken: googleToken,
-        audience: env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      if (!payload || !payload.sub || !payload.email) {
-        throw new UnauthorizedError('Token de Google inválido');
-      }
-      googleId = payload.sub;
-      email = payload.email;
-      nombre = payload.name || email.split('@')[0];
-    } else {
-      const verifyRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${googleToken}` },
-      });
-      if (!verifyRes.ok) {
-        throw new UnauthorizedError('Token de Google inválido');
-      }
-      const verified = (await verifyRes.json()) as { sub?: string; email?: string; name?: string };
-      if (!verified.sub || !verified.email) {
-        throw new UnauthorizedError('Token de Google inválido');
-      }
-      googleId = verified.sub;
-      email = verified.email;
-      nombre = verified.name || email.split('@')[0];
+    if (segments.length !== 3) {
+      throw new UnauthorizedError('Token de Google inválido. Se requiere un ID token.');
     }
+
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken: googleToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub || !payload.email) {
+      throw new UnauthorizedError('Token de Google inválido');
+    }
+    googleId = payload.sub;
+    email = payload.email;
+    nombre = payload.name || email.split('@')[0];
 
     let negocio = await this.authRepository.findNegocioByGoogleId(googleId);
     const esNuevo = !negocio;

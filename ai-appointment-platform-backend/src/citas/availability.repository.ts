@@ -15,7 +15,7 @@ export class AvailabilityRepository {
     const record = await this.prisma.servicio.findFirst({
       where: { id: servicioId, negocioId, activo: true },
     });
-    return record;
+    return record ? { ...record, precio: Number(record.precio) } : null;
   }
 
   async findPrimerServicioActivo(negocioId: number): Promise<Servicio | null> {
@@ -23,7 +23,7 @@ export class AvailabilityRepository {
       where: { negocioId, activo: true },
       orderBy: { id: 'asc' },
     });
-    return record;
+    return record ? { ...record, precio: Number(record.precio) } : null;
   }
 
   async findHorarioEspecial(negocioId: number, fecha: Date): Promise<HorarioEspecial | null> {
@@ -66,5 +66,50 @@ export class AvailabilityRepository {
       select: { horario: true, duracionMinutos: true },
     });
     return records;
+  }
+
+  async findCitasForRange(
+    negocioId: number,
+    fechaInicio: Date,
+    fechaFin: Date,
+    staffId?: number,
+  ): Promise<Array<{ fecha: Date; horario: string; duracionMinutos: number }>> {
+    const where: Record<string, unknown> = {
+      negocioId,
+      fecha: { gte: fechaInicio, lte: fechaFin },
+      estado: { notIn: ['CANCELADA'] },
+    };
+    if (staffId) {
+      where.staffId = staffId;
+    }
+    return this.prisma.cita.findMany({
+      where,
+      select: { fecha: true, horario: true, duracionMinutos: true },
+    });
+  }
+
+  async findHorariosNegocioAll(negocioId: number): Promise<HorarioNegocio[]> {
+    return this.prisma.horarioNegocio.findMany({
+      where: { negocioId, activo: true },
+    });
+  }
+
+  async findHorariosEspecialesInRange(
+    negocioId: number,
+    fechaInicio: Date,
+    fechaFin: Date,
+  ): Promise<HorarioEspecial[]> {
+    return this.prisma.horarioEspecial.findMany({
+      where: {
+        negocioId,
+        fecha: { gte: fechaInicio, lte: fechaFin },
+      },
+    });
+  }
+
+  async findHorarioStaffAll(usuarioId: number): Promise<HorarioStaff[]> {
+    return this.prisma.horarioStaff.findMany({
+      where: { usuarioId, activo: true },
+    });
   }
 }

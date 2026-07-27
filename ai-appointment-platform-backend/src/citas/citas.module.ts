@@ -11,6 +11,6 @@ import { EventsModule } from '../events/events.module';
   imports: [NegocioModule, ChatModule, EventsModule],
   controllers: [CitasController],
   providers: [CitasService, CitasRepository, AvailabilityRepository],
-  exports: [CitasService],
+  exports: [CitasService, AvailabilityRepository],
 })
 export class CitasModule {}

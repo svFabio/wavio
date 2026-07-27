@@ -11,14 +11,14 @@ export class ServiciosRepository {
       where: { negocioId, activo: true },
       orderBy: { nombre: 'asc' },
     });
-    return records;
+    return records.map((r) => ({ ...r, precio: Number(r.precio) }));
   }
 
   async findById(id: number): Promise<Servicio | null> {
     const record = await this.prisma.servicio.findUnique({
       where: { id },
     });
-    return record;
+    return record ? { ...record, precio: Number(record.precio) } : null;
   }
 
   async create(data: {
@@ -35,7 +35,7 @@ export class ServiciosRepository {
         activo: true,
       },
     });
-    return record;
+    return { ...record, precio: Number(record.precio) };
   }
 
   async update(
@@ -53,7 +53,7 @@ export class ServiciosRepository {
       where: { id },
       data,
     });
-    return record;
+    return { ...record, precio: Number(record.precio) };
   }
 
   async softDelete(id: number): Promise<Servicio> {
@@ -61,7 +61,7 @@ export class ServiciosRepository {
       where: { id },
       data: { activo: false },
     });
-    return record;
+    return { ...record, precio: Number(record.precio) };
   }
 
   async findByCategoria(negocioId: number, categoria: string): Promise<Servicio[]> {
@@ -69,7 +69,7 @@ export class ServiciosRepository {
       where: { negocioId, activo: true, categoria },
       orderBy: { nombre: 'asc' },
     });
-    return records;
+    return records.map((r) => ({ ...r, precio: Number(r.precio) }));
   }
 
   async getCategorias(negocioId: number): Promise<Array<{ categoria: string; count: number }>> {
@@ -95,9 +95,10 @@ export class ServiciosRepository {
       where: { negocioId, activo: true },
       orderBy: { nombre: 'asc' },
     });
+    const converted = records.map((r) => ({ ...r, precio: Number(r.precio) }));
     const grouped = new Map<string, Servicio[]>();
 
-    for (const record of records) {
+    for (const record of converted) {
       const cat = record.categoria ?? 'Sin categoría';
       if (!grouped.has(cat)) {
         grouped.set(cat, []);

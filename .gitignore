@@ -3,3 +3,37 @@
 
 # Dependencies
 node_modules/
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
+
+# Prisma
+ai-appointment-platform-backend/prisma/migrations/
+
+# Docker
+docker-compose.override.yml
