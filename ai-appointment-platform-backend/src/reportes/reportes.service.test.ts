@@ -54,9 +54,11 @@ describe('ReportesService', () => {
         'ID,Fecha,Horario,Cliente,Teléfono,Servicio,Estado,Monto,Origen,Staff ID,Creado',
       );
       expect(csv).toContain(
-        '1,2025-01-15,10:00,Juan Pérez,+521234567890,Corte de cabello,CONFIRMADA,250,whatsapp,1,',
+        "1,2025-01-15,10:00,Juan Pérez,'+521234567890,Corte de cabello,CONFIRMADA,250,whatsapp,1,2025-01-10T00:00:00.000Z",
       );
-      expect(csv).toContain('2,2025-01-15,11:00,,+520987654321,Barba,PENDIENTE,100,manual,,');
+      expect(csv).toContain(
+        "2,2025-01-15,11:00,,'+520987654321,Barba,PENDIENTE,100,manual,,2025-01-12T00:00:00.000Z",
+      );
     });
   });
 
