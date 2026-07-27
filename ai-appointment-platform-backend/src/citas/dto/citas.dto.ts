@@ -9,7 +9,7 @@ export const validarCitaSchema = z.object({
 export const crearCitaAdminSchema = z.object({
   clienteNombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   clienteTelefono: z.string().min(8, 'El teléfono debe tener al menos 8 dígitos numéricos'),
-  fecha: z.string().min(1, 'La fecha es requerida'),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido. Use YYYY-MM-DD'),
   horario: z.string().min(1, 'El horario es requerido'),
   monto: z.number().min(0, 'El monto no puede ser negativo').optional(),
   servicioId: z.number().int().optional(),
