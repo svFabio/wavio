@@ -19,9 +19,6 @@ describe('CustomEventDay', () => {
     render(
       <CustomEventDay event={{ ...baseEvent, resource: { tipo: 'cita', estado: 'CONFIRMADA' } }} />,
     );
-    expect(screen.queryByRole('generic', { hidden: true })).toBeDefined();
-    // servicio span should not exist
-    const spans = screen.queryAllByText('');
     // The component only renders a servicio span when resource.servicio is truthy
     expect(screen.queryByText('Corte de cabello')).not.toBeInTheDocument();
   });
