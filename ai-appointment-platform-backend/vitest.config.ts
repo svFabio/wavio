@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
+process.env.LOG_LEVEL = 'info';
+
 export default defineConfig({
   test: {
     globals: true,

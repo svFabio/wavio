@@ -35,6 +35,7 @@ const createModelMethods = () => ({
 const createModelWithAggregate = () => ({
   ...createModelMethods(),
   aggregate: vi.fn(),
+  groupBy: vi.fn(),
 });
 
 /* ─── Factory ─────────────────────────────────────────────────────── */
