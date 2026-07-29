@@ -30,8 +30,8 @@ describe('PagosView', () => {
     render(<PagosView citas={citas} loading={false} onValidar={vi.fn()} />);
     expect(screen.getByText('Juan Perez')).toBeInTheDocument();
     expect(screen.getByText('10:00')).toBeInTheDocument();
-    expect(screen.getByText('APROBAR')).toBeInTheDocument();
-    expect(screen.getByText('RECHAZAR')).toBeInTheDocument();
+    expect(screen.getByText('Aprobar')).toBeInTheDocument();
+    expect(screen.getByText('Rechazar')).toBeInTheDocument();
   });
 
   it('shows pending count badge', () => {
@@ -43,7 +43,7 @@ describe('PagosView', () => {
     const onValidar = vi.fn();
     const user = userEvent.setup();
     render(<PagosView citas={citas} loading={false} onValidar={onValidar} />);
-    await user.click(screen.getByText('APROBAR'));
+    await user.click(screen.getByText('Aprobar'));
     expect(onValidar).toHaveBeenCalledWith('cita-1', 'APROBAR');
   });
 
@@ -51,14 +51,14 @@ describe('PagosView', () => {
     const onValidar = vi.fn();
     const user = userEvent.setup();
     render(<PagosView citas={citas} loading={false} onValidar={onValidar} />);
-    await user.click(screen.getByText('RECHAZAR'));
+    await user.click(screen.getByText('Rechazar'));
     expect(onValidar).toHaveBeenCalledWith('cita-1', 'RECHAZAR');
   });
 
   it('disables approve button when no comprobante', () => {
     const noComprobante = [{ ...citas[0], comprobanteUrl: undefined }];
     render(<PagosView citas={noComprobante} loading={false} onValidar={vi.fn()} />);
-    const approveBtn = screen.getByText('APROBAR').closest('button');
+    const approveBtn = screen.getByText('Aprobar').closest('button');
     expect(approveBtn).toBeDisabled();
   });
 });

@@ -62,8 +62,9 @@ describe('DetalleInfo', () => {
 
   it('renders date and time', () => {
     render(<DetalleInfo {...defaultProps} />);
-    expect(screen.getByText('10:00')).toBeInTheDocument();
-    expect(screen.getByText('11:00')).toBeInTheDocument();
+    // Both times render in a single <p>: "10:00 - 11:00"
+    expect(screen.getByText(/10:00/)).toBeInTheDocument();
+    expect(screen.getByText(/11:00/)).toBeInTheDocument();
   });
 
   it('renders status badge based on estado', () => {

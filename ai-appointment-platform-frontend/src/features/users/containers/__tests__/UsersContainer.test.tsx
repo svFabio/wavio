@@ -43,6 +43,7 @@ describe('UsersContainer', () => {
     ];
     vi.mocked(api.getUsers).mockResolvedValue(users as never);
     renderWithProviders(<UsersContainer />);
-    expect(await screen.findByText('Admin')).toBeInTheDocument();
+    const adminElements = await screen.findAllByText('Admin');
+    expect(adminElements.length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -45,6 +45,6 @@ describe('StatisticsView', () => {
   it('renders empty stats when overview is null', () => {
     render(<StatisticsView overview={null} revenue={null} loading={false} clientes={[]} />);
     expect(screen.getByText('Estadisticas')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getAllByText('0')[0]).toBeInTheDocument();
   });
 });

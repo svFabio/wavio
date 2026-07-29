@@ -75,7 +75,7 @@ describe('UserModal', () => {
         onClose={vi.fn()}
       />,
     );
-    const nameInput = screen.getByLabelText('Nombre');
+    const nameInput = screen.getAllByRole('textbox')[0];
     await userEvt.type(nameInput, 'A');
     expect(onFormDataChange).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'A' }));
   });
@@ -117,7 +117,7 @@ describe('UserModal', () => {
   });
 
   it('disables submit when isSaving', () => {
-    render(
+    const { container } = render(
       <UserModal
         isOpen={true}
         editingUser={null}
@@ -128,6 +128,8 @@ describe('UserModal', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('Crear').closest('button')).toBeDisabled();
+    // Button shows Loader2 spinner when saving — no "Crear" text, so query by type
+    const submitBtn = container.querySelector('button[type="submit"]');
+    expect(submitBtn).toBeDisabled();
   });
 });

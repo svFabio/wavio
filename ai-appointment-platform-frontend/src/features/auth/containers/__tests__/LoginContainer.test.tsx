@@ -44,7 +44,8 @@ describe('LoginContainer', () => {
 
     await user.type(screen.getByPlaceholderText('correo@ejemplo.com'), 'test@test.com');
     await user.type(screen.getByPlaceholderText('Contrasena'), 'wrong');
-    await user.click(screen.getByText('Iniciar sesion'));
+    const submitButtons = screen.getAllByRole('button', { name: /iniciar sesion/i });
+    await user.click(submitButtons[1]);
 
     expect(await screen.findByText('Credenciales incorrectas')).toBeInTheDocument();
   });

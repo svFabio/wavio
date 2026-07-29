@@ -23,15 +23,16 @@ const citas: CitaResumen[] = [
 describe('AgendaTable', () => {
   it('renders empty state', () => {
     render(<AgendaTable citas={[]} />);
-    expect(screen.getByText('No hay citas programadas para hoy')).toBeInTheDocument();
+    expect(screen.getAllByText('No hay citas programadas para hoy')[0]).toBeInTheDocument();
   });
 
   it('renders cita rows', () => {
     render(<AgendaTable citas={citas} />);
-    expect(screen.getByText('Juan Perez')).toBeInTheDocument();
-    expect(screen.getByText('10:00')).toBeInTheDocument();
-    expect(screen.getByText('Corte')).toBeInTheDocument();
-    expect(screen.getByText('CONFIRMADA')).toBeInTheDocument();
-    expect(screen.getByText('VALIDACION_PENDIENTE')).toBeInTheDocument();
+    expect(screen.getAllByText('Juan Perez')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('10:00')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Corte')[0]).toBeInTheDocument();
+    // Estado badges render once per view; desktop + mobile = 2 each
+    expect(screen.getAllByText('CONFIRMADA')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('VALIDACION_PENDIENTE')[0]).toBeInTheDocument();
   });
 });

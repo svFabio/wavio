@@ -25,8 +25,8 @@ describe('UsersView', () => {
   it('renders user list', () => {
     render(<UsersView users={users} onOpenModal={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText('Gestion de Usuarios')).toBeInTheDocument();
-    expect(screen.getByText('Admin')).toBeInTheDocument();
-    expect(screen.getByText('Staff')).toBeInTheDocument();
+    expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Staff')[0]).toBeInTheDocument();
   });
 
   it('calls onOpenModal when new user button clicked', async () => {

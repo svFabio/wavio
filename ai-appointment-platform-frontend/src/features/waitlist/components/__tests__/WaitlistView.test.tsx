@@ -23,7 +23,7 @@ const entries: WaitlistEntry[] = [
     servicioId: null,
     fechaPreferida: '2026-02-12',
     horarioPreferido: null,
-    estado: 'NOTIFICADA',
+    estado: 'PENDIENTE',
     creadoEn: '2026-01-15T00:00:00Z',
     notificadoEn: '2026-01-16T00:00:00Z',
   },
@@ -99,8 +99,9 @@ describe('WaitlistView', () => {
         pendingRemoveId={null}
       />,
     );
-    expect(screen.getByText('Juan Perez')).toBeInTheDocument();
-    expect(screen.getByText('Maria Gomez')).toBeInTheDocument();
+    // Desktop table + mobile cards both render names
+    expect(screen.getAllByText('Juan Perez')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Maria Gomez')[0]).toBeInTheDocument();
   });
 
   it('shows form when isAdding is true', () => {

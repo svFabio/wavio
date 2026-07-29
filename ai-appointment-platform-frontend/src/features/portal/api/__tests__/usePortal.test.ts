@@ -71,25 +71,29 @@ describe('usePortalAvailableSlotsQuery', () => {
 });
 
 describe('useBookAppointmentMutation', () => {
-  it('calls bookPortalAppointment', () => {
+  it('calls bookPortalAppointment', async () => {
     vi.mocked(api.bookPortalAppointment).mockResolvedValue({} as never);
     const { result } = renderHookWithProviders(() => useBookAppointmentMutation('token'));
     result.current.mutate({ fecha: '2026-02-01', horario: '10:00' });
-    expect(api.bookPortalAppointment).toHaveBeenCalledWith('token', {
-      fecha: '2026-02-01',
-      horario: '10:00',
+    await vi.waitFor(() => {
+      expect(api.bookPortalAppointment).toHaveBeenCalledWith('token', {
+        fecha: '2026-02-01',
+        horario: '10:00',
+      });
     });
   });
 });
 
 describe('useGenerateLinkMutation', () => {
-  it('calls generateMagicLink', () => {
+  it('calls generateMagicLink', async () => {
     vi.mocked(api.generateMagicLink).mockResolvedValue({
       url: 'http://test.com/portal/abc',
       token: 'abc',
     } as never);
     const { result } = renderHookWithProviders(() => useGenerateLinkMutation());
     result.current.mutate(1);
-    expect(api.generateMagicLink).toHaveBeenCalledWith(1);
+    await vi.waitFor(() => {
+      expect(api.generateMagicLink).toHaveBeenCalledWith(1);
+    });
   });
 });

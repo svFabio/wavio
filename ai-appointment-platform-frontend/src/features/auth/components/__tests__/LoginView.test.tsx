@@ -81,7 +81,8 @@ describe('LoginView', () => {
     const onSubmit = vi.fn();
     const user = userEvent.setup();
     render(<LoginView {...baseProps} onSubmit={onSubmit} email="test@test.com" password="pass" />);
-    await user.click(screen.getByText('Iniciar sesion'));
+    const submitBtn = screen.getAllByRole('button', { name: /iniciar sesion/i })[1];
+    await user.click(submitBtn);
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
