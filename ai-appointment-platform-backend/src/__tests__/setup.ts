@@ -21,4 +21,5 @@ process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
 process.env.META_WHATSAPP_TOKEN = 'test-whatsapp-token';
 process.env.META_PHONE_ID = 'test-phone-id';
 process.env.META_APP_SECRET = 'test-app-secret';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
 process.env.LOG_LEVEL = 'error';
