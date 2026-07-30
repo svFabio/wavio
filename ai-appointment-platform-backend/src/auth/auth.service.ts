@@ -61,11 +61,18 @@ export class AuthService {
       throw new UnauthorizedError('Token de Google inválido. Se requiere un ID token.');
     }
 
-    const ticket = await this.googleClient.verifyIdToken({
-      idToken: googleToken,
-      audience: env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
+    let payload;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: googleToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedError(
+        'No se pudo verificar el token de Google. Asegúrate de que el Client ID de Google sea el mismo en frontend y backend.',
+      );
+    }
     if (!payload || !payload.sub || !payload.email) {
       throw new UnauthorizedError('Token de Google inválido');
     }

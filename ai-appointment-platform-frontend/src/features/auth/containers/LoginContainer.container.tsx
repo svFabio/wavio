@@ -54,7 +54,7 @@ export const LoginContainer = () => {
           : await authApi.register(email, password);
       handleSuccess(data);
     } catch (err: unknown) {
-      setError((err as Error).message);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export const LoginContainer = () => {
       const data = await authApi.loginConGoogle(credential);
       handleSuccess(data);
     } catch (err: unknown) {
-      setError((err as Error).message || 'Error al iniciar sesion con Google');
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesion con Google');
     } finally {
       setLoading(false);
     }

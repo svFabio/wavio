@@ -58,7 +58,7 @@ describe('CitasService', () => {
   let mockEventsService: Record<string, ReturnType<typeof vi.fn>>;
 
   const negocioId = 1;
-  const defaultCita: Cita = buildCita(negocioId);
+  const defaultCita = buildCita(negocioId) as unknown as Cita;
   const negocio = buildNegocio({
     waAccessToken: 'test-token',
     waPhoneNumberId: '123456',

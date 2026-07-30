@@ -116,7 +116,7 @@ describe('PushService', () => {
       const subs = [{ endpoint: 'https://fcm.test/stale', p256dh: 'key', auth: 'auth' }];
       mockRepo.getByNegocioId.mockResolvedValue(subs);
       const error = new Error('Gone');
-      (error as Record<string, unknown>).statusCode = 410;
+      (error as unknown as Record<string, unknown>).statusCode = 410;
       mockSendNotification.mockRejectedValue(error);
 
       const result = await service.sendNotification(1, { title: 'Test', body: 'Hello' });
@@ -129,7 +129,7 @@ describe('PushService', () => {
       const subs = [{ endpoint: 'https://fcm.test/err', p256dh: 'key', auth: 'auth' }];
       mockRepo.getByNegocioId.mockResolvedValue(subs);
       const error = new Error('Network error');
-      (error as Record<string, unknown>).statusCode = 500;
+      (error as unknown as Record<string, unknown>).statusCode = 500;
       mockSendNotification.mockRejectedValue(error);
 
       const result = await service.sendNotification(1, { title: 'Test', body: 'Hello' });

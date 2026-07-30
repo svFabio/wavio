@@ -20,9 +20,12 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
+import type { INestApplication, Type, Provider } from '@nestjs/common';
+import type { DynamicModule, ForwardReference } from '@nestjs/common/interfaces';
 import { PrismaService } from '../prisma/prisma.service';
 import { createMockPrisma, type MockPrisma } from './mocks/prisma';
+
+type ModuleImport = Type<any> | DynamicModule | ForwardReference<any> | Promise<DynamicModule>;
 
 export { createMockPrisma };
 export type { MockPrisma };
@@ -31,7 +34,7 @@ export type { MockPrisma };
 
 export interface TestingModuleOptions {
   /** Providers to override (e.g., guards like `APP_GUARD`) */
-  providers?: Array<unknown>;
+  providers?: Array<Provider>;
   /** Skip app creation (only return TestingModule). Default: false */
   skipAppInit?: boolean;
 }
@@ -57,7 +60,7 @@ export interface TestingModuleResult {
  * const res = await request(app.getHttpServer()).get('/citas');
  */
 export async function createTestingModule(
-  imports: Array<unknown>,
+  imports: Array<ModuleImport>,
   options: TestingModuleOptions = {},
 ): Promise<TestingModuleResult> {
   const prisma = createMockPrisma();
@@ -98,8 +101,8 @@ export async function createTestingModule(
  * prisma.cita.findMany.mockResolvedValue([buildCita(1)]);
  */
 export async function createServiceTestingModule(
-  service: unknown,
-  providers: Array<unknown> = [],
+  service: Provider,
+  providers: Array<Provider> = [],
 ): Promise<{ module: TestingModule; prisma: MockPrisma }> {
   const prisma = createMockPrisma();
 

@@ -15,6 +15,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Context**: The backend had no defined architecture. Controllers imported Prisma directly, services mixed HTTP concerns with business logic, and cron jobs were bootstrapped inline in `server.ts`.
 
 **Options considered**:
+
 - Pure Hexagonal (ports & adapters): correct destination but high migration cost from current state.
 - Microservices: operationally complex for a small team; no clear bounded context boundaries yet.
 - Layered Clean Architecture: explicit layer separation with enforced communication direction.
@@ -22,6 +23,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Decision**: Layered Clean Architecture with 4 explicit layers (routes → controllers → services → repositories) and a domain layer with zero external dependencies.
 
 **Consequences**:
+
 - Prisma is isolated to `repositories/`. Any ORM swap only touches that layer.
 - Business logic is unit-testable without HTTP or database setup.
 - Onboarding cost is low: the folder structure tells the full story.
@@ -36,6 +38,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Context**: Pages were monolithic (Calendario.tsx at 34KB, Chat.tsx at 16KB). State management used three different patterns with no rule. Components mixed data fetching with rendering.
 
 **Options considered**:
+
 - Atomic design: good for design systems, not well suited for domain-driven feature organization.
 - Redux Toolkit: overkill for server-state-dominant app; adds boilerplate.
 - Feature slices + React Query + Container/Presentational split.
@@ -43,6 +46,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Decision**: Feature-based organization with Container/Presentational pattern enforced at the component level. React Query as the single solution for server data.
 
 **Consequences**:
+
 - Each feature is independently navigable.
 - Presentational components are trivially testable and reusable.
 - React Query eliminates the useState+useEffect anti-pattern for remote data.
@@ -57,6 +61,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Context**: JWT was read directly from `localStorage` in 6+ components. No central point of control.
 
 **Options considered**:
+
 - HttpOnly cookies: eliminates XSS token theft but requires CSRF handling and backend coordination.
 - In-memory storage: most secure, but token lost on page refresh requiring silent refresh flow.
 - localStorage via centralized module: current XSS exposure is unchanged, but access is centralized.
@@ -79,6 +84,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Decision**: Zod as the validation library on both frontend and backend. Schemas live in `domain/` on the backend and in `features/<domain>/` on the frontend.
 
 **Consequences**:
+
 - Types are inferred from schemas — no type/schema duplication.
 - Validation errors are consistent and typed.
 - Shared types could be extracted to a monorepo package in the future.
@@ -102,23 +108,27 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 **Status**: Accepted
 
 **Context**: The backend started as Express 5 with the layered architecture defined in ADR-001. As the codebase grew, several structural problems emerged:
+
 - Manual dependency injection: services instantiated `new Repository(prisma)` inline, creating tight coupling and making testing painful.
 - No module boundaries: routes, services, and repositories were organized by folder but had no enforcement of dependency direction.
 - Inconsistent auth, validation, and error handling: guards were ad-hoc middleware, validation was mixed between Zod and manual checks, and error responses varied by endpoint.
 - No standardized request lifecycle: interceptors, pipes, and filters were absent — each route handled its own concerns.
 
 **Options considered**:
+
 - Stay on Express with manual DI container (e.g., tsyringe): adds complexity without framework benefits; still no module enforcement.
 - Fastify with plugin architecture: faster raw throughput, but similar gaps in DI and module boundaries.
 - NestJS: opinionated framework with DI, module system, guards, pipes, interceptors, and filters built in. Strong TypeScript support. Large ecosystem.
 
 **Decision**: Migrate to NestJS with a phased approach over 4 commits on 2026-07-16:
+
 1. **Phase 1** — Scaffold NestJS, PrismaModule, AppConfigModule, AuthModule, HealthModule, decorators (`@CurrentUser`, `@TenantId`, `@Roles`), guards (`JwtAuthGuard`, `TenantGuard`, `RolesGuard`), and `AllExceptionsFilter`.
 2. **Phase 2** — Convert CRUD modules: Usuarios, Servicios, Clientes, Negocio, Citas.
 3. **Phase 3** — Convert EventsModule (WebSocket/Socket.IO gateway), ChatModule, WebhookModule.
 4. **Phase 4** — Convert StatisticsModule, SchedulingModule, add ThrottlerModule, Swagger. Remove all Express legacy code.
 
 **Module structure** (20 modules registered in `app.module.ts`):
+
 ```
 PrismaModule (@Global)      — database access, injected everywhere
 AppConfigModule             — env parsing via config/env.ts
@@ -143,6 +153,7 @@ HealthModule                — liveness/readiness probes
 ```
 
 **Common infrastructure** (`src/common/`):
+
 ```
 guards/     JwtAuthGuard, TenantGuard, RolesGuard
 decorators/ @CurrentUser, @TenantId, @Roles, @Pagination
@@ -154,6 +165,7 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 **Consequences**:
 
 ### Positive
+
 - **Dependency injection container**: services and repositories are constructed by NestJS, eliminating manual `new` calls and making the dependency graph explicit.
 - **Module boundaries**: each module owns its controllers, services, repositories, and DTOs. Cross-module dependencies go through `exports`, not direct imports.
 - **Standardized cross-cutting concerns**: auth (`JwtAuthGuard`), validation (`ZodValidationPipe`), error handling (`AllExceptionsFilter`), and pagination (`PaginationInterceptor`) are configured once and applied uniformly.
@@ -162,10 +174,36 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 - **Swagger integration**: auto-generated API docs from decorators.
 
 ### Negative
+
 - **NestJS boilerplate**: simple CRUD endpoints require controller + service + repository + module + DTO files, even when the logic is trivial.
 - **Learning curve**: team must understand NestJS-specific concepts (decorators, IoC container, execution context, module system).
 - **Migration cost**: the phased migration took a full day of focused work. Some Express middleware needed manual adaptation.
 
 ### Risks
+
 - **Over-engineering**: for small modules like WaitlistModule or NoShowModule, the NestJS structure adds files without proportional benefit. Acceptable tradeoff for consistency.
 - **Express under the hood**: NestJS uses Express (or Fastify) as the HTTP adapter. Debugging may require understanding both frameworks.
+
+---
+
+## ADR-007 — Shared test utilities directory
+
+**Date**: 2026-07-30
+**Status**: Accepted
+
+**Context**: Test files across 19+ modules import shared factories, mocks, and test utilities. Co-locating these in each module's `__tests__/` directory would duplicate 300+ lines of factory code and make test data inconsistent across modules.
+
+**Options considered**:
+
+- Co-located `__tests__/` per module: most aligned with co-location principle, but duplicates factory definitions 19 times.
+- Inline test data in each test file: maximum duplication, no single source of truth for test data shape.
+- Shared `src/__tests__/` directory: centralizes factories, mocks, and test utilities; single import path for all test files.
+
+**Decision**: Use `src/__tests__/` as a shared directory for test utilities (factories, mocks, setup, test-utils). Individual test files (`*.test.ts`) remain co-located with their source module.
+
+**Consequences**:
+
+- One source of truth for test data shapes via factory functions.
+- Mock Prisma service is defined once, not per module.
+- The `src/__tests__/` directory is NOT part of the module architecture — it only exists at test time and is excluded from production builds.
+- Future: if the project grows significantly, consider extracting test utilities to a separate `packages/test-utils/` workspace.

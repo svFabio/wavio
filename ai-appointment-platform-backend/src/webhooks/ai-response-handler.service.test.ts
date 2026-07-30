@@ -78,10 +78,7 @@ describe('AIResponseHandlerService', () => {
       getSlotDisponibles: vi.fn(),
     };
     mockChatService = {};
-    service = new AIResponseHandlerService(
-      mockCitasService as unknown as typeof mockCitasService,
-      mockChatService as unknown as typeof mockChatService,
-    );
+    service = new AIResponseHandlerService(mockCitasService as any, mockChatService as any);
   });
 
   describe('handleResponse', () => {
@@ -132,7 +129,7 @@ describe('AIResponseHandlerService', () => {
     it('should proceed with agendar flow when AGENDAR and CONFIRMANDO_FECHA', async () => {
       const contexto: ContextoConversacion = {
         estado: 'CONFIRMANDO_FECHA',
-        datos: { fecha: '2026-08-01', horario: '10:00', nombre: 'Juan' },
+        datos: { fecha: new Date('2026-08-01'), horario: '10:00', nombre: 'Juan' },
         intentosAclaracion: 0,
       };
 
@@ -165,7 +162,7 @@ describe('AIResponseHandlerService', () => {
     beforeEach(() => {
       contexto = {
         estado: 'CONFIRMANDO_FECHA',
-        datos: { fecha: '2026-08-01', horario: '10:00', nombre: 'Juan' },
+        datos: { fecha: new Date('2026-08-01'), horario: '10:00', nombre: 'Juan' },
         intentosAclaracion: 0,
       };
       mockCitasService.crearCitaAdmin.mockResolvedValue({
@@ -284,7 +281,7 @@ describe('AIResponseHandlerService', () => {
     beforeEach(() => {
       contexto = {
         estado: 'CONFIRMANDO_FECHA',
-        datos: { fecha: '2026-08-01', horario: '10:00' },
+        datos: { fecha: new Date('2026-08-01'), horario: '10:00' },
         intentosAclaracion: 0,
       };
     });
@@ -313,7 +310,7 @@ describe('AIResponseHandlerService', () => {
     beforeEach(() => {
       contexto = {
         estado: 'CONFIRMANDO_FECHA',
-        datos: { fecha: '2026-08-01' },
+        datos: { fecha: new Date('2026-08-01') },
         intentosAclaracion: 0,
       };
     });

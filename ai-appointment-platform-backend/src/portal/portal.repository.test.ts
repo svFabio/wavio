@@ -271,6 +271,7 @@ describe('PortalRepository', () => {
         clienteNombre: 'Juan Pérez',
         clienteTelefono: '+521234567890',
         servicio: 'Corte',
+        monto: 0,
       };
       prisma.cita.create.mockResolvedValue({ id: 1 });
 

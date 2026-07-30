@@ -3,6 +3,7 @@ import { ServiciosRepository } from './servicios.repository';
 import { createMockPrisma } from '../__tests__/mocks/prisma';
 import type { MockPrisma } from '../__tests__/mocks/prisma';
 import { buildServicio, resetIds } from '../__tests__/factories';
+import { Prisma } from '@prisma/client';
 
 describe('ServiciosRepository', () => {
   let repo: ServiciosRepository;
@@ -11,7 +12,7 @@ describe('ServiciosRepository', () => {
   beforeEach(() => {
     resetIds();
     prisma = createMockPrisma();
-    prisma.servicio.groupBy = vi.fn();
+    (prisma.servicio as unknown as { groupBy: ReturnType<typeof vi.fn> }).groupBy = vi.fn();
     repo = new ServiciosRepository(prisma as unknown as never);
   });
 
@@ -92,7 +93,11 @@ describe('ServiciosRepository', () => {
 
   describe('update', () => {
     it('should update and return the servicio', async () => {
-      const updated = buildServicio(1, { id: 3, nombre: 'Corte Premium', precio: 350 });
+      const updated = buildServicio(1, {
+        id: 3,
+        nombre: 'Corte Premium',
+        precio: new Prisma.Decimal(350),
+      });
       prisma.servicio.update.mockResolvedValue(updated);
 
       const result = await repo.update(3, { nombre: 'Corte Premium', precio: 350 });
@@ -137,7 +142,9 @@ describe('ServiciosRepository', () => {
 
   describe('getCategorias', () => {
     it('should group by categoria', async () => {
-      prisma.servicio.groupBy.mockResolvedValue([
+      (
+        prisma.servicio as unknown as { groupBy: ReturnType<typeof vi.fn> }
+      ).groupBy.mockResolvedValue([
         { categoria: 'Cabello', _count: { id: 2 } },
         { categoria: 'Barba', _count: { id: 1 } },
       ]);
@@ -151,7 +158,9 @@ describe('ServiciosRepository', () => {
     });
 
     it('should return Sin categoría when categoria is null', async () => {
-      prisma.servicio.groupBy.mockResolvedValue([{ categoria: null, _count: { id: 3 } }]);
+      (
+        prisma.servicio as unknown as { groupBy: ReturnType<typeof vi.fn> }
+      ).groupBy.mockResolvedValue([{ categoria: null, _count: { id: 3 } }]);
 
       const result = await repo.getCategorias(1);
 

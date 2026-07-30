@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MessageRouterService } from './message-router.service';
+import { MessageRouterService, type NegocioCache } from './message-router.service';
 import type { Negocio, Servicio, Configuracion } from '../domain/types';
 
 const { mockEnviarMensaje } = vi.hoisted(() => ({
@@ -75,10 +75,10 @@ describe('MessageRouterService', () => {
       getSlotDisponibles: vi.fn(),
     };
     service = new MessageRouterService(
-      mockChatService as unknown as typeof mockChatService,
-      mockNegocioService as unknown as typeof mockNegocioService,
-      mockServiciosService as unknown as typeof mockServiciosService,
-      mockCitasService as unknown as typeof mockCitasService,
+      mockChatService as any,
+      mockNegocioService as any,
+      mockServiciosService as any,
+      mockCitasService as any,
     );
   });
 
@@ -208,7 +208,7 @@ describe('MessageRouterService', () => {
   });
 
   describe('buildMessageContext', () => {
-    const cache = new Map<number, unknown>();
+    const cache = new Map<number, NegocioCache>();
 
     beforeEach(() => {
       cache.clear();
@@ -308,7 +308,7 @@ describe('MessageRouterService', () => {
 
     it('should use cached negocio data on subsequent calls', async () => {
       mockChatService.findSessionByJid.mockResolvedValue(null);
-      const populatedCache = new Map<number, unknown>();
+      const populatedCache = new Map<number, NegocioCache>();
       populatedCache.set(1, {
         servicios: [mockServicio],
         config: mockConfig,

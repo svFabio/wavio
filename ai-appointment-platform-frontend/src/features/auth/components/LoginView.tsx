@@ -1,5 +1,8 @@
 import { GoogleLogin } from '@react-oauth/google';
-import { Loader2, AlertCircle, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { PasswordField } from '../../../shared/components/PasswordField';
+import { TabSelector } from './TabSelector';
+import { NegocioSelectorList } from './NegocioSelectorList';
 import type { LoginResponse, Tab } from '../types';
 
 interface LoginViewProps {
@@ -56,52 +59,10 @@ export const LoginView = ({
 
         <div className="bg-surface rounded-2xl shadow-sm border border-border p-6 space-y-5">
           {pendingData ? (
-            <div className="space-y-3">
-              <p className="text-sm text-txt-secondary text-center">
-                Tienes acceso a multiples negocios. Elige a cual quieres entrar.
-              </p>
-              {pendingData.negocios.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => onNegocioSelect(n.id)}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-txt truncate">{n.nombre}</p>
-                    <span
-                      className={`inline-block mt-0.5 text-xs font-medium px-2 py-0.5 rounded-full ${
-                        n.plan === 'PRO'
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-surface-elevated text-txt-muted'
-                      }`}
-                    >
-                      {n.plan}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <NegocioSelectorList negocios={pendingData.negocios} onSelect={onNegocioSelect} />
           ) : (
             <>
-              <div className="flex bg-surface-elevated p-1 rounded-xl">
-                {(['login', 'register'] as Tab[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => onTabChange(t)}
-                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                      tab === t
-                        ? 'bg-surface text-txt shadow-sm border border-border'
-                        : 'text-txt-muted hover:text-txt'
-                    }`}
-                  >
-                    {t === 'login' ? 'Iniciar sesion' : 'Registrarse'}
-                  </button>
-                ))}
-              </div>
-
+              <TabSelector tab={tab} onTabChange={onTabChange} />
               {error && (
                 <div className="flex items-start gap-2 bg-danger-light border border-danger/20 rounded-xl p-3 text-danger text-xs">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -111,20 +72,15 @@ export const LoginView = ({
 
               <div className="flex justify-center">
                 <GoogleLogin
-                  onSuccess={(credentialResponse) => {
-                    if (credentialResponse.credential) {
-                      onGoogleSuccess(credentialResponse.credential);
-                    } else {
-                      onGoogleError();
-                    }
-                  }}
+                  onSuccess={(res) =>
+                    res.credential ? onGoogleSuccess(res.credential) : onGoogleError()
+                  }
                   onError={onGoogleError}
                   text="continue_with"
                   shape="rectangular"
                   logo_alignment="left"
                 />
               </div>
-
               <div className="flex items-center gap-3">
                 <hr className="flex-1 border-border" />
                 <span className="text-xs text-txt-muted">o con email</span>
@@ -146,29 +102,15 @@ export const LoginView = ({
                   className="input-modern"
                 />
 
-                <div className="relative">
-                  <label htmlFor="login-password" className="sr-only">
-                    Contrasena
-                  </label>
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => onPasswordChange(e.target.value)}
-                    placeholder="Contrasena"
-                    required
-                    autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-                    className="input-modern pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={onShowPasswordToggle}
-                    aria-label={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-txt-muted hover:text-txt transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <PasswordField
+                  id="login-password"
+                  value={password}
+                  onChange={onPasswordChange}
+                  showPassword={showPassword}
+                  onToggleShow={onShowPasswordToggle}
+                  label="Contrasena"
+                  autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+                />
 
                 <button
                   type="submit"
