@@ -1,6 +1,8 @@
 allowBuilds:
   esbuild: false
-  msw: set this to true or false
+  msw: false
+
+onlyBuiltDependencies: '["msw"]'
 
 overrides:
   brace-expansion@>=4.0.0: '5.0.8'
