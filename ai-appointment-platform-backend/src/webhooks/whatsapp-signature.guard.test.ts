@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ExecutionContext } from '@nestjs/common';
 
-const mockDigest = vi.fn();
-const mockUpdate = vi.fn(() => ({ digest: mockDigest }));
-const mockCreateHmac = vi.fn(() => ({ update: mockUpdate }));
-const mockTimingSafeEqual = vi.fn();
+const { mockDigest, mockUpdate, mockCreateHmac, mockTimingSafeEqual } = vi.hoisted(() => {
+  const mockDigest = vi.fn();
+  const mockUpdate = vi.fn(() => ({ digest: mockDigest }));
+  const mockCreateHmac = vi.fn(() => ({ update: mockUpdate }));
+  const mockTimingSafeEqual = vi.fn();
+  return { mockDigest, mockUpdate, mockCreateHmac, mockTimingSafeEqual };
+});
 
 vi.mock('crypto', () => ({
   default: {
@@ -15,7 +18,7 @@ vi.mock('crypto', () => ({
   timingSafeEqual: mockTimingSafeEqual,
 }));
 
-const { WhatsappSignatureGuard } = await import('./whatsapp-signature.guard');
+import { WhatsappSignatureGuard } from './whatsapp-signature.guard';
 
 describe('WhatsappSignatureGuard', () => {
   let guard: WhatsappSignatureGuard;

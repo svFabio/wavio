@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { WebhookService } from './webhook.service';
 import type { Negocio, Servicio, Configuracion } from '../domain/types';
 
-const mockEnviarMensaje = vi.fn();
-const mockEnviarImagen = vi.fn();
-const mockProcesarMensajeConIA = vi.fn();
+const { mockEnviarMensaje, mockEnviarImagen, mockProcesarMensajeConIA } = vi.hoisted(() => ({
+  mockEnviarMensaje: vi.fn(),
+  mockEnviarImagen: vi.fn(),
+  mockProcesarMensajeConIA: vi.fn(),
+}));
 
 vi.mock('../lib/whatsapp', () => ({
   enviarMensaje: mockEnviarMensaje,
@@ -13,8 +16,6 @@ vi.mock('../lib/whatsapp', () => ({
 vi.mock('../chat/ai-engine', () => ({
   procesarMensajeConIA: mockProcesarMensajeConIA,
 }));
-
-const { WebhookService } = await import('./webhook.service');
 
 describe('WebhookService', () => {
   let service: WebhookService;
@@ -119,10 +120,10 @@ describe('WebhookService', () => {
       crearCitaAdmin: vi.fn(),
     };
     service = new WebhookService(
-      mockChatService as unknown as typeof mockChatService,
-      mockNegocioService as unknown as typeof mockNegocioService,
-      mockServiciosService as unknown as typeof mockServiciosService,
-      mockCitasService as unknown as typeof mockCitasService,
+      mockChatService as any,
+      mockNegocioService as any,
+      mockServiciosService as any,
+      mockCitasService as any,
     );
   });
 
@@ -135,7 +136,7 @@ describe('WebhookService', () => {
       vi.spyOn(
         service as unknown as { processWhatsAppPayload: ReturnType<typeof vi.fn> },
         'processWhatsAppPayload',
-      ).mockResolvedValue();
+      ).mockResolvedValue(undefined);
 
       await service.processWithRetry({ object: 'whatsapp_business_account' });
 
@@ -149,10 +150,10 @@ describe('WebhookService', () => {
       const spy = vi
         .spyOn(
           service as unknown as { processWhatsAppPayload: ReturnType<typeof vi.fn> },
-          'processWhatsAppPayload' as never,
+          'processWhatsAppPayload',
         )
         .mockRejectedValueOnce(new Error('Fail'))
-        .mockResolvedValueOnce();
+        .mockResolvedValueOnce(undefined);
 
       await service.processWithRetry({ object: 'whatsapp_business_account' }, 3);
 
@@ -163,7 +164,7 @@ describe('WebhookService', () => {
       const spy = vi
         .spyOn(
           service as unknown as { processWhatsAppPayload: ReturnType<typeof vi.fn> },
-          'processWhatsAppPayload' as never,
+          'processWhatsAppPayload',
         )
         .mockRejectedValue(new Error('Persistent error'));
 
@@ -504,7 +505,7 @@ describe('WebhookService', () => {
     it('should continue processing remaining messages when one fails', async () => {
       mockChatService.createMensaje
         .mockRejectedValueOnce(new Error('DB error'))
-        .mockResolvedValueOnce();
+        .mockResolvedValueOnce(undefined);
 
       mockProcesarMensajeConIA.mockResolvedValue({
         intencion: 'OTRO',
