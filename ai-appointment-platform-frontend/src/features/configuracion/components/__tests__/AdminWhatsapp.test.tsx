@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -70,9 +70,9 @@ describe('AdminWhatsapp', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows error alert when displayError is set', async () => {
+  it('shows no alert when no error is set', async () => {
     server.use(http.get('*/api/v1/whatsapp/status', () => HttpResponse.json({ connected: false })));
-    const { container } = renderWithProviders(<AdminWhatsapp />);
+    renderWithProviders(<AdminWhatsapp />);
     await waitFor(() => {
       expect(screen.getByText('Conectar con Facebook')).toBeInTheDocument();
     });
