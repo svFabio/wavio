@@ -1,5 +1,13 @@
 allowBuilds:
   esbuild: false
+  msw: false
+
+onlyBuiltDependencies: '["msw"]'
 
 overrides:
   brace-expansion@>=4.0.0: '5.0.8'
+  minimatch: '>=10.0.0'
+
+auditConfig:
+  ignoreGhsas:
+    - 'GHSA-qwww-vcr4-c8h2'

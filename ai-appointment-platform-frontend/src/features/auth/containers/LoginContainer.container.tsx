@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../../context/AuthContext';
-import { api } from '../../../lib/api';
+import { authApi } from '../api/auth.api';
 import { LoginView } from '../components/LoginView';
+import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import type { LoginResponse, Tab } from '../types';
 
 export const LoginContainer = () => {
@@ -49,30 +49,33 @@ export const LoginContainer = () => {
     setLoading(true);
     try {
       const data =
-        tab === 'login' ? await api.login(email, password) : await api.register(email, password);
+        tab === 'login'
+          ? await authApi.login(email, password)
+          : await authApi.register(email, password);
       handleSuccess(data);
     } catch (err: unknown) {
-      setError((err as Error).message);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
   };
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setError(null);
-      setLoading(true);
-      try {
-        const data = await api.loginConGoogle(tokenResponse.access_token);
-        handleSuccess(data);
-      } catch (err: unknown) {
-        setError((err as Error).message || 'Error al iniciar sesion con Google');
-      } finally {
-        setLoading(false);
-      }
-    },
-    onError: () => setError('Error al conectar con Google. Intentalo de nuevo.'),
-  });
+  const handleGoogleSuccess = async (credential: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await authApi.loginConGoogle(credential);
+      handleSuccess(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesion con Google');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Error al conectar con Google. Intentalo de nuevo.');
+  };
 
   const switchTab = (t: Tab) => {
     setTab(t);
@@ -82,21 +85,24 @@ export const LoginContainer = () => {
   };
 
   return (
-    <LoginView
-      tab={tab}
-      email={email}
-      password={password}
-      error={error}
-      loading={loading}
-      pendingData={pendingData}
-      showPassword={showPassword}
-      onTabChange={switchTab}
-      onEmailChange={setEmail}
-      onPasswordChange={setPassword}
-      onShowPasswordToggle={() => setShowPassword((s) => !s)}
-      onSubmit={handleEmailSubmit}
-      onGoogleLogin={() => googleLogin()}
-      onNegocioSelect={handleNegocioSelect}
-    />
+    <ErrorBoundary>
+      <LoginView
+        tab={tab}
+        email={email}
+        password={password}
+        error={error}
+        loading={loading}
+        pendingData={pendingData}
+        showPassword={showPassword}
+        onTabChange={switchTab}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
+        onShowPasswordToggle={() => setShowPassword((s) => !s)}
+        onSubmit={handleEmailSubmit}
+        onGoogleSuccess={handleGoogleSuccess}
+        onGoogleError={handleGoogleError}
+        onNegocioSelect={handleNegocioSelect}
+      />
+    </ErrorBoundary>
   );
 };

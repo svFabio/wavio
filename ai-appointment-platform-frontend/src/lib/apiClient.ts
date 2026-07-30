@@ -14,7 +14,10 @@ export class ApiError extends Error {
   }
 }
 
+const AUTH_ROUTES = ['/auth/login', '/auth/register', '/auth/google'];
+
 async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const isAuthRoute = AUTH_ROUTES.some((route) => endpoint.startsWith(route));
   const token = auth.getToken();
 
   const headers = new Headers(options.headers);
@@ -22,11 +25,11 @@ async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Pro
     headers.set('Content-Type', 'application/json');
   }
 
-  if (token) {
+  if (token && !isAuthRoute) {
     headers.set('Authorization', `Bearer ${token}`);
   }
   const activeNegocioId = auth.getActiveNegocioId();
-  if (activeNegocioId) {
+  if (activeNegocioId && !isAuthRoute) {
     headers.set('x-negocio-id', String(activeNegocioId));
   }
 
