@@ -62,7 +62,7 @@ describe('authApi.register', () => {
 
   it('throws on ApiError', async () => {
     const { ApiError } = await import('../../../../lib/apiClient');
-    mockPost.mockRejectedValue(new ApiError('Email exists', 409));
+    mockPost.mockRejectedValue(new ApiError('Email exists', 409, null));
     await expect(authApi.register('exists@test.com', 'pass')).rejects.toThrow('Email exists');
   });
 });
@@ -98,7 +98,7 @@ describe('authApi.me', () => {
 
   it('returns null on 401', async () => {
     const { ApiError } = await import('../../../../lib/apiClient');
-    mockGet.mockRejectedValue(new ApiError('Unauthorized', 401));
+    mockGet.mockRejectedValue(new ApiError('Unauthorized', 401, null));
     const result = await authApi.me();
     expect(result).toBeNull();
   });

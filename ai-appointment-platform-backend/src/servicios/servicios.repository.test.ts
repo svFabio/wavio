@@ -3,7 +3,6 @@ import { ServiciosRepository } from './servicios.repository';
 import { createMockPrisma } from '../__tests__/mocks/prisma';
 import type { MockPrisma } from '../__tests__/mocks/prisma';
 import { buildServicio, resetIds } from '../__tests__/factories';
-import { Prisma } from '@prisma/client';
 
 describe('ServiciosRepository', () => {
   let repo: ServiciosRepository;
@@ -96,7 +95,7 @@ describe('ServiciosRepository', () => {
       const updated = buildServicio(1, {
         id: 3,
         nombre: 'Corte Premium',
-        precio: new Prisma.Decimal(350),
+        precio: 350,
       });
       prisma.servicio.update.mockResolvedValue(updated);
 

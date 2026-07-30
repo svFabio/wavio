@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { PagosContainer } from '../PagosContainer.container';
@@ -20,7 +20,7 @@ describe('PagosContainer', () => {
     vi.mocked(usePendientesQuery).mockReturnValue({
       data: [],
       isLoading: false,
-    } as ReturnType<typeof usePendientesQuery>);
+    } as unknown as ReturnType<typeof usePendientesQuery>);
     vi.mocked(useValidarPagoMutation).mockReturnValue({
       mutateAsync: vi.fn(),
     } as unknown as ReturnType<typeof useValidarPagoMutation>);

@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { ConfiguracionView } from '../ConfiguracionView';
 import type { Servicio, HorarioNegocio, HorarioEspecial } from '../../types';

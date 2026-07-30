@@ -4,7 +4,6 @@ import { Views } from 'react-big-calendar';
 import { useCalendarHandlers } from '../useCalendarHandlers';
 import { createTestQueryClient } from '../../../../test-utils';
 import type { EventoCalendario } from '../../types';
-import type { QueryClient } from '@tanstack/react-query';
 
 vi.mock('../../../../shared/hooks/useSocketEvent', () => ({
   useSocketEvent: vi.fn(),
@@ -19,7 +18,7 @@ function createMockMutation(overrides: Record<string, unknown> = {}) {
 }
 
 function setup(opts: {
-  vista?: View;
+  vista?: any;
   citaSeleccionada?: EventoCalendario | null;
   markNoShow?: any;
   markAsistio?: any;
@@ -28,17 +27,16 @@ function setup(opts: {
   actualizarDesc?: any;
 }) {
   const setVista = vi.fn();
-  const setFecha = vi.fn();
   const setCitaSeleccionada = vi.fn();
   const setModalNuevaCita = vi.fn();
   const setModalReprogramar = vi.fn();
   const queryClient = createTestQueryClient();
+  const setFecha = vi.fn();
 
   const { result } = renderHook(() =>
     useCalendarHandlers({
       vista: opts.vista ?? Views.MONTH,
       setVista,
-      setFecha,
       markNoShow: opts.markNoShow ?? createMockMutation(),
       markAsistio: opts.markAsistio ?? createMockMutation(),
       citaSeleccionada: opts.citaSeleccionada ?? null,
@@ -49,6 +47,7 @@ function setup(opts: {
       actualizarDesc: opts.actualizarDesc ?? createMockMutation(),
       setModalNuevaCita,
       setModalReprogramar,
+      setFecha,
     }),
   );
 
@@ -70,7 +69,7 @@ describe('useCalendarHandlers', () => {
 
   describe('handleSelectSlot', () => {
     it('switches to day view when clicking a slot in month view', () => {
-      const { result, setFecha, setVista } = setup({ vista: Views.MONTH });
+      const { result, setVista, setFecha } = setup({ vista: Views.MONTH });
       const slotDate = new Date('2026-01-15');
       act(() => {
         result.current.handleSelectSlot({
@@ -99,7 +98,7 @@ describe('useCalendarHandlers', () => {
 
   describe('handleSelectEvent', () => {
     it('navigates to day view on resumen event', () => {
-      const { result, setFecha, setVista } = setup({ vista: Views.MONTH });
+      const { result, setVista } = setup({ vista: Views.MONTH });
       const event: EventoCalendario = {
         id: 'sum-2026-01-10',
         title: '3 citas',

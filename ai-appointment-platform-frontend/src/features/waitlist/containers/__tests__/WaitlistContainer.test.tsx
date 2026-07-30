@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { WaitlistContainer } from '../WaitlistContainer.container';
@@ -24,7 +24,7 @@ describe('WaitlistContainer', () => {
       data: [],
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useWaitlistQuery>);
+    } as unknown as ReturnType<typeof useWaitlistQuery>);
     vi.mocked(useAddToWaitlistMutation).mockReturnValue({
       mutateAsync: vi.fn(),
     } as unknown as ReturnType<typeof useAddToWaitlistMutation>);

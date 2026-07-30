@@ -8,7 +8,7 @@ vi.mock('socket.io-client', () => {
     connect: vi.fn(),
     disconnect: vi.fn(),
     connected: false,
-    auth: {}
+    auth: {},
   };
   return { io: vi.fn(() => mSocket) };
 });
@@ -16,8 +16,8 @@ vi.mock('socket.io-client', () => {
 vi.mock('../auth', () => ({
   auth: {
     getToken: vi.fn(),
-    getActiveNegocioId: vi.fn()
-  }
+    getActiveNegocioId: vi.fn(),
+  },
 }));
 
 describe('socket manager', () => {
@@ -35,13 +35,13 @@ describe('socket manager', () => {
   it('connects with auth token and negocio id', () => {
     vi.mocked(auth.getToken).mockReturnValue('token-123');
     vi.mocked(auth.getActiveNegocioId).mockReturnValue(1);
-    
+
     connectSocket();
-    
+
     const socket = getSocket();
     expect(socket.auth).toEqual({
       token: 'token-123',
-      negocioId: 1
+      negocioId: 1,
     });
     expect(socket.connect).toHaveBeenCalled();
   });

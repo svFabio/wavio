@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../../test-setup';
 import { QueryClientProvider } from '@tanstack/react-query';

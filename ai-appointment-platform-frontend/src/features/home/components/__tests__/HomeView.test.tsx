@@ -2,8 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HomeView } from '../HomeView';
 import type { ResumenData } from '../../types';
-import type { Cita } from '../../../calendario/types';
-import { vi } from 'vitest';
 
 const data: ResumenData = {
   totalHoy: 5,

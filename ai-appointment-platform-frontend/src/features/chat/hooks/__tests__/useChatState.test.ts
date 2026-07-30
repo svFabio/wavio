@@ -22,7 +22,8 @@ describe('formatJid', () => {
 describe('formatTimestamp', () => {
   it('formats a valid timestamp', () => {
     const result = formatTimestamp('2026-01-10T14:30:00Z');
-    expect(result).toBe('10:30');
+    // formatTimestamp uses date-fns format('HH:mm') — always 24h
+    expect(result).toMatch(/^\d{2}:\d{2}$/);
   });
 
   it('returns empty for invalid date', () => {

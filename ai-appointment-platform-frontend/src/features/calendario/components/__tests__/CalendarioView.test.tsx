@@ -36,7 +36,7 @@ const defaultProps = {
 };
 
 vi.mock('react-big-calendar', () => ({
-  Calendar: vi.fn(function ({ events, ..._rest }: any) {
+  Calendar: vi.fn(function ({ events }: any) {
     return (
       <div data-testid="rbc-calendar" data-events-count={events.length}>
         RBC Calendar

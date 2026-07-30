@@ -83,7 +83,7 @@ describe('calcularFechaFinPorDefecto', () => {
   it('returns a date one month after fechaBase', () => {
     const result = calcularFechaFinPorDefecto('2026-01-10');
     // Timezone-dependent: UTC-4 yields 2026-02-09, UTC yields 2026-02-10
-    expect(result).toMatch(/^2026-02-0[19]/);
+    expect(result).toMatch(/^2026-02-(09|10)/);
   });
 
   it('handles end-of-month correctly', () => {

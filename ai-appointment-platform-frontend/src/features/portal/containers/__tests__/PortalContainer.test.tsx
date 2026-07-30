@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { PortalContainer } from '../PortalContainer.container';
@@ -38,15 +38,15 @@ describe('PortalContainer', () => {
     vi.mocked(usePortalAppointmentsQuery).mockReturnValue({
       data: [],
       isLoading: false,
-    } as ReturnType<typeof usePortalAppointmentsQuery>);
+    } as unknown as ReturnType<typeof usePortalAppointmentsQuery>);
     vi.mocked(usePortalServicesQuery).mockReturnValue({
       data: [],
       isLoading: false,
-    } as ReturnType<typeof usePortalServicesQuery>);
+    } as unknown as ReturnType<typeof usePortalServicesQuery>);
     vi.mocked(usePortalAvailableSlotsQuery).mockReturnValue({
       data: [],
       isLoading: false,
-    } as ReturnType<typeof usePortalAvailableSlotsQuery>);
+    } as unknown as ReturnType<typeof usePortalAvailableSlotsQuery>);
     vi.mocked(useBookAppointmentMutation).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,

@@ -1,20 +1,19 @@
 import { http, HttpResponse } from 'msw';
-import type { Usuario, Cita, Cliente } from '../../types';
 
 export const handlers = [
   // Auth
   http.get('*/api/v1/auth/me', () => {
     return HttpResponse.json({
       usuario: { id: 1, nombre: 'Admin Test', email: 'admin@wavio.com', rol: 'ADMIN' },
-      negocios: [{ id: 1, nombre: 'Negocio Test', plan: 'PRO' }]
+      negocios: [{ id: 1, nombre: 'Negocio Test', plan: 'PRO' }],
     });
   }),
-  
+
   // Citas
   http.get('*/api/v1/citas', () => {
     return HttpResponse.json({
       data: [],
-      meta: { total: 0, page: 1, limit: 10, totalPages: 1 }
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
     });
   }),
 
@@ -22,7 +21,7 @@ export const handlers = [
   http.get('*/api/v1/clientes', () => {
     return HttpResponse.json({
       data: [],
-      meta: { total: 0, page: 1, limit: 10, totalPages: 1 }
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
     });
   }),
 
@@ -30,7 +29,7 @@ export const handlers = [
   http.get('*/api/v1/chat', () => {
     return HttpResponse.json({
       data: [],
-      meta: { total: 0, page: 1, limit: 10, totalPages: 1 }
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
     });
   }),
 
@@ -38,7 +37,7 @@ export const handlers = [
   http.get('*/api/v1/configuracion', () => {
     return HttpResponse.json({
       horarios: [],
-      servicios: []
+      servicios: [],
     });
   }),
 
@@ -46,7 +45,7 @@ export const handlers = [
   http.get('*/api/v1/usuarios', () => {
     return HttpResponse.json({
       data: [],
-      meta: { total: 0, page: 1, limit: 10, totalPages: 1 }
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
     });
   }),
 
@@ -54,7 +53,7 @@ export const handlers = [
   http.get('*/api/v1/waitlist', () => {
     return HttpResponse.json({
       data: [],
-      meta: { total: 0, page: 1, limit: 10, totalPages: 1 }
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
     });
   }),
 
@@ -62,7 +61,7 @@ export const handlers = [
   http.get('*/api/v1/statistics', () => {
     return HttpResponse.json({
       totalCitas: 0,
-      totalClientes: 0
+      totalClientes: 0,
     });
   }),
 
@@ -70,12 +69,12 @@ export const handlers = [
   http.get('*/api/v1/pagos', () => {
     return HttpResponse.json({
       data: [],
-      meta: { total: 0, page: 1, limit: 10, totalPages: 1 }
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1 },
     });
   }),
 
   // Push
   http.post('*/api/v1/push/subscribe', () => {
     return HttpResponse.json({ success: true });
-  })
+  }),
 ];

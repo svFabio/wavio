@@ -13,8 +13,8 @@ vi.mock('../../lib/auth', () => ({
     clearToken: vi.fn(),
     getActiveNegocioId: vi.fn(),
     setActiveNegocioId: vi.fn(),
-    clearActiveNegocioId: vi.fn()
-  }
+    clearActiveNegocioId: vi.fn(),
+  },
 }));
 
 describe('AuthContext', () => {
@@ -23,7 +23,7 @@ describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } }
+      defaultOptions: { queries: { retry: false } },
     });
   });
 
@@ -36,25 +36,25 @@ describe('AuthContext', () => {
   it('initializes without user when token is missing', () => {
     vi.mocked(auth.getToken).mockReturnValue(null);
     const { result } = renderHook(() => useAuth(), { wrapper });
-    
+
     expect(result.current.usuario).toBeNull();
     expect(result.current.isAuthenticated).toBe(false);
   });
 
   it('fetches user when token is present', async () => {
     vi.mocked(auth.getToken).mockReturnValue('valid-token');
-    
+
     server.use(
       http.get('*/api/v1/auth/me', () => {
         return HttpResponse.json({
           usuario: { id: 1, nombre: 'Test', rol: 'ADMIN' },
-          negocios: [{ id: 1, nombre: 'Test Negocio', plan: 'PRO' }]
+          negocios: [{ id: 1, nombre: 'Test Negocio', plan: 'PRO' }],
         });
-      })
+      }),
     );
 
     const { result } = renderHook(() => useAuth(), { wrapper });
-    
+
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
@@ -66,12 +66,12 @@ describe('AuthContext', () => {
 
   it('handles login properly', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
-    
+
     act(() => {
       result.current.login(
         'new-token',
         { id: 2, nombre: 'New User', email: 'a@b.com', rol: 'STAFF' },
-        [{ id: 2, nombre: 'Negocio 2', plan: 'FREE' }]
+        [{ id: 2, nombre: 'Negocio 2', plan: 'FREE' }],
       );
     });
 
@@ -83,7 +83,7 @@ describe('AuthContext', () => {
 
   it('handles logout properly', () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
-    
+
     act(() => {
       result.current.logout();
     });
