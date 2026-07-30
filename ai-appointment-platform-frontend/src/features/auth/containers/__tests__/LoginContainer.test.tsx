@@ -4,8 +4,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { LoginContainer } from '../LoginContainer.container';
 
-vi.mock('../../../../lib/api', () => ({
-  api: {
+vi.mock('../../../../features/auth/api/auth.api', () => ({
+  authApi: {
     login: vi.fn(),
     register: vi.fn(),
     loginConGoogle: vi.fn(),
@@ -22,10 +22,12 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@react-oauth/google', () => ({
-  useGoogleLogin: () => vi.fn(),
+  GoogleLogin: ({ onSuccess }: { onSuccess: (r: { credential: string }) => void }) => (
+    <button onClick={() => onSuccess({ credential: 'mock-id-token' })}>Continuar con Google</button>
+  ),
 }));
 
-import { api } from '../../../../lib/api';
+import { authApi } from '../../../../features/auth/api/auth.api';
 
 describe('LoginContainer', () => {
   beforeEach(() => {
@@ -38,7 +40,7 @@ describe('LoginContainer', () => {
   });
 
   it('shows error on failed login', async () => {
-    vi.mocked(api.login).mockRejectedValue(new Error('Credenciales incorrectas'));
+    vi.mocked(authApi.login).mockRejectedValue(new Error('Credenciales incorrectas'));
     const user = userEvent.setup();
     renderWithProviders(<LoginContainer />);
 

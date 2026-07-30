@@ -1,3 +1,4 @@
+import { GoogleLogin } from '@react-oauth/google';
 import { Loader2, AlertCircle, Eye, EyeOff, Building2 } from 'lucide-react';
 import type { LoginResponse, Tab } from '../types';
 
@@ -14,7 +15,8 @@ interface LoginViewProps {
   onPasswordChange: (value: string) => void;
   onShowPasswordToggle: () => void;
   onSubmit: (e: React.FormEvent) => void;
-  onGoogleLogin: () => void;
+  onGoogleSuccess: (credential: string) => void;
+  onGoogleError: () => void;
   onNegocioSelect: (negocioId: number) => void;
 }
 
@@ -31,7 +33,8 @@ export const LoginView = ({
   onPasswordChange,
   onShowPasswordToggle,
   onSubmit,
-  onGoogleLogin,
+  onGoogleSuccess,
+  onGoogleError,
   onNegocioSelect,
 }: LoginViewProps) => {
   return (
@@ -106,32 +109,21 @@ export const LoginView = ({
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={onGoogleLogin}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-surface border border-border hover:border-txt-muted hover:bg-surface-elevated rounded-xl py-3 text-sm font-medium text-txt transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
-                  <path
-                    d="M47.532 24.552c0-1.636-.147-3.2-.404-4.704H24.48v9.02h12.956c-.568 2.952-2.24 5.42-4.74 7.08v5.908h7.664c4.484-4.136 7.172-10.228 7.172-17.304z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M24.48 48c6.48 0 11.916-2.148 15.876-5.844l-7.664-5.908c-2.148 1.44-4.892 2.292-8.212 2.292-6.312 0-11.664-4.264-13.572-9.996H2.956v6.096C6.9 42.9 15.12 48 24.48 48z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M10.908 28.544A14.447 14.447 0 0 1 10.08 24c0-1.576.276-3.104.828-4.544v-6.096H2.956A23.964 23.964 0 0 0 .48 24c0 3.876.932 7.548 2.476 10.64l8.436-6.096H10.908z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M24.48 9.46c3.552 0 6.74 1.224 9.248 3.612l6.908-6.908C36.392 2.148 30.96 0 24.48 0 15.12 0 6.9 5.1 2.956 13.36l8.436 6.096c1.908-5.732 7.26-9.996 13.088-9.996z"
-                    fill="#EA4335"
-                  />
-                </svg>
-                Continuar con Google
-              </button>
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    if (credentialResponse.credential) {
+                      onGoogleSuccess(credentialResponse.credential);
+                    } else {
+                      onGoogleError();
+                    }
+                  }}
+                  onError={onGoogleError}
+                  text="continue_with"
+                  shape="rectangular"
+                  logo_alignment="left"
+                />
+              </div>
 
               <div className="flex items-center gap-3">
                 <hr className="flex-1 border-border" />

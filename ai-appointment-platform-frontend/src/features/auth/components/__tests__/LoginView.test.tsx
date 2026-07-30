@@ -4,6 +4,12 @@ import { vi } from 'vitest';
 import { LoginView } from '../LoginView';
 import type { LoginResponse, Tab } from '../../types';
 
+vi.mock('@react-oauth/google', () => ({
+  GoogleLogin: ({ onSuccess }: { onSuccess: (r: { credential: string }) => void }) => (
+    <button onClick={() => onSuccess({ credential: 'mock-id-token' })}>Continuar con Google</button>
+  ),
+}));
+
 const baseProps = {
   tab: 'login' as Tab,
   email: '',
@@ -17,7 +23,8 @@ const baseProps = {
   onPasswordChange: vi.fn(),
   onShowPasswordToggle: vi.fn(),
   onSubmit: vi.fn(),
-  onGoogleLogin: vi.fn(),
+  onGoogleSuccess: vi.fn(),
+  onGoogleError: vi.fn(),
   onNegocioSelect: vi.fn(),
 };
 
