@@ -1,4 +1,4 @@
-# Wavio
+# Wavio - SaaS
 
 AI-powered appointment management platform for service businesses. Manage clients, appointments, and WhatsApp communications with an AI assistant that handles natural-language scheduling.
 
