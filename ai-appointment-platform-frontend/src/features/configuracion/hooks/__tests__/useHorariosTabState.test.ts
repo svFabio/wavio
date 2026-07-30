@@ -5,7 +5,8 @@ import type { HorarioNegocio } from '../../types';
 
 describe('useHorariosTabState', () => {
   it('initializes localHorarios with default ranges when horarios is empty', () => {
-    const { result } = renderHook(() => useHorariosTabState([]));
+    const emptyHorarios: HorarioNegocio[] = [];
+    const { result } = renderHook(() => useHorariosTabState(emptyHorarios));
     const keys = Object.keys(result.current.localHorarios);
     expect(keys).toHaveLength(7);
     Object.values(result.current.localHorarios).forEach((rangos) => {
@@ -28,7 +29,8 @@ describe('useHorariosTabState', () => {
   });
 
   it('handleToggle toggles all ranges for a day', () => {
-    const { result } = renderHook(() => useHorariosTabState([]));
+    const emptyHorarios: HorarioNegocio[] = [];
+    const { result } = renderHook(() => useHorariosTabState(emptyHorarios));
     expect(result.current.localHorarios[1][0].activo).toBe(false);
     act(() => result.current.handleToggle(1));
     expect(result.current.localHorarios[1][0].activo).toBe(true);
@@ -37,13 +39,15 @@ describe('useHorariosTabState', () => {
   });
 
   it('handleChange updates a specific field', () => {
-    const { result } = renderHook(() => useHorariosTabState([]));
+    const emptyHorarios: HorarioNegocio[] = [];
+    const { result } = renderHook(() => useHorariosTabState(emptyHorarios));
     act(() => result.current.handleChange(1, 0, 'horaInicio', '10:00'));
     expect(result.current.localHorarios[1][0].horaInicio).toBe('10:00');
   });
 
   it('handleAddRange adds a new range', () => {
-    const { result } = renderHook(() => useHorariosTabState([]));
+    const emptyHorarios: HorarioNegocio[] = [];
+    const { result } = renderHook(() => useHorariosTabState(emptyHorarios));
     expect(result.current.localHorarios[1]).toHaveLength(1);
     act(() => result.current.handleAddRange(1));
     expect(result.current.localHorarios[1]).toHaveLength(2);
@@ -52,7 +56,8 @@ describe('useHorariosTabState', () => {
   });
 
   it('handleRemoveRange removes a range when more than one exists', () => {
-    const { result } = renderHook(() => useHorariosTabState([]));
+    const emptyHorarios: HorarioNegocio[] = [];
+    const { result } = renderHook(() => useHorariosTabState(emptyHorarios));
     act(() => result.current.handleAddRange(1));
     expect(result.current.localHorarios[1]).toHaveLength(2);
     act(() => result.current.handleRemoveRange(1, 1));
@@ -60,7 +65,8 @@ describe('useHorariosTabState', () => {
   });
 
   it('handleRemoveRange does not remove the last range', () => {
-    const { result } = renderHook(() => useHorariosTabState([]));
+    const emptyHorarios: HorarioNegocio[] = [];
+    const { result } = renderHook(() => useHorariosTabState(emptyHorarios));
     act(() => result.current.handleRemoveRange(1, 0));
     expect(result.current.localHorarios[1]).toHaveLength(1);
   });
