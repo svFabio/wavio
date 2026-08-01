@@ -28,7 +28,10 @@ const mockRolesGuard: CanActivate = {
 
 describe('NegocioController', () => {
   let app: any;
-  const mockNegocioService = { configurarNegocio: vi.fn() };
+  const mockNegocioService = {
+    configurarNegocio: vi.fn(),
+    actualizarCredenciales: vi.fn(),
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -60,5 +63,27 @@ describe('NegocioController', () => {
   it('PATCH /api/v1/negocio/configurar should return 400 for missing name', async () => {
     const res = await request(app.getHttpServer()).patch('/api/v1/negocio/configurar').send({});
     expect(res.status).toBe(400);
+  });
+
+  it('PATCH /api/v1/negocio/credenciales should update credentials', async () => {
+    mockNegocioService.actualizarCredenciales.mockResolvedValue({ id: 1, geminiApiKey: 'key' });
+    const res = await request(app.getHttpServer())
+      .patch('/api/v1/negocio/credenciales')
+      .send({ waAccessToken: 'token', geminiApiKey: 'key' });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.negocio.geminiApiKey).toBe('key');
+    expect(mockNegocioService.actualizarCredenciales).toHaveBeenCalledWith(1, {
+      waAccessToken: 'token',
+      geminiApiKey: 'key',
+    });
+  });
+
+  it('PATCH /api/v1/negocio/credenciales should return 400 for invalid value', async () => {
+    const res = await request(app.getHttpServer())
+      .patch('/api/v1/negocio/credenciales')
+      .send({ waAccessToken: '' });
+    expect(res.status).toBe(400);
+    expect(mockNegocioService.actualizarCredenciales).not.toHaveBeenCalled();
   });
 });

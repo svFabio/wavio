@@ -47,6 +47,7 @@ describe('WebhookService', () => {
     waWabaId: null,
     waAppId: null,
     isWaConnected: false,
+    geminiApiKey: null,
     creadoEn: new Date('2026-07-28'),
   };
 

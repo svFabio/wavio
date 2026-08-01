@@ -26,7 +26,7 @@ export class NegocioService {
   async configurarNegocio(
     negocioId: number,
     nombre: string,
-  ): Promise<Omit<Negocio, 'waAccessToken'>> {
+  ): Promise<Omit<Negocio, 'waAccessToken' | 'geminiApiKey'>> {
     if (!nombre || typeof nombre !== 'string' || nombre.trim().length < 2) {
       throw new ValidationError('El nombre del negocio es inválido');
     }
@@ -45,6 +45,31 @@ export class NegocioService {
       connected: negocio?.isWaConnected ?? false,
       phone: negocio?.waPhoneNumberId ?? undefined,
     };
+  }
+
+  async actualizarCredenciales(
+    negocioId: number,
+    data: {
+      waAccessToken?: string;
+      waPhoneNumberId?: string;
+      waWabaId?: string;
+      waAppId?: string;
+      geminiApiKey?: string;
+    },
+  ): Promise<Omit<Negocio, 'waAccessToken' | 'geminiApiKey'>> {
+    const updateData: Record<string, unknown> = {};
+    if (data.waAccessToken !== undefined) updateData.waAccessToken = data.waAccessToken.trim();
+    if (data.waPhoneNumberId !== undefined) updateData.waPhoneNumberId = data.waPhoneNumberId.trim();
+    if (data.waWabaId !== undefined) updateData.waWabaId = data.waWabaId.trim();
+    if (data.waAppId !== undefined) updateData.waAppId = data.waAppId.trim();
+    if (data.geminiApiKey !== undefined) updateData.geminiApiKey = data.geminiApiKey.trim();
+
+    if (data.waAccessToken || data.waPhoneNumberId) {
+      updateData.isWaConnected = true;
+    }
+
+    const negocio = await this.negocioRepository.update(negocioId, updateData);
+    return negocio;
   }
 
   async getActiveBusinessIds(): Promise<number[]> {

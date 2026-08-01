@@ -10,6 +10,7 @@ export interface Negocio {
   waPhoneNumberId: string | null;
   waWabaId: string | null;
   waAppId: string | null;
+  geminiApiKey: string | null;
   isWaConnected: boolean;
   creadoEn: Date;
 }

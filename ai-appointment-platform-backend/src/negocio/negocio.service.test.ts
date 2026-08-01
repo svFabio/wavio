@@ -91,6 +91,48 @@ describe('NegocioService', () => {
     });
   });
 
+  describe('actualizarCredenciales', () => {
+    it('should trim and update wa and gemini credentials', async () => {
+      const updated = { id: 1, geminiApiKey: 'gem-key' };
+      mockRepo.update.mockResolvedValue(updated);
+
+      const result = await service.actualizarCredenciales(1, {
+        waAccessToken: '  token  ',
+        waPhoneNumberId: ' 123 ',
+        geminiApiKey: ' gem-key ',
+      });
+
+      expect(result).toEqual(updated);
+      expect(mockRepo.update).toHaveBeenCalledWith(1, {
+        waAccessToken: 'token',
+        waPhoneNumberId: '123',
+        geminiApiKey: 'gem-key',
+        isWaConnected: true,
+      });
+    });
+
+    it('should not set isWaConnected when only geminiApiKey is provided', async () => {
+      const updated = { id: 1, geminiApiKey: 'gem-key' };
+      mockRepo.update.mockResolvedValue(updated);
+
+      await service.actualizarCredenciales(1, { geminiApiKey: 'gem-key' });
+
+      expect(mockRepo.update).toHaveBeenCalledWith(1, { geminiApiKey: 'gem-key' });
+    });
+
+    it('should update wa creds without gemini and connect', async () => {
+      const updated = { id: 1, isWaConnected: true };
+      mockRepo.update.mockResolvedValue(updated);
+
+      await service.actualizarCredenciales(1, { waAccessToken: 'token' });
+
+      expect(mockRepo.update).toHaveBeenCalledWith(1, {
+        waAccessToken: 'token',
+        isWaConnected: true,
+      });
+    });
+  });
+
   describe('getWaStatus', () => {
     it('should return connected status', async () => {
       mockRepo.findById.mockResolvedValue({ isWaConnected: true, waPhoneNumberId: '123' });

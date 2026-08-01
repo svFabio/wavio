@@ -117,7 +117,18 @@ export class ChatService {
     estadoEntrega: string;
     negocioId: number;
   }): Promise<MensajeChat> {
-    return this.chatRepository.createMensaje(data);
+    const mensaje = await this.chatRepository.createMensaje(data);
+    
+    try {
+      this.eventsService.emitNuevoMensaje(data.negocioId, {
+        remoteJid: data.remoteJid,
+        mensaje,
+      });
+    } catch (e: unknown) {
+      logger.warn({ err: e }, 'Socket error on emitNuevoMensaje');
+    }
+
+    return mensaje;
   }
 
   async updateEstadoEntrega(waMessageId: string, estado: string): Promise<void> {
