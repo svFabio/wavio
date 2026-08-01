@@ -30,11 +30,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       (client.handshake.auth?.token as string) || (client.handshake.query?.token as string);
     const negocioIdRaw = client.handshake.auth?.negocioId || client.handshake.query?.negocioId;
 
-    if (!token) {
-      client.disconnect();
-      return;
-    }
-    if (!negocioIdRaw) {
+    if (!token || !negocioIdRaw) {
       client.disconnect();
       return;
     }
@@ -47,10 +43,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const decoded = verifyJwt(token);
+      if (decoded.negocioId !== negocioId) {
+        logger.warn({ socketId: client.id, negocioId }, 'Cliente intento unirse a otro negocio');
+        client.disconnect();
+        return;
+      }
       client.data.userId = decoded.id;
-      client.data.negocioId = negocioId;
-      client.join(`negocio:${negocioId}`);
-      logger.info({ socketId: client.id, negocioId }, 'Cliente conectado');
+      client.data.negocioId = decoded.negocioId;
+      client.join(`negocio:${decoded.negocioId}`);
+      logger.info({ socketId: client.id, negocioId: decoded.negocioId }, 'Cliente conectado');
     } catch {
       client.disconnect();
     }
