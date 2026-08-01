@@ -7,16 +7,13 @@ export const configuracionApi = {
     return apiClient.get<{ connected: boolean; phone?: string } | null>('/whatsapp/status');
   },
 
-  guardarCredencialesWhatsApp: async (
-    waAccessToken: string,
-    waPhoneNumberId: string,
-    waWabaId: string,
-  ): Promise<{ success?: boolean; error?: string }> => {
-    return apiClient.post<{ success?: boolean; error?: string }>('/whatsapp/save-credentials', {
-      waAccessToken,
-      waPhoneNumberId,
-      waWabaId,
-    });
+  guardarCredenciales: async (data: {
+    waAccessToken?: string;
+    waPhoneNumberId?: string;
+    waWabaId?: string;
+    geminiApiKey?: string;
+  }): Promise<{ success?: boolean; error?: string }> => {
+    return apiClient.patch<{ success?: boolean; error?: string }>('/negocios/me/credenciales', data);
   },
 
   desvincularWhatsApp: async (): Promise<{ success?: boolean; error?: string }> => {
