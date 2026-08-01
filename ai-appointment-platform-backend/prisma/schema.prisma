@@ -45,6 +45,9 @@ model Negocio {
   googleCalendarId           String?
   isGoogleCalendarConnected  Boolean @default(false)
 
+  // ─── AI ASSISTANT FIELDS ───
+  geminiApiKey               String?
+
   creadoEn DateTime @default(now())
 
   usuarioNegocios    UsuarioNegocio[]

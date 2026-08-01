@@ -33,14 +33,20 @@ describe('configuracionApi', () => {
     });
   });
 
-  describe('guardarCredencialesWhatsApp', () => {
-    it('calls POST /whatsapp/save-credentials with body', async () => {
-      mockPost.mockResolvedValue({ success: true });
-      await configuracionApi.guardarCredencialesWhatsApp('tok', 'ph-id', 'waba-id');
-      expect(mockPost).toHaveBeenCalledWith('/whatsapp/save-credentials', {
+  describe('guardarCredenciales', () => {
+    it('calls PATCH /negocio/credenciales with body', async () => {
+      mockPatch.mockResolvedValue({ success: true });
+      await configuracionApi.guardarCredenciales({
         waAccessToken: 'tok',
         waPhoneNumberId: 'ph-id',
         waWabaId: 'waba-id',
+        geminiApiKey: 'gem-key',
+      });
+      expect(mockPatch).toHaveBeenCalledWith('/negocio/credenciales', {
+        waAccessToken: 'tok',
+        waPhoneNumberId: 'ph-id',
+        waWabaId: 'waba-id',
+        geminiApiKey: 'gem-key',
       });
     });
   });

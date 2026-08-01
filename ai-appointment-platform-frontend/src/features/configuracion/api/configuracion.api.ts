@@ -13,7 +13,7 @@ export const configuracionApi = {
     waWabaId?: string;
     geminiApiKey?: string;
   }): Promise<{ success?: boolean; error?: string }> => {
-    return apiClient.patch<{ success?: boolean; error?: string }>('/negocios/me/credenciales', data);
+    return apiClient.patch<{ success?: boolean; error?: string }>('/negocio/credenciales', data);
   },
 
   desvincularWhatsApp: async (): Promise<{ success?: boolean; error?: string }> => {
