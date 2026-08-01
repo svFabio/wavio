@@ -19,8 +19,13 @@ export const AdminWhatsapp = (): React.JSX.Element => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (creds: { token: string; phoneId: string; wabaId: string }) =>
-      api.guardarCredencialesWhatsApp(creds.token, creds.phoneId, creds.wabaId),
+    mutationFn: (creds: { token: string; phoneId: string; wabaId: string; geminiApiKey: string }) =>
+      api.guardarCredenciales({
+        waAccessToken: creds.token,
+        waPhoneNumberId: creds.phoneId,
+        waWabaId: creds.wabaId,
+        geminiApiKey: creds.geminiApiKey,
+      }),
     onSuccess: (res) => {
       if (res.error) return;
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
@@ -38,6 +43,7 @@ export const AdminWhatsapp = (): React.JSX.Element => {
   const [devToken, setDevToken] = useState('');
   const [devPhoneId, setDevPhoneId] = useState('');
   const [devWabaId, setDevWabaId] = useState('');
+  const [devGeminiApiKey, setDevGeminiApiKey] = useState('');
 
   useEffect(() => {
     if (document.getElementById('facebook-jssdk')) return;
@@ -88,7 +94,12 @@ export const AdminWhatsapp = (): React.JSX.Element => {
 
   const handleSaveDevCredentials = () => {
     setError('');
-    saveMutation.mutate({ token: devToken, phoneId: devPhoneId, wabaId: devWabaId });
+    saveMutation.mutate({ 
+      token: devToken, 
+      phoneId: devPhoneId, 
+      wabaId: devWabaId, 
+      geminiApiKey: devGeminiApiKey 
+    });
   };
 
   const handleDisconnect = () => {
@@ -161,9 +172,11 @@ export const AdminWhatsapp = (): React.JSX.Element => {
             onPhoneIdChange={setDevPhoneId}
             devWabaId={devWabaId}
             onWabaIdChange={setDevWabaId}
+            geminiApiKey={devGeminiApiKey}
+            onGeminiApiKeyChange={setDevGeminiApiKey}
             onSave={handleSaveDevCredentials}
             saving={saveMutation.isPending}
-            disabled={!devToken || !devPhoneId || !devWabaId || saveMutation.isPending}
+            disabled={(!devToken && !devPhoneId && !devWabaId && !devGeminiApiKey) || saveMutation.isPending}
           />
         </div>
       )}

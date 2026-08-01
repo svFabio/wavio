@@ -5,6 +5,8 @@ interface DevCredentialsFormProps {
   onPhoneIdChange: (value: string) => void;
   devWabaId: string;
   onWabaIdChange: (value: string) => void;
+  geminiApiKey: string;
+  onGeminiApiKeyChange: (value: string) => void;
   onSave: () => void;
   saving: boolean;
   disabled: boolean;
@@ -17,6 +19,8 @@ export const DevCredentialsForm = ({
   onPhoneIdChange,
   devWabaId,
   onWabaIdChange,
+  geminiApiKey,
+  onGeminiApiKeyChange,
   onSave,
   saving,
   disabled,
@@ -27,7 +31,7 @@ export const DevCredentialsForm = ({
         Modo Desarrollo
       </h4>
       <p className="text-xs text-txt-muted mb-4">
-        Ingresa los tokens manualmente desde el panel de Meta for Developers.
+        Ingresa los tokens manualmente desde el panel de Meta for Developers y Google AI Studio.
       </p>
 
       <div className="space-y-3">
@@ -54,6 +58,14 @@ export const DevCredentialsForm = ({
           className="input-modern"
           value={devWabaId}
           onChange={(e) => onWabaIdChange(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="Gemini API Key"
+          aria-label="Gemini API Key"
+          className="input-modern"
+          value={geminiApiKey}
+          onChange={(e) => onGeminiApiKeyChange(e.target.value)}
         />
         <button
           onClick={onSave}
