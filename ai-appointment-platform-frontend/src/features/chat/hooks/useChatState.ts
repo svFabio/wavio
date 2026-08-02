@@ -62,14 +62,16 @@ export const useChatState = (): {
   const loadingMensajes = mensajesQuery.isLoading;
 
   const handleNuevoMensaje = useCallback(
-    (msg: MensajeChat) => {
+    (payload: { remoteJid: string; mensaje: MensajeChat }) => {
+      const { remoteJid, mensaje: msg } = payload;
+      
       queryClient.setQueryData<Conversacion[]>(['conversaciones'], (old) => {
         if (!old) return old;
-        const existente = old.find((c) => c.remoteJid === msg.remoteJid);
+        const existente = old.find((c) => c.remoteJid === remoteJid);
         if (existente) {
           return old
             .map((c) =>
-              c.remoteJid === msg.remoteJid
+              c.remoteJid === remoteJid
                 ? {
                     ...c,
                     ultimoContenido: msg.contenido,
@@ -85,7 +87,7 @@ export const useChatState = (): {
         } else {
           return [
             {
-              remoteJid: msg.remoteJid,
+              remoteJid: remoteJid,
               ultimoMensaje: msg.timestamp,
               totalMensajes: 1,
               ultimoContenido: msg.contenido,
@@ -96,7 +98,7 @@ export const useChatState = (): {
         }
       });
 
-      if (selectedJidRef.current === msg.remoteJid) {
+      if (selectedJidRef.current === remoteJid) {
         queryClient.setQueryData<MensajeChat[]>(['mensajes', selectedJidRef.current], (old) => {
           if (!old) return [msg];
           return [...old, msg];
@@ -119,7 +121,7 @@ export const useChatState = (): {
     [queryClient],
   );
 
-  useSocketEvent<MensajeChat>('nuevo-mensaje', handleNuevoMensaje);
+  useSocketEvent<{ remoteJid: string; mensaje: MensajeChat }>('nuevo-mensaje', handleNuevoMensaje);
   useSocketEvent<{ remoteJid: string }>('conversacion-eliminada', handleConversacionEliminada);
 
   useEffect(() => {
