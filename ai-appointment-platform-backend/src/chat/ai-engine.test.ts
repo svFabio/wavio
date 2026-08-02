@@ -14,7 +14,11 @@ vi.mock('@google/generative-ai', () => {
     genAICalls.push(apiKey);
     this.getGenerativeModel = () => ({ generateContent: mockGenerateContent });
   }
-  return { GoogleGenerativeAI: MockGoogleGenerativeAI };
+  return {
+    GoogleGenerativeAI: MockGoogleGenerativeAI,
+    SchemaType: { STRING: 'string', NUMBER: 'number', OBJECT: 'object' },
+    FunctionCallingMode: { AUTO: 'AUTO' },
+  };
 });
 
 vi.mock('../config/env', () => ({
@@ -25,7 +29,7 @@ vi.mock('../lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-import { procesarMensajeConIA, detectarIntencionSimple } from './ai-engine';
+import { procesarMensajeConIA, detectarIntencionSimple, herramientasCita } from './ai-engine';
 
 describe('ai-engine', () => {
   beforeEach(() => {
@@ -84,6 +88,107 @@ describe('ai-engine', () => {
       });
       expect(result.intencion).toBe('OTRO');
       expect(mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should execute tool calls and use the follow-up response when ejecutarHerramienta is provided', async () => {
+      const ejecutarHerramienta = vi.fn().mockResolvedValue(['09:00', '10:00']);
+
+      const firstResponse = {
+        response: {
+          functionCalls: () => [
+            { name: 'consultar_disponibilidad', args: { fecha: '2026-08-05' } },
+          ],
+        },
+      };
+      const secondResponse = {
+        response: {
+          text: () =>
+            JSON.stringify({
+              intencion: 'CONSULTAR',
+              entidades: { fecha: '2026-08-05' },
+              sentimiento: 'positivo',
+              confianza: 0.9,
+              respuestaSugerida: 'Hay horarios a las 09:00 y 10:00.',
+            }),
+        },
+      };
+      mockGenerateContent
+        .mockResolvedValueOnce(firstResponse)
+        .mockResolvedValueOnce(secondResponse);
+
+      const result = await procesarMensajeConIA(
+        'Que horarios hay el 5 de agosto?',
+        { estado: 'INICIO', datos: {}, intentosAclaracion: 0 },
+        ['Corte de cabello ($250)'],
+        [],
+        [],
+        undefined,
+        ejecutarHerramienta,
+      );
+
+      expect(ejecutarHerramienta).toHaveBeenCalledWith('consultar_disponibilidad', {
+        fecha: '2026-08-05',
+      });
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+
+      const [firstCall, secondCall] = mockGenerateContent.mock.calls;
+      expect(firstCall[0]).toEqual({
+        contents: [{ role: 'user', parts: [{ text: expect.any(String) }] }],
+        tools: herramientasCita,
+        toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+      });
+
+      const followUpContents = secondCall[0].contents;
+      expect(followUpContents[0]).toEqual({
+        role: 'user',
+        parts: [{ text: expect.any(String) }],
+      });
+      expect(followUpContents[1]).toEqual({
+        role: 'model',
+        parts: [
+          {
+            functionCall: {
+              name: 'consultar_disponibilidad',
+              args: { fecha: '2026-08-05' },
+            },
+          },
+        ],
+      });
+      expect(followUpContents[2]).toEqual({
+        role: 'user',
+        parts: [
+          {
+            functionResponse: {
+              name: 'consultar_disponibilidad',
+              response: ['09:00', '10:00'],
+            },
+          },
+        ],
+      });
+
+      expect(result.intencion).toBe('CONSULTAR');
+      expect(result.respuestaSugerida).toBe('Hay horarios a las 09:00 y 10:00.');
+    });
+
+    it('should call generateContent with a plain string when no ejecutarHerramienta is provided', async () => {
+      mockText.mockReturnValue(
+        JSON.stringify({
+          intencion: 'OTRO',
+          entidades: {},
+          sentimiento: 'neutral',
+          confianza: 0.2,
+        }),
+      );
+      mockGenerateContent.mockResolvedValue(mockResponse);
+
+      await procesarMensajeConIA('hola', {
+        estado: 'INICIO',
+        datos: {},
+        intentosAclaracion: 0,
+      });
+
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      expect(typeof mockGenerateContent.mock.calls[0][0]).toBe('string');
     });
   });
 

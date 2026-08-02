@@ -156,6 +156,43 @@ export class WebhookService {
                 }
               }
 
+              const ejecutarHerramienta = async (
+                nombre: string,
+                args: Record<string, unknown>,
+              ) => {
+                if (nombre === 'consultar_disponibilidad') {
+                  const fecha = String(args.fecha ?? '');
+                  const servicioId =
+                    typeof args.servicio_id === 'number'
+                      ? args.servicio_id
+                      : cached.servicios[0]?.id;
+                  if (!servicioId) return [];
+                  const slots = await this.citasService.getSlotDisponibles({
+                    negocioId: negocio.id,
+                    servicioId,
+                    fecha,
+                  });
+                  return slots.map((s) => s.inicio);
+                }
+                if (nombre === 'agendar_cita') {
+                  const fechaHora = String(args.fecha_hora ?? '');
+                  const [fecha, hora] = fechaHora.includes('T')
+                    ? fechaHora.split('T')
+                    : [fechaHora, ''];
+                  const cita = await this.citasService.crearCitaAdmin(negocio.id, {
+                    clienteNombre: String(args.cliente_nombre ?? ''),
+                    clienteTelefono: String(args.cliente_telefono ?? ''),
+                    fecha,
+                    horario: hora.slice(0, 5),
+                    monto: 0,
+                    estado: 'VALIDACION_PENDIENTE',
+                    origen: 'whatsapp',
+                  });
+                  return { ok: true, citaId: cita.id };
+                }
+                throw new Error(`Herramienta no soportada: ${nombre}`);
+              };
+
               const resultadoIA = await procesarMensajeConIA(
                 textBody,
                 contexto,
@@ -163,6 +200,7 @@ export class WebhookService {
                 slotsDisponibles,
                 chatFlow,
                 negocio.geminiApiKey ?? undefined,
+                ejecutarHerramienta,
               );
 
               await this.chatService.upsertSession(sessionJid, negocio.id, {

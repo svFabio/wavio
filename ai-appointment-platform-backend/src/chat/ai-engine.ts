@@ -1,4 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, FunctionCallingMode } from '@google/generative-ai';
+import type {
+  Content,
+  FunctionDeclarationsTool,
+} from '@google/generative-ai';
 import { z } from 'zod';
 import { env } from '../config/env';
 import type { ChatFlowStep } from '../domain/types';
@@ -16,6 +20,66 @@ function getModel(apiKey?: string) {
   }
   return model;
 }
+
+export const herramientasCita: FunctionDeclarationsTool[] = [
+  {
+    functionDeclarations: [
+      {
+        name: 'consultar_disponibilidad',
+        description:
+          'Consulta los horarios disponibles para una fecha y un servicio determinados.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            fecha: {
+              type: SchemaType.STRING,
+              description: 'Fecha en formato YYYY-MM-DD para consultar disponibilidad.',
+            },
+            servicio_id: {
+              type: SchemaType.NUMBER,
+              description: 'Identificador opcional del servicio a consultar.',
+            },
+          },
+          required: ['fecha'],
+        },
+      },
+      {
+        name: 'agendar_cita',
+        description:
+          'Agenda una cita para un cliente indicando fecha, hora, nombre y telefono.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            fecha_hora: {
+              type: SchemaType.STRING,
+              description: 'Fecha y hora de la cita en formato ISO (YYYY-MM-DDTHH:mm).',
+            },
+            cliente_nombre: {
+              type: SchemaType.STRING,
+              description: 'Nombre del cliente.',
+            },
+            cliente_telefono: {
+              type: SchemaType.STRING,
+              description: 'Numero de telefono del cliente.',
+            },
+            servicio_id: {
+              type: SchemaType.NUMBER,
+              description: 'Identificador opcional del servicio.',
+            },
+          },
+          required: ['fecha_hora', 'cliente_nombre', 'cliente_telefono'],
+        },
+      },
+    ],
+  },
+];
+
+const serializarResultado = (resultado: unknown): object => {
+  if (resultado !== null && typeof resultado === 'object') {
+    return resultado as object;
+  }
+  return { resultado };
+};
 
 const ResultadoIASchema = z.object({
   intencion: z.enum(['AGENDAR', 'CONSULTAR', 'CANCELAR', 'ACLARAR', 'OTRO']),
@@ -101,6 +165,7 @@ export const procesarMensajeConIA = async (
   slotsDisponibles?: string[],
   chatFlow?: ChatFlowStep[],
   apiKey?: string,
+  ejecutarHerramienta?: (nombre: string, args: Record<string, unknown>) => Promise<unknown>,
 ): Promise<ResultadoIA> => {
   if (!mensaje || mensaje.length > 1000) {
     return {
@@ -120,9 +185,53 @@ export const procesarMensajeConIA = async (
       chatFlow,
     );
 
-    const result = await getModel(apiKey).generateContent(prompt);
-    const response = result.response;
-    const texto = response.text();
+    const modelGenerativo = getModel(apiKey);
+    let texto: string;
+
+    if (ejecutarHerramienta) {
+      const contents: Content[] = [{ role: 'user', parts: [{ text: prompt }] }];
+      const result = await modelGenerativo.generateContent({
+        contents,
+        tools: herramientasCita,
+        toolConfig: { functionCallingConfig: { mode: FunctionCallingMode.AUTO } },
+      });
+      const functionCalls = result.response.functionCalls?.() ?? [];
+
+      if (functionCalls.length > 0) {
+        const ejecuciones = await Promise.all(
+          functionCalls.map(async (call) => ({
+            call,
+            resultado: serializarResultado(
+              await ejecutarHerramienta(call.name, call.args as Record<string, unknown>),
+            ),
+          })),
+        );
+        const followUp = await modelGenerativo.generateContent({
+          contents: [
+            contents[0],
+            {
+              role: 'model',
+              parts: ejecuciones.map(({ call }) => ({
+                functionCall: { name: call.name, args: call.args },
+              })),
+            },
+            {
+              role: 'user',
+              parts: ejecuciones.map(({ call, resultado }) => ({
+                functionResponse: { name: call.name, response: resultado },
+              })),
+            },
+          ],
+          tools: herramientasCita,
+        });
+        texto = followUp.response.text();
+      } else {
+        texto = result.response.text();
+      }
+    } else {
+      const result = await modelGenerativo.generateContent(prompt);
+      texto = result.response.text();
+    }
 
     const inicio = texto.indexOf('{');
     const fin = texto.lastIndexOf('}');
