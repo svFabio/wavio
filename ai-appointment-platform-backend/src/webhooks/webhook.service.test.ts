@@ -431,6 +431,7 @@ describe('WebhookService', () => {
         [],
         [],
         undefined,
+        expect.any(Function),
       );
       expect(mockChatService.upsertSession).toHaveBeenCalled();
       expect(mockEnviarMensaje).toHaveBeenCalledWith(
@@ -502,7 +503,51 @@ describe('WebhookService', () => {
         ['09:00'],
         [],
         undefined,
+        expect.any(Function),
       );
+    });
+
+    it('should provide an executor that returns available slots for consultar_disponibilidad', async () => {
+      mockCitasService.getSlotDisponibles.mockResolvedValue([
+        { inicio: '09:00', fin: '10:00', staffId: null },
+        { inicio: '10:00', fin: '11:00', staffId: null },
+      ]);
+      mockProcesarMensajeConIA.mockResolvedValue({
+        intencion: 'OTRO',
+        respuestaSugerida: 'Ok',
+      });
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.tool',
+            type: 'text',
+            text: { body: 'Horarios' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      const args = mockProcesarMensajeConIA.mock.calls[0];
+      const ejecutarHerramienta = args[6] as (
+        nombre: string,
+        args: Record<string, unknown>,
+      ) => Promise<unknown>;
+
+      expect(typeof ejecutarHerramienta).toBe('function');
+
+      const slots = await ejecutarHerramienta('consultar_disponibilidad', {
+        fecha: '2026-08-05',
+      });
+
+      expect(mockCitasService.getSlotDisponibles).toHaveBeenCalledWith({
+        negocioId: 1,
+        servicioId: 1,
+        fecha: '2026-08-05',
+      });
+      expect(slots).toEqual(['09:00', '10:00']);
     });
 
     it('should continue processing remaining messages when one fails', async () => {
