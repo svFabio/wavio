@@ -6,7 +6,12 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import { updateConfiguracionSchema, uploadQrSchema } from './dto/negocio.dto';
+import {
+  ConfiguracionUpdateSchema,
+  QrUploadSchema,
+  UpdateConfiguracionDto,
+  UploadQrDto,
+} from './dto/negocio.dto';
 
 @Controller('api/v1/configuracion')
 @UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
@@ -14,21 +19,27 @@ export class ConfiguracionController {
   constructor(private readonly configuracionService: ConfiguracionService) {}
 
   @Get('/')
-  async getConfiguracion(@TenantId() negocioId: number) {
+  async getConfiguracion(@TenantId() negocioId: number): Promise<unknown> {
     return this.configuracionService.getConfiguracion(negocioId);
   }
 
   @Patch('/')
   @Roles('ADMIN')
-  @UsePipes(new ZodValidationPipe(updateConfiguracionSchema))
-  async updateConfiguracion(@TenantId() negocioId: number, @Body() body: Record<string, unknown>) {
+  @UsePipes(new ZodValidationPipe(ConfiguracionUpdateSchema))
+  async updateConfiguracion(
+    @TenantId() negocioId: number,
+    @Body() body: UpdateConfiguracionDto,
+  ): Promise<unknown> {
     return this.configuracionService.updateConfiguracion(negocioId, body);
   }
 
   @Post('/qr')
   @Roles('ADMIN')
-  @UsePipes(new ZodValidationPipe(uploadQrSchema))
-  async uploadQR(@TenantId() negocioId: number, @Body() body: { imagen: string }) {
+  @UsePipes(new ZodValidationPipe(QrUploadSchema))
+  async uploadQR(
+    @TenantId() negocioId: number,
+    @Body() body: UploadQrDto,
+  ): Promise<{ qrFotoUrl: string }> {
     return this.configuracionService.uploadQR(negocioId, body.imagen);
   }
 }

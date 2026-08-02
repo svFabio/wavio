@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { WebhookService } from './webhook.service';
 import { WhatsappSignatureGuard } from './whatsapp-signature.guard';
+import { env } from '../config/env';
 import { createLogger } from '../lib/logger';
 
 const logger = createLogger('whatsapp-controller');
@@ -18,8 +19,8 @@ export class WhatsAppController {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (!mode || !token) {
-      res.sendStatus(400);
+    if (mode !== 'subscribe' || token !== env.META_WEBHOOK_VERIFY_TOKEN) {
+      res.sendStatus(403);
       return;
     }
 
@@ -29,8 +30,7 @@ export class WhatsAppController {
       return;
     }
 
-    // Verification is handled by the service/config, no need for extra guard here
-    logger.info('Webhook verification requested');
+    logger.info('Webhook verification successful');
     res.status(200).send(challengeStr);
   }
 
