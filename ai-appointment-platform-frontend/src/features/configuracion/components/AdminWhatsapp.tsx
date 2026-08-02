@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { configuracionApi } from '../api/configuracion.api';
 import { useAuth } from '../../../context/AuthContext';
-import { CheckCircle2, AlertCircle, Unplug } from 'lucide-react';
+import { CheckCircle2, Unplug } from 'lucide-react';
 import { DevCredentialsForm } from './DevCredentialsForm';
+import { LoadingSkeleton } from '../../../shared/components/skeletons/LoadingSkeleton';
+import { ErrorAlert } from '../../../shared/components/ErrorAlert';
 
 export const AdminWhatsapp = (): React.JSX.Element => {
   useAuth();
@@ -15,25 +17,33 @@ export const AdminWhatsapp = (): React.JSX.Element => {
     error: queryError,
   } = useQuery({
     queryKey: ['whatsapp-status'],
-    queryFn: () => api.statusWhatsapp(),
+    queryFn: () => configuracionApi.statusWhatsapp(),
   });
 
   const saveMutation = useMutation({
-    mutationFn: (creds: { token: string; phoneId: string; wabaId: string; geminiApiKey: string }) =>
-      api.guardarCredenciales({
+    mutationFn: async (creds: {
+      token: string;
+      phoneId: string;
+      wabaId: string;
+      geminiApiKey: string;
+    }) => {
+      const res = await configuracionApi.guardarCredenciales({
         waAccessToken: creds.token,
         waPhoneNumberId: creds.phoneId,
         waWabaId: creds.wabaId,
         geminiApiKey: creds.geminiApiKey,
-      }),
-    onSuccess: (res) => {
-      if (res.error) return;
+      });
+      // @ts-expect-error loosely typed
+      if (res && res.error) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
     },
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: () => api.desvincularWhatsApp(),
+    mutationFn: () => configuracionApi.desvincularWhatsApp(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
     },
@@ -94,11 +104,11 @@ export const AdminWhatsapp = (): React.JSX.Element => {
 
   const handleSaveDevCredentials = () => {
     setError('');
-    saveMutation.mutate({ 
-      token: devToken, 
-      phoneId: devPhoneId, 
-      wabaId: devWabaId, 
-      geminiApiKey: devGeminiApiKey 
+    saveMutation.mutate({
+      token: devToken,
+      phoneId: devPhoneId,
+      wabaId: devWabaId,
+      geminiApiKey: devGeminiApiKey,
     });
   };
 
@@ -116,30 +126,12 @@ export const AdminWhatsapp = (): React.JSX.Element => {
     getErrorMessage(disconnectMutation.error);
 
   if (loading) {
-    return (
-      <div className="space-y-5">
-        <div className="skeleton h-12 rounded-xl" />
-        <div className="border border-border-light rounded-xl p-4 space-y-4">
-          <div className="skeleton h-3 w-48 rounded" />
-          <div className="space-y-3">
-            <div className="skeleton h-10 rounded-xl" />
-            <div className="skeleton h-10 rounded-xl" />
-            <div className="skeleton h-10 rounded-xl" />
-          </div>
-          <div className="skeleton h-10 w-full rounded-xl" />
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   return (
     <div className="space-y-5">
-      {displayError && (
-        <div className="p-4 bg-danger-light border border-danger/20 rounded-xl flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
-          <p className="text-sm text-danger">{displayError}</p>
-        </div>
-      )}
+      {displayError && <ErrorAlert message={displayError} />}
 
       {status?.connected ? (
         <div className="space-y-4">
@@ -176,7 +168,9 @@ export const AdminWhatsapp = (): React.JSX.Element => {
             onGeminiApiKeyChange={setDevGeminiApiKey}
             onSave={handleSaveDevCredentials}
             saving={saveMutation.isPending}
-            disabled={(!devToken && !devPhoneId && !devWabaId && !devGeminiApiKey) || saveMutation.isPending}
+            disabled={
+              (!devToken && !devPhoneId && !devWabaId && !devGeminiApiKey) || saveMutation.isPending
+            }
           />
         </div>
       )}

@@ -58,13 +58,13 @@ export const useChatState = (): {
   });
 
   const loading = conversacionesQuery.isLoading;
-  const mensajes = mensajesQuery.data ?? [];
+  const mensajes = useMemo(() => mensajesQuery.data ?? [], [mensajesQuery.data]);
   const loadingMensajes = mensajesQuery.isLoading;
 
   const handleNuevoMensaje = useCallback(
     (payload: { remoteJid: string; mensaje: MensajeChat }) => {
       const { remoteJid, mensaje: msg } = payload;
-      
+
       queryClient.setQueryData<Conversacion[]>(['conversaciones'], (old) => {
         if (!old) return old;
         const existente = old.find((c) => c.remoteJid === remoteJid);
