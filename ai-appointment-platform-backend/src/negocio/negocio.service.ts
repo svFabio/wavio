@@ -59,7 +59,8 @@ export class NegocioService {
   ): Promise<Omit<Negocio, 'waAccessToken' | 'geminiApiKey'>> {
     const updateData: Record<string, unknown> = {};
     if (data.waAccessToken !== undefined) updateData.waAccessToken = data.waAccessToken.trim();
-    if (data.waPhoneNumberId !== undefined) updateData.waPhoneNumberId = data.waPhoneNumberId.trim();
+    if (data.waPhoneNumberId !== undefined)
+      updateData.waPhoneNumberId = data.waPhoneNumberId.trim();
     if (data.waWabaId !== undefined) updateData.waWabaId = data.waWabaId.trim();
     if (data.waAppId !== undefined) updateData.waAppId = data.waAppId.trim();
     if (data.geminiApiKey !== undefined) updateData.geminiApiKey = data.geminiApiKey.trim();

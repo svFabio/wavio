@@ -9,7 +9,9 @@ export class NegocioRepository {
 
   async findByWaPhoneNumberId(
     waPhoneNumberId: string,
-  ): Promise<(Omit<Negocio, 'waAccessToken' | 'geminiApiKey'> & { configuracion: unknown }) | null> {
+  ): Promise<
+    (Omit<Negocio, 'waAccessToken' | 'geminiApiKey'> & { configuracion: unknown }) | null
+  > {
     const negocio = await this.prisma.negocio.findUnique({
       where: { waPhoneNumberId },
       select: { ...NEGOCIO_SAFE_SELECT, configuracion: true },
@@ -20,7 +22,12 @@ export class NegocioRepository {
   async findByWaPhoneNumberIdForInternal(waPhoneNumberId: string): Promise<Negocio | null> {
     const negocio = await this.prisma.negocio.findUnique({
       where: { waPhoneNumberId },
-      select: { ...NEGOCIO_SAFE_SELECT, waAccessToken: true, geminiApiKey: true, configuracion: true },
+      select: {
+        ...NEGOCIO_SAFE_SELECT,
+        waAccessToken: true,
+        geminiApiKey: true,
+        configuracion: true,
+      },
     });
     return negocio;
   }
@@ -40,7 +47,10 @@ export class NegocioRepository {
     });
   }
 
-  async update(id: number, data: Record<string, unknown>): Promise<Omit<Negocio, 'waAccessToken' | 'geminiApiKey'>> {
+  async update(
+    id: number,
+    data: Record<string, unknown>,
+  ): Promise<Omit<Negocio, 'waAccessToken' | 'geminiApiKey'>> {
     const negocio = await this.prisma.negocio.update({
       where: { id },
       data,

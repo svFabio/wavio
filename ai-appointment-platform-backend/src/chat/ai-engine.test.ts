@@ -9,7 +9,10 @@ const { mockGenerateContent, mockText, mockResponse, genAICalls } = vi.hoisted((
 });
 
 vi.mock('@google/generative-ai', () => {
-  function MockGoogleGenerativeAI(this: { apiKey: string; getGenerativeModel: () => unknown }, apiKey: string) {
+  function MockGoogleGenerativeAI(
+    this: { apiKey: string; getGenerativeModel: () => unknown },
+    apiKey: string,
+  ) {
     this.apiKey = apiKey;
     genAICalls.push(apiKey);
     this.getGenerativeModel = () => ({ generateContent: mockGenerateContent });

@@ -1,8 +1,5 @@
 import { GoogleGenerativeAI, SchemaType, FunctionCallingMode } from '@google/generative-ai';
-import type {
-  Content,
-  FunctionDeclarationsTool,
-} from '@google/generative-ai';
+import type { Content, FunctionDeclarationsTool } from '@google/generative-ai';
 import { z } from 'zod';
 import { env } from '../config/env';
 import type { ChatFlowStep } from '../domain/types';
@@ -26,8 +23,7 @@ export const herramientasCita: FunctionDeclarationsTool[] = [
     functionDeclarations: [
       {
         name: 'consultar_disponibilidad',
-        description:
-          'Consulta los horarios disponibles para una fecha y un servicio determinados.',
+        description: 'Consulta los horarios disponibles para una fecha y un servicio determinados.',
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
@@ -45,8 +41,7 @@ export const herramientasCita: FunctionDeclarationsTool[] = [
       },
       {
         name: 'agendar_cita',
-        description:
-          'Agenda una cita para un cliente indicando fecha, hora, nombre y telefono.',
+        description: 'Agenda una cita para un cliente indicando fecha, hora, nombre y telefono.',
         parameters: {
           type: SchemaType.OBJECT,
           properties: {

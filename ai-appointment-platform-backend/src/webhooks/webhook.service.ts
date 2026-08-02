@@ -156,10 +156,7 @@ export class WebhookService {
                 }
               }
 
-              const ejecutarHerramienta = async (
-                nombre: string,
-                args: Record<string, unknown>,
-              ) => {
+              const ejecutarHerramienta = async (nombre: string, args: Record<string, unknown>) => {
                 if (nombre === 'consultar_disponibilidad') {
                   const fecha = String(args.fecha ?? '');
                   const servicioId =

@@ -118,7 +118,7 @@ export class ChatService {
     negocioId: number;
   }): Promise<MensajeChat> {
     const mensaje = await this.chatRepository.createMensaje(data);
-    
+
     try {
       this.eventsService.emitNuevoMensaje(data.negocioId, {
         remoteJid: data.remoteJid,
