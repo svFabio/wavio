@@ -33,7 +33,6 @@ export const AdminWhatsapp = (): React.JSX.Element => {
         waWabaId: creds.wabaId,
         geminiApiKey: creds.geminiApiKey,
       });
-      // @ts-expect-error loosely typed
       if (res && res.error) throw new Error(res.error);
       return res;
     },
