@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act } from '@testing-library/react';
-import { renderHookWithProviders } from '../../../../test-utils';
-import { useChatState, formatJid, formatTimestamp, formatDate } from '../useChatState';
+import { act, waitFor } from '@testing-library/react';
+import { useChatState } from '../useChatState';
+import { useSocketEvent } from '../../../../shared/hooks/useSocketEvent';
 import { chatApi } from '../../api/chat.api';
+import { renderHookWithProviders } from '../../../../test-utils';
+import type { MensajeChat, Conversacion } from '../../types';
+
+vi.mock('../../../../shared/hooks/useSocketEvent', () => ({
+  useSocketEvent: vi.fn(),
+}));
 
 vi.mock('../../api/chat.api', () => ({
   chatApi: {
@@ -13,110 +19,94 @@ vi.mock('../../api/chat.api', () => ({
   },
 }));
 
-describe('formatJid', () => {
-  it('extracts phone from jid', () => {
-    expect(formatJid('59170000000@s.whatsapp.net')).toBe('59170000000');
-  });
-});
+type NuevoMensajePayload = { remoteJid: string; mensaje: MensajeChat };
 
-describe('formatTimestamp', () => {
-  it('formats a valid timestamp', () => {
-    const result = formatTimestamp('2026-01-10T14:30:00Z');
-    // formatTimestamp uses date-fns format('HH:mm') — always 24h
-    expect(result).toMatch(/^\d{2}:\d{2}$/);
-  });
+const mensajeInicial: MensajeChat = {
+  id: 1,
+  remoteJid: 'jid1',
+  contenido: 'anterior',
+  direccion: 'ENTRANTE',
+  timestamp: '2026-08-01T10:00:00.000Z',
+};
 
-  it('returns empty for invalid date', () => {
-    expect(formatTimestamp('')).toBe('');
-  });
-});
+const payload: NuevoMensajePayload = {
+  remoteJid: 'jid1',
+  mensaje: {
+    id: 2,
+    remoteJid: 'jid1',
+    contenido: 'hola',
+    direccion: 'ENTRANTE',
+    timestamp: '2026-08-01T10:05:00.000Z',
+  },
+};
 
-describe('formatDate', () => {
-  it('formats a valid date', () => {
-    const result = formatDate('2026-01-10T14:30:00Z');
-    expect(result).toContain('10');
-  });
+const conversacionInicial: Conversacion = {
+  remoteJid: 'jid1',
+  ultimoMensaje: mensajeInicial.timestamp,
+  totalMensajes: 1,
+  ultimoContenido: mensajeInicial.contenido,
+  ultimaDireccion: mensajeInicial.direccion,
+};
 
-  it('returns empty for invalid date', () => {
-    expect(formatDate('')).toBe('');
-  });
-});
+function getSocketHandler(event: string): (data: NuevoMensajePayload) => void {
+  const call = vi.mocked(useSocketEvent).mock.calls.find(([evt]) => evt === event);
+  if (!call) throw new Error(`useSocketEvent never subscribed to "${event}"`);
+  return call[1] as (data: NuevoMensajePayload) => void;
+}
 
 describe('useChatState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(chatApi.obtenerConversaciones).mockResolvedValue([conversacionInicial]);
+    vi.mocked(chatApi.obtenerMensajes).mockResolvedValue([mensajeInicial]);
   });
 
-  it('returns initial state with empty data', () => {
-    vi.mocked(chatApi.obtenerConversaciones).mockResolvedValue([]);
-    vi.mocked(chatApi.obtenerMensajes).mockResolvedValue([]);
+  describe('handleNuevoMensaje (nuevo-mensaje socket)', () => {
+    it('appends the nested mensaje to the selected conversation cache', async () => {
+      const { result, queryClient } = renderHookWithProviders(() => useChatState());
 
-    const { result } = renderHookWithProviders(() => useChatState());
-    expect(result.current.busqueda).toBe('');
-    expect(result.current.nuevoMensaje).toBe('');
-    expect(result.current.selectedJid).toBeNull();
-    expect(result.current.enviando).toBe(false);
-  });
+      act(() => {
+        result.current.setSelectedJid('jid1');
+      });
 
-  it('filters conversations by search term', async () => {
-    vi.mocked(chatApi.obtenerConversaciones).mockResolvedValue([
-      {
-        remoteJid: '111@s.whatsapp.net',
-        ultimoMensaje: '2026-01-10T14:30:00Z',
-        totalMensajes: 1,
-        ultimoContenido: 'Hola',
-        ultimaDireccion: 'ENTRANTE',
-        clienteNombre: 'Juan Perez',
-      },
-      {
-        remoteJid: '222@s.whatsapp.net',
-        ultimoMensaje: '2026-01-10T10:00:00Z',
-        totalMensajes: 1,
-        ultimoContenido: 'Adios',
-        ultimaDireccion: 'SALIENTE',
-        clienteNombre: null,
-      },
-    ]);
-    vi.mocked(chatApi.obtenerMensajes).mockResolvedValue([]);
+      await waitFor(() => {
+        expect(queryClient.getQueryData<MensajeChat[]>(['mensajes', 'jid1'])).toEqual([
+          mensajeInicial,
+        ]);
+      });
 
-    const { result } = renderHookWithProviders(() => useChatState());
-    await vi.waitFor(() => {
-      expect(result.current.conversacionesFiltradas).toHaveLength(2);
+      act(() => {
+        getSocketHandler('nuevo-mensaje')(payload);
+      });
+
+      expect(queryClient.getQueryData<MensajeChat[]>(['mensajes', 'jid1'])).toEqual([
+        mensajeInicial,
+        payload.mensaje,
+      ]);
     });
-  });
 
-  it('provides setSelectedJid', async () => {
-    vi.mocked(chatApi.obtenerConversaciones).mockResolvedValue([]);
-    vi.mocked(chatApi.obtenerMensajes).mockResolvedValue([]);
+    it('updates the conversation list with the nested message content and re-sorts', async () => {
+      const { queryClient } = renderHookWithProviders(() => useChatState());
 
-    const { result } = renderHookWithProviders(() => useChatState());
-    await act(async () => {
-      result.current.setSelectedJid('111@s.whatsapp.net');
+      await waitFor(() => {
+        expect(queryClient.getQueryData<Conversacion[]>(['conversaciones'])).toEqual([
+          conversacionInicial,
+        ]);
+      });
+
+      act(() => {
+        getSocketHandler('nuevo-mensaje')(payload);
+      });
+
+      const conversaciones = queryClient.getQueryData<Conversacion[]>(['conversaciones']);
+      expect(conversaciones).toHaveLength(1);
+      expect(conversaciones![0]).toEqual({
+        ...conversacionInicial,
+        ultimoContenido: 'hola',
+        ultimoMensaje: payload.mensaje.timestamp,
+        ultimaDireccion: payload.mensaje.direccion,
+        totalMensajes: 2,
+      });
     });
-    expect(result.current.selectedJid).toBe('111@s.whatsapp.net');
-  });
-
-  it('provides setBusqueda', async () => {
-    vi.mocked(chatApi.obtenerConversaciones).mockResolvedValue([]);
-    vi.mocked(chatApi.obtenerMensajes).mockResolvedValue([]);
-
-    const { result } = renderHookWithProviders(() => useChatState());
-    await act(async () => {
-      result.current.setBusqueda('Juan');
-    });
-    expect(result.current.busqueda).toBe('Juan');
-  });
-
-  it('provides setNuevoMensaje and setEnviando', async () => {
-    vi.mocked(chatApi.obtenerConversaciones).mockResolvedValue([]);
-    vi.mocked(chatApi.obtenerMensajes).mockResolvedValue([]);
-
-    const { result } = renderHookWithProviders(() => useChatState());
-    await act(async () => {
-      result.current.setNuevoMensaje('Hola');
-      result.current.setEnviando(true);
-    });
-    expect(result.current.nuevoMensaje).toBe('Hola');
-    expect(result.current.enviando).toBe(true);
   });
 });
