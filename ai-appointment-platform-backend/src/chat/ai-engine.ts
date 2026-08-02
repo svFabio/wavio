@@ -8,6 +8,15 @@ const logger = createLogger('ai-engine');
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
+function getModel(apiKey?: string) {
+  if (apiKey && apiKey.trim()) {
+    return new GoogleGenerativeAI(apiKey.trim()).getGenerativeModel({
+      model: 'gemini-2.5-flash',
+    });
+  }
+  return model;
+}
+
 const ResultadoIASchema = z.object({
   intencion: z.enum(['AGENDAR', 'CONSULTAR', 'CANCELAR', 'ACLARAR', 'OTRO']),
   entidades: z.object({
@@ -91,6 +100,7 @@ export const procesarMensajeConIA = async (
   serviciosDisponibles?: string[],
   slotsDisponibles?: string[],
   chatFlow?: ChatFlowStep[],
+  apiKey?: string,
 ): Promise<ResultadoIA> => {
   if (!mensaje || mensaje.length > 1000) {
     return {
@@ -110,7 +120,7 @@ export const procesarMensajeConIA = async (
       chatFlow,
     );
 
-    const result = await model.generateContent(prompt);
+    const result = await getModel(apiKey).generateContent(prompt);
     const response = result.response;
     const texto = response.text();
 
@@ -273,16 +283,16 @@ Responde SOLO con el texto del mensaje, sin comillas ni formato adicional.
 export const detectarIntencionSimple = (mensaje: string): ResultadoIA['intencion'] => {
   const textoLower = mensaje.toLowerCase();
 
+  if (/cancelar|anular|borrar|eliminar/.test(textoLower)) {
+    return 'CANCELAR';
+  }
+
   if (
     /hola|buenos|buenas|quiero|necesito|me gustaria|quisiera|agendar|cita|reserva|turno/.test(
       textoLower,
     )
   ) {
     return 'AGENDAR';
-  }
-
-  if (/cancelar|anular|borrar|eliminar/.test(textoLower)) {
-    return 'CANCELAR';
   }
 
   if (/cuando|horario|disponible|libre|consultar/.test(textoLower)) {

@@ -430,6 +430,7 @@ describe('WebhookService', () => {
         ['Corte de cabello ($250)'],
         [],
         [],
+        undefined,
       );
       expect(mockChatService.upsertSession).toHaveBeenCalled();
       expect(mockEnviarMensaje).toHaveBeenCalledWith(
@@ -500,6 +501,7 @@ describe('WebhookService', () => {
         expect.any(Array),
         ['09:00'],
         [],
+        undefined,
       );
     });
 

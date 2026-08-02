@@ -162,6 +162,7 @@ export class WebhookService {
                 serviciosDisponibles,
                 slotsDisponibles,
                 chatFlow,
+                negocio.geminiApiKey ?? undefined,
               );
 
               await this.chatService.upsertSession(sessionJid, negocio.id, {
