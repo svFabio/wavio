@@ -30,6 +30,7 @@ const envSchema = z.object({
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_EMAIL: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  LOG_FILE: z.string().optional(),
 });
 
 const _env = envSchema.safeParse(process.env);

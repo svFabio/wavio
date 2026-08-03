@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { WebhookService } from './webhook.service';
+import { WebhookService, parsearFechaRelativa, formatearFechaEnZona } from './webhook.service';
 import type { Negocio, Servicio, Configuracion } from '../domain/types';
 
 const { mockEnviarMensaje, mockEnviarImagen, mockProcesarMensajeConIA } = vi.hoisted(() => ({
@@ -581,6 +581,38 @@ describe('WebhookService', () => {
 
       expect(mockChatService.createMensaje).toHaveBeenCalledTimes(2);
     });
+
+    it('should persist extracted entities and final state after handleAIResponse', async () => {
+      mockProcesarMensajeConIA.mockResolvedValue({
+        intencion: 'AGENDAR',
+        entidades: { fecha: 'mañana' },
+      });
+      mockCitasService.getSlotDisponibles.mockResolvedValue([
+        { inicio: '09:00', fin: '10:00', staffId: null },
+      ]);
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.memory',
+            type: 'text',
+            text: { body: 'Quiero cita para mañana' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockCitasService.getSlotDisponibles).toHaveBeenCalledWith(
+        expect.objectContaining({ fecha: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }),
+      );
+
+      expect(mockChatService.upsertSession).toHaveBeenCalledTimes(1);
+      const upsertArgs = mockChatService.upsertSession.mock.calls[0];
+      expect(upsertArgs[2].estado).toBe('ESPERANDO_HORA');
+      expect(upsertArgs[2].datos.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
   });
 
   describe('processWhatsAppPayload — agendar flow', () => {
@@ -721,6 +753,25 @@ describe('WebhookService', () => {
       await service.processWhatsAppPayload(body);
 
       expect(mockChatService.updateEstadoEntrega).toHaveBeenCalledWith('wamid.abc', 'read');
+    });
+  });
+
+  describe('parsearFechaRelativa / formatearFechaEnZona', () => {
+    it('should parse relative Spanish dates', () => {
+      expect(parsearFechaRelativa('mañana', 'America/La_Paz')).not.toBeNull();
+    });
+
+    it('should normalize "manana" without tilde', () => {
+      expect(parsearFechaRelativa('manana', 'America/La_Paz')).not.toBeNull();
+    });
+
+    it('should return null for unparseable text', () => {
+      expect(parsearFechaRelativa('blah blah', 'America/La_Paz')).toBeNull();
+    });
+
+    it('should format dates to YYYY-MM-DD in the business timezone', () => {
+      const fecha = new Date('2026-08-01T16:00:00.000Z');
+      expect(formatearFechaEnZona(fecha, 'America/La_Paz')).toBe('2026-08-01');
     });
   });
 
