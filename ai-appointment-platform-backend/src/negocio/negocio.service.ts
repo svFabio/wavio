@@ -73,6 +73,18 @@ export class NegocioService {
     return negocio;
   }
 
+  async disconnectWhatsApp(
+    negocioId: number,
+  ): Promise<Omit<Negocio, 'waAccessToken' | 'geminiApiKey'>> {
+    return this.negocioRepository.update(negocioId, {
+      isWaConnected: false,
+      waAccessToken: null,
+      waPhoneNumberId: null,
+      waWabaId: null,
+      waAppId: null,
+    });
+  }
+
   async getActiveBusinessIds(): Promise<number[]> {
     return this.negocioRepository.getActiveBusinessIds();
   }
