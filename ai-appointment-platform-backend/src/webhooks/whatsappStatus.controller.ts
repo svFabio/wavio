@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
@@ -10,7 +10,15 @@ export class WhatsAppStatusController {
   constructor(private readonly negocioService: NegocioService) {}
 
   @Get('status')
-  async getStatus(@TenantId() negocioId: number) {
+  async getStatus(
+    @TenantId() negocioId: number,
+  ): Promise<{ connected: boolean; phone: string | undefined }> {
     return this.negocioService.getWaStatus(negocioId);
+  }
+
+  @Post('disconnect')
+  async disconnect(@TenantId() negocioId: number): Promise<{ success: boolean }> {
+    await this.negocioService.disconnectWhatsApp(negocioId);
+    return { success: true };
   }
 }

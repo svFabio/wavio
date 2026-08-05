@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { es as chronoEs } from 'chrono-node';
 import { ChatService } from '../chat/chat.service';
 import { NegocioService } from '../negocio/negocio.service';
 import { ServiciosService } from '../servicios/servicios.service';
@@ -10,6 +11,27 @@ import { createLogger } from '../lib/logger';
 import type Stripe from 'stripe';
 
 const logger = createLogger('webhook-service');
+
+export function parsearFechaRelativa(texto: string, timezone = 'America/La_Paz'): Date | null {
+  if (!texto || typeof texto !== 'string') return null;
+  const normalizado = texto.trim().replace(/\bmanana\b/g, 'mañana');
+  try {
+    return chronoEs.casual.parseDate(normalizado, { instant: new Date(), timezone });
+  } catch {
+    return null;
+  }
+}
+
+export function formatearFechaEnZona(fecha: Date, timezone = 'America/La_Paz'): string {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(fecha);
+  const getParte = (tipo: string): string => partes.find((p) => p.type === tipo)?.value ?? '';
+  return `${getParte('year')}-${getParte('month')}-${getParte('day')}`;
+}
 
 interface NegocioCache {
   servicios: Servicio[];
@@ -78,14 +100,25 @@ export class WebhookService {
                 continue;
               }
 
-              await this.chatService.createMensaje({
-                remoteJid: from,
-                contenido: textBody,
-                direccion: 'ENTRANTE',
-                waMessageId,
-                estadoEntrega: 'entregado',
-                negocioId: negocio.id,
-              });
+              try {
+                await this.chatService.createMensaje({
+                  remoteJid: from,
+                  contenido: textBody,
+                  direccion: 'ENTRANTE',
+                  waMessageId,
+                  estadoEntrega: 'entregado',
+                  negocioId: negocio.id,
+                });
+              } catch (error) {
+                if ((error as { code?: string }).code === 'P2002') {
+                  logger.warn(
+                    { waMessageId },
+                    '[Webhook] Mensaje duplicado (waMessageId ya procesado), omitiendo',
+                  );
+                  continue;
+                }
+                throw error;
+              }
 
               logger.info({ negocio: negocio.nombre, from }, '[Webhook] Mensaje recibido');
 
@@ -140,16 +173,18 @@ export class WebhookService {
                 try {
                   const servicioId = cached.servicios[0]?.id;
                   if (servicioId) {
-                    const fechaStr =
-                      contexto.datos.fecha instanceof Date
-                        ? contexto.datos.fecha.toISOString().split('T')[0]
-                        : String(contexto.datos.fecha);
-                    const slots = await this.citasService.getSlotDisponibles({
-                      negocioId: negocio.id,
-                      servicioId,
-                      fecha: fechaStr,
-                    });
-                    slotsDisponibles = slots.map((s) => s.inicio);
+                    const fechaStr = this.normalizarFecha(
+                      contexto.datos.fecha,
+                      cached.config.timezone || 'America/La_Paz',
+                    );
+                    if (fechaStr) {
+                      const slots = await this.citasService.getSlotDisponibles({
+                        negocioId: negocio.id,
+                        servicioId,
+                        fecha: fechaStr,
+                      });
+                      slotsDisponibles = slots.map((s) => s.inicio);
+                    }
                   }
                 } catch (e) {
                   logger.warn({ err: e }, 'Error obteniendo slots para contexto de IA');
@@ -200,12 +235,40 @@ export class WebhookService {
                 ejecutarHerramienta,
               );
 
-              await this.chatService.upsertSession(sessionJid, negocio.id, {
-                estado: contexto.estado,
-                datos: contexto.datos,
-              });
+              const timezone = cached.config.timezone || 'America/La_Paz';
+              const entidades = resultadoIA.entidades;
+              if (entidades?.fecha) {
+                const fechaParsed = parsearFechaRelativa(entidades.fecha, timezone);
+                if (fechaParsed) {
+                  contexto.datos.fecha = fechaParsed;
+                }
+              }
+              if (entidades?.hora) {
+                contexto.datos.horario = entidades.hora;
+              }
+              if (entidades?.nombre) {
+                contexto.datos.nombre = entidades.nombre;
+              }
 
-              await this.handleAIResponse(negocio, from, resultadoIA, contexto, cached);
+              if (
+                (contexto.estado === 'INICIO' || contexto.estado === 'ESPERANDO_FECHA') &&
+                resultadoIA.intencion === 'AGENDAR'
+              ) {
+                contexto.estado = contexto.datos.fecha ? 'CONFIRMANDO_FECHA' : 'ESPERANDO_FECHA';
+              }
+
+              try {
+                await this.handleAIResponse(negocio, from, resultadoIA, contexto, cached);
+              } finally {
+                const datosPersistir: Record<string, unknown> = { ...contexto.datos };
+                if (datosPersistir.fecha instanceof Date) {
+                  datosPersistir.fecha = formatearFechaEnZona(datosPersistir.fecha, timezone);
+                }
+                await this.chatService.upsertSession(sessionJid, negocio.id, {
+                  estado: contexto.estado,
+                  datos: datosPersistir,
+                });
+              }
             } catch (msgErr) {
               logger.error(
                 { err: msgErr, message },
@@ -300,13 +363,10 @@ export class WebhookService {
     };
 
     if (resultadoIA.intencion === 'AGENDAR' && contexto.estado === 'CONFIRMANDO_FECHA') {
-      const fechaRaw = contexto.datos.fecha;
-      const fechaStr =
-        fechaRaw instanceof Date
-          ? fechaRaw.toISOString().split('T')[0]
-          : fechaRaw
-            ? String(fechaRaw)
-            : undefined;
+      const fechaStr = this.normalizarFecha(
+        contexto.datos.fecha,
+        cached.config.timezone || 'America/La_Paz',
+      );
       const horario = contexto.datos.horario;
       const nombre = contexto.datos.nombre;
 
@@ -421,5 +481,22 @@ export class WebhookService {
     } else {
       await enviarMensaje(waCreds, from, 'He recibido tu mensaje.');
     }
+  }
+
+  private normalizarFecha(fecha: unknown, timezone: string): string | undefined {
+    if (fecha instanceof Date) {
+      return formatearFechaEnZona(fecha, timezone);
+    }
+    if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha.trim())) {
+      return fecha.trim();
+    }
+    if (typeof fecha === 'string' && fecha.trim()) {
+      const parsed = parsearFechaRelativa(fecha, timezone);
+      if (parsed) {
+        return formatearFechaEnZona(parsed, timezone);
+      }
+      return fecha;
+    }
+    return undefined;
   }
 }
