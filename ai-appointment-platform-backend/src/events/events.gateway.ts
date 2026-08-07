@@ -43,16 +43,21 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const decoded = verifyJwt(token);
-      if (decoded.negocioId !== negocioId) {
+      const memberships = decoded.negocios ?? [];
+      if (!memberships.some((n) => n.negocioId === negocioId)) {
         logger.warn({ socketId: client.id, negocioId }, 'Cliente intento unirse a otro negocio');
         client.disconnect();
         return;
       }
       client.data.userId = decoded.id;
-      client.data.negocioId = decoded.negocioId;
-      client.join(`negocio:${decoded.negocioId}`);
-      logger.info({ socketId: client.id, negocioId: decoded.negocioId }, 'Cliente conectado');
-    } catch {
+      client.data.negocioId = negocioId;
+      client.join(`negocio:${negocioId}`);
+      logger.info({ socketId: client.id, negocioId }, 'Cliente conectado');
+    } catch (error) {
+      logger.warn(
+        { socketId: client.id, error: error instanceof Error ? error.message : 'unknown' },
+        'Cliente rechazado por token inválido',
+      );
       client.disconnect();
     }
   }

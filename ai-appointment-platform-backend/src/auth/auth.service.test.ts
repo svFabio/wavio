@@ -129,6 +129,77 @@ describe('AuthService', () => {
       );
     });
 
+    it('should sign JWT with the memberships of every negocio', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload(),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+      mockAuthRepository.createNegocioWithAdmin.mockResolvedValue({
+        id: 10,
+        googleId: 'google_123',
+        email: 'test@example.com',
+        nombre: 'Mi Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue({
+        id: 1,
+        nombre: 'Test User',
+        email: 'test@example.com',
+        googleId: 'google_123',
+        rol: 'OWNER',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 10,
+          googleId: 'google_123',
+          email: 'test@example.com',
+          nombre: 'Test Negocio',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'OWNER',
+        },
+        {
+          id: 20,
+          googleId: 'google_456',
+          email: 'other@example.com',
+          nombre: 'Otro Negocio',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'ADMIN',
+        },
+      ]);
+
+      await service.loginConGoogle(validGoogleToken);
+
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        {
+          id: 1,
+          email: 'test@example.com',
+          negocios: [
+            { negocioId: 10, rol: 'OWNER' },
+            { negocioId: 20, rol: 'ADMIN' },
+          ],
+        },
+        expect.any(String),
+        expect.objectContaining({ expiresIn: '7d' }),
+      );
+    });
+
     it('should upsert OWNER membership when existing user joins an existing negocio', async () => {
       mockVerifyIdToken.mockResolvedValue({
         getPayload: () => makePayload(),
@@ -173,6 +244,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'OWNER',
         },
       ]);
 
@@ -220,6 +292,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'OWNER',
         },
       ]);
 
@@ -281,6 +354,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'OWNER',
         },
       ]);
 
@@ -337,6 +411,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'ADMIN',
         },
       ]);
 
@@ -393,35 +468,82 @@ describe('AuthService', () => {
   /* ─── obtenerUsuarioActual ───────────────────────────────────────── */
 
   describe('obtenerUsuarioActual', () => {
-    it('should return usuario and negocios', async () => {
-      mockAuthRepository.findUsuarioById.mockResolvedValue({
+    const usuarioMock = {
+      id: 1,
+      nombre: 'User',
+      email: 'u@t.com',
+      googleId: null,
+      rol: 'OWNER',
+      creadoEn: new Date(),
+      fotoPerfil: null,
+    };
+
+    const negociosMock = [
+      {
         id: 1,
-        nombre: 'User',
-        email: 'u@t.com',
-        googleId: null,
-        rol: 'ADMIN',
+        googleId: 'g1',
+        email: 'n1@n.com',
+        nombre: 'N1',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
         creadoEn: new Date(),
-        fotoPerfil: null,
-      });
-      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
-        {
-          id: 1,
-          googleId: 'g1',
-          email: 'n@n.com',
-          nombre: 'N',
-          plan: 'FREE',
-          waPhoneNumberId: null,
-          waWabaId: null,
-          waAppId: null,
-          isWaConnected: false,
-          creadoEn: new Date(),
-        },
-      ]);
+        rol: 'ADMIN',
+      },
+      {
+        id: 2,
+        googleId: 'g2',
+        email: 'n2@n.com',
+        nombre: 'N2',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+        rol: 'STAFF',
+      },
+    ];
+
+    it('should return usuario and negocios', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
 
       const result = await service.obtenerUsuarioActual(1);
 
       expect(result.usuario.email).toBe('u@t.com');
-      expect(result.negocios).toHaveLength(1);
+      expect(result.negocios).toHaveLength(2);
+      expect(result.negocios[0].rol).toBe('ADMIN');
+      expect(result.negocios[1].rol).toBe('STAFF');
+    });
+
+    it('should set usuario.rol to the membership rol of the active negocio when header matches', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
+
+      const result = await service.obtenerUsuarioActual(1, '2');
+
+      expect(result.usuario.rol).toBe('STAFF');
+    });
+
+    it('should use the first membership when no header is provided', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
+
+      const result = await service.obtenerUsuarioActual(1);
+
+      expect(result.usuario.rol).toBe('ADMIN');
+    });
+
+    it('should use the first membership when the header negocio is not in the list', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
+
+      const result = await service.obtenerUsuarioActual(1, '999');
+
+      expect(result.usuario.rol).toBe('ADMIN');
     });
 
     it('should throw NotFoundError when usuario not found', async () => {

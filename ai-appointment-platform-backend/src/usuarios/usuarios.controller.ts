@@ -19,7 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import type { JwtPayload } from '../common/utils/jwt';
+import type { TenantUser } from '../common/guards/tenant.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { createUserSchema, updateUserSchema } from './dto/usuarios.dto';
 
@@ -47,7 +47,7 @@ export class UsuariosController {
   async create(
     @TenantId() negocioId: number,
     @Body() body: { nombre: string; email: string; password: string; rol?: string },
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: TenantUser,
   ): Promise<CreateUsuarioResult> {
     return this.usuariosService.createUser(negocioId, body, user.rol);
   }
@@ -58,7 +58,7 @@ export class UsuariosController {
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { nombre?: string; email?: string; rol?: string },
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: TenantUser,
   ): Promise<UpdateUsuarioResult> {
     return this.usuariosService.updateUser(negocioId, id, body, user.rol);
   }
@@ -67,7 +67,7 @@ export class UsuariosController {
   async delete(
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: TenantUser,
   ): Promise<void> {
     return this.usuariosService.deleteUser(negocioId, id, user.id, user.rol);
   }

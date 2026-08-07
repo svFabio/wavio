@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEGOCIO_SAFE_SELECT } from '../negocio/negocio-select';
 
-type NegocioSafe = {
+type NegocioBase = {
   id: number;
   googleId: string;
   email: string;
@@ -14,6 +14,8 @@ type NegocioSafe = {
   isWaConnected: boolean;
   creadoEn: Date;
 };
+
+type NegocioSafe = NegocioBase & { rol: string };
 
 type UsuarioSafe = {
   id: number;
@@ -39,7 +41,7 @@ const USUARIO_SAFE_SELECT = {
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findNegocioByGoogleId(googleId: string): Promise<NegocioSafe | null> {
+  async findNegocioByGoogleId(googleId: string): Promise<NegocioBase | null> {
     return this.prisma.negocio.findUnique({
       where: { googleId },
       select: NEGOCIO_SAFE_SELECT,
@@ -51,7 +53,7 @@ export class AuthRepository {
     email: string,
     nombre: string,
     hashedPassword?: string,
-  ): Promise<NegocioSafe> {
+  ): Promise<NegocioBase> {
     const [negocio, usuario] = await this.prisma.$transaction([
       this.prisma.negocio.create({
         data: { googleId, email, nombre },
@@ -115,9 +117,9 @@ export class AuthRepository {
   async findNegociosByUsuarioId(usuarioId: number): Promise<NegocioSafe[]> {
     const memberships = await this.prisma.usuarioNegocio.findMany({
       where: { usuarioId },
-      select: { negocio: { select: NEGOCIO_SAFE_SELECT } },
+      select: { rol: true, negocio: { select: NEGOCIO_SAFE_SELECT } },
     });
-    return memberships.map((m) => m.negocio);
+    return memberships.map((m) => ({ ...m.negocio, rol: m.rol }));
   }
 
   async findFirstByGoogleId(googleId: string): Promise<{ id: number } | null> {

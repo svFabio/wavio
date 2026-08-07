@@ -2,15 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { env } from '../../config/env';
+import type { JwtPayload } from '../../common/utils/jwt';
 
-interface JwtTokenPayload {
-  id: number;
-  email: string;
-  negocioId: number;
-  rol: string;
-  iat: number;
-  exp: number;
-}
+type JwtTokenPayload = JwtPayload & { iat: number; exp: number };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -22,21 +16,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtTokenPayload): {
-    id: number;
-    email: string;
-    negocioId: number;
-    rol: string;
-  } {
-    if (!payload.id || !payload.email || !payload.rol) {
+  validate(payload: JwtTokenPayload): JwtPayload {
+    if (
+      !payload.id ||
+      !payload.email ||
+      !Array.isArray(payload.negocios) ||
+      payload.negocios.length === 0
+    ) {
       throw new UnauthorizedException('Token inválido');
     }
 
     return {
       id: payload.id,
       email: payload.email,
-      negocioId: payload.negocioId,
-      rol: payload.rol,
+      negocios: payload.negocios,
     };
   }
 }

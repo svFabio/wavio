@@ -19,6 +19,7 @@ type NegocioSafe = {
   waAppId: string | null;
   isWaConnected: boolean;
   creadoEn: Date;
+  rol: string;
 };
 
 type UsuarioSafe = {
@@ -38,12 +39,13 @@ export class AuthService {
     this.googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
   }
 
-  private signToken(user: { id: number; email: string; negocioId: number; rol: string }): string {
-    return jwt.sign(
-      { id: user.id, email: user.email, negocioId: user.negocioId, rol: user.rol },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN },
-    );
+  private signToken(
+    user: { id: number; email: string },
+    negocios: Array<{ negocioId: number; rol: string }>,
+  ): string {
+    return jwt.sign({ id: user.id, email: user.email, negocios }, env.JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
   }
 
   async loginConGoogle(googleToken: string): Promise<{
@@ -101,12 +103,8 @@ export class AuthService {
 
     const negocios = await this.authRepository.findNegociosByUsuarioId(usuario.id);
 
-    const token = this.signToken({
-      id: usuario.id,
-      email: usuario.email,
-      negocioId: negocios[0]?.id ?? negocio.id,
-      rol: usuario.rol,
-    });
+    const memberships = negocios.map((n) => ({ negocioId: n.id, rol: n.rol }));
+    const token = this.signToken({ id: usuario.id, email: usuario.email }, memberships);
 
     return { token, usuario, negocios, esNuevo };
   }
@@ -140,14 +138,10 @@ export class AuthService {
       throw new NotFoundError('Usuario recién creado');
     }
 
-    const token = this.signToken({
-      id: usuario.id,
-      email: usuario.email,
-      negocioId: negocio.id,
-      rol: usuario.rol,
-    });
-
     const negocios = await this.authRepository.findNegociosByUsuarioId(usuario.id);
+
+    const memberships = negocios.map((n) => ({ negocioId: n.id, rol: n.rol }));
+    const token = this.signToken({ id: usuario.id, email: usuario.email }, memberships);
 
     return { token, usuario, negocios, esNuevo: true };
   }
@@ -176,12 +170,8 @@ export class AuthService {
       throw new NotFoundError('Negocio');
     }
 
-    const token = this.signToken({
-      id: usuario.id,
-      email: usuario.email,
-      negocioId: negocios[0].id,
-      rol: usuario.rol,
-    });
+    const memberships = negocios.map((n) => ({ negocioId: n.id, rol: n.rol }));
+    const token = this.signToken({ id: usuario.id, email: usuario.email }, memberships);
 
     return {
       token,
@@ -199,6 +189,7 @@ export class AuthService {
 
   async obtenerUsuarioActual(
     userId: number,
+    negocioIdHeader?: string,
   ): Promise<{ usuario: UsuarioSafe; negocios: NegocioSafe[] }> {
     const usuario = await this.authRepository.findUsuarioById(userId);
     if (!usuario) {
@@ -210,7 +201,16 @@ export class AuthService {
       throw new NotFoundError('Negocio');
     }
 
+    const activo = this.resolveActiveNegocio(negocios, negocioIdHeader);
+    usuario.rol = activo.rol;
+
     return { usuario, negocios };
+  }
+
+  private resolveActiveNegocio(negocios: NegocioSafe[], negocioIdHeader?: string): NegocioSafe {
+    const parsed = negocioIdHeader ? Number(negocioIdHeader) : NaN;
+    const match = negocios.find((n) => n.id === parsed);
+    return match ?? negocios[0];
   }
 
   async updateAvatar(

@@ -153,10 +153,13 @@ describe('AuthRepository', () => {
   });
 
   describe('findNegociosByUsuarioId', () => {
-    it('should return negocios for usuario', async () => {
+    it('should return negocios with membership rol for usuario', async () => {
       const negocio1 = buildNegocio();
       const negocio2 = buildNegocio();
-      const memberships = [{ negocio: negocio1 }, { negocio: negocio2 }];
+      const memberships = [
+        { rol: 'ADMIN', negocio: negocio1 },
+        { rol: 'STAFF', negocio: negocio2 },
+      ];
 
       prisma.usuarioNegocio.findMany.mockResolvedValue(memberships);
 
@@ -164,9 +167,12 @@ describe('AuthRepository', () => {
 
       expect(prisma.usuarioNegocio.findMany).toHaveBeenCalledWith({
         where: { usuarioId: 1 },
-        select: { negocio: { select: expect.any(Object) } },
+        select: { rol: true, negocio: { select: expect.any(Object) } },
       });
-      expect(result).toEqual([negocio1, negocio2]);
+      expect(result).toEqual([
+        { ...negocio1, rol: 'ADMIN' },
+        { ...negocio2, rol: 'STAFF' },
+      ]);
     });
 
     it('should return empty array when no memberships', async () => {

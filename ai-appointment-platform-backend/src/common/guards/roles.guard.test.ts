@@ -6,6 +6,13 @@ describe('RolesGuard', () => {
   let guard: RolesGuard;
   let mockReflector: { getAllAndOverride: ReturnType<typeof vi.fn> };
 
+  const makeUser = (rol: string) => ({
+    id: 1,
+    email: 'test@test.com',
+    negocios: [{ negocioId: 1, rol }],
+    rol,
+  });
+
   const createContext = (usuario: unknown) =>
     ({
       switchToHttp: () => ({ getRequest: () => ({ usuario }) }),
@@ -21,7 +28,7 @@ describe('RolesGuard', () => {
   it('should allow access when no roles are required', () => {
     mockReflector.getAllAndOverride.mockReturnValue(undefined);
 
-    const result = guard.canActivate(createContext({ rol: 'STAFF' }));
+    const result = guard.canActivate(createContext(makeUser('STAFF')));
 
     expect(result).toBe(true);
   });
@@ -29,14 +36,14 @@ describe('RolesGuard', () => {
   it('should allow access when roles list is empty', () => {
     mockReflector.getAllAndOverride.mockReturnValue([]);
 
-    const result = guard.canActivate(createContext({ rol: 'STAFF' }));
+    const result = guard.canActivate(createContext(makeUser('STAFF')));
 
     expect(result).toBe(true);
   });
 
   it('should allow access when user has matching role', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    const context = createContext({ rol: 'ADMIN' });
+    const context = createContext(makeUser('ADMIN'));
 
     const result = guard.canActivate(context);
 
@@ -45,7 +52,7 @@ describe('RolesGuard', () => {
 
   it('should allow OWNER access to routes requiring ADMIN', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    const context = createContext({ rol: 'OWNER' });
+    const context = createContext(makeUser('OWNER'));
 
     const result = guard.canActivate(context);
 
@@ -54,7 +61,7 @@ describe('RolesGuard', () => {
 
   it('should deny STAFF access to routes requiring ADMIN', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    const context = createContext({ rol: 'STAFF' });
+    const context = createContext(makeUser('STAFF'));
 
     const result = guard.canActivate(context);
 
@@ -63,7 +70,7 @@ describe('RolesGuard', () => {
 
   it('should deny access when user role does not match', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    const context = createContext({ rol: 'STAFF' });
+    const context = createContext(makeUser('STAFF'));
 
     const result = guard.canActivate(context);
 
@@ -72,7 +79,7 @@ describe('RolesGuard', () => {
 
   it('should deny access when user has no rol property', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    const context = createContext({ id: 1 });
+    const context = createContext({ id: 1, email: 'test@test.com', negocios: [] });
 
     const result = guard.canActivate(context);
 
@@ -90,7 +97,7 @@ describe('RolesGuard', () => {
 
   it('should look up roles from handler and class', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
-    const context = createContext({ rol: 'ADMIN' });
+    const context = createContext(makeUser('ADMIN'));
 
     guard.canActivate(context);
 

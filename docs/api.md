@@ -14,15 +14,56 @@ All endpoints except `/auth/login` and `/auth/google` require a JWT token in the
 Authorization: Bearer <token>
 ```
 
+Tenant-scoped endpoints also require the active business in the `x-negocio-id` header:
+
+```
+x-negocio-id: 42
+```
+
+### JWT payload
+
+The token is signed with the user's identity and the list of active memberships. The role is per business (`UsuarioNegocio.rol`), never a global claim:
+
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "negocios": [{ "negocioId": 42, "rol": "OWNER" }]
+}
+```
+
+The backend derives the effective role for a request from the `x-negocio-id` header: `TenantGuard` matches it against `negocios[]` and sets `usuario.rol` to that membership's role. There is no flat `rol`/`negocioId` claim.
+
 ## Endpoints
 
 ### Auth
 
-| Method | Endpoint        | Description               |
-| ------ | --------------- | ------------------------- |
-| POST   | `/auth/login`   | Login with email/password |
-| POST   | `/auth/google`  | Login with Google OAuth   |
-| GET    | `/auth/profile` | Get current user profile  |
+| Method | Endpoint          | Description                  |
+| ------ | ----------------- | ---------------------------- |
+| POST   | `/auth/login`     | Login with email/password    |
+| POST   | `/auth/register`  | Register with email/password |
+| POST   | `/auth/google`    | Login with Google OAuth      |
+| GET    | `/auth/me`        | Get current user profile     |
+| PUT    | `/auth/me/avatar` | Update avatar image          |
+| DELETE | `/auth/me/avatar` | Delete avatar image          |
+| PATCH  | `/auth/me/nombre` | Update display name          |
+
+`GET /auth/me` returns the user with the role of the **active membership** (resolved from `x-negocio-id`, falling back to the first membership) and every business the user belongs to with its per-membership role:
+
+```json
+{
+  "usuario": {
+    "id": 1,
+    "nombre": "User",
+    "email": "user@example.com",
+    "rol": "ADMIN"
+  },
+  "negocios": [
+    { "id": 42, "nombre": "Mi Negocio", "rol": "OWNER" },
+    { "id": 7, "nombre": "Otro Negocio", "rol": "ADMIN" }
+  ]
+}
+```
 
 ### Negocios
 

@@ -11,7 +11,11 @@ describe('JwtAuthGuard', () => {
 
   describe('handleRequest', () => {
     it('should return user when valid', () => {
-      const user = { id: 1, email: 'test@test.com', negocioId: 1, rol: 'ADMIN' };
+      const user = {
+        id: 1,
+        email: 'test@test.com',
+        negocios: [{ negocioId: 1, rol: 'ADMIN' }],
+      };
       const context = { switchToHttp: () => ({ getRequest: () => ({}) }) };
 
       const result = guard.handleRequest(null, user, null, context as never);
@@ -44,7 +48,11 @@ describe('JwtAuthGuard', () => {
 
     it('should set request.usuario when valid', () => {
       const req: Record<string, unknown> = {};
-      const user = { id: 1, email: 'test@test.com', negocioId: 1, rol: 'ADMIN' };
+      const user = {
+        id: 1,
+        email: 'test@test.com',
+        negocios: [{ negocioId: 1, rol: 'ADMIN' }],
+      };
       const context = { switchToHttp: () => ({ getRequest: () => req }) };
 
       guard.handleRequest(null, user, null, context as never);
