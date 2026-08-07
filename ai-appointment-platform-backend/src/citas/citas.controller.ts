@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Param,
   Body,
   Query,
@@ -22,10 +23,19 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   validarCitaSchema,
   crearCitaAdminSchema,
+  crearCitaRecurrenteSchema,
   reprogramarCitaSchema,
   actualizarDescripcionSchema,
   agendaQuerySchema,
   horariosQuerySchema,
+  serieIdQuerySchema,
+} from './dto/citas.dto';
+import type {
+  CrearCitaAdminDto,
+  CrearCitaRecurrenteDto,
+  ValidarCitaDto,
+  ReprogramarCitaDto,
+  ActualizarDescripcionDto,
 } from './dto/citas.dto';
 import type { Cita } from '../domain/types';
 
@@ -104,19 +114,39 @@ export class CitasController {
   @UsePipes(new ZodValidationPipe(crearCitaAdminSchema))
   async crearCitaAdmin(
     @TenantId() negocioId: number,
-    @Body()
-    body: {
-      clienteNombre: string;
-      clienteTelefono: string;
-      fecha: string;
-      horario: string;
-      monto?: number;
-      servicioId?: number;
-      staffId?: number;
-      duracionMinutos?: number;
-    },
+    @Body() body: CrearCitaAdminDto,
   ): Promise<Cita> {
     return this.citasService.crearCitaAdmin(negocioId, body);
+  }
+
+  @Post('/recurrentes')
+  @Roles('ADMIN')
+  @HttpCode(201)
+  @UsePipes(new ZodValidationPipe(crearCitaRecurrenteSchema))
+  async crearCitaRecurrente(
+    @TenantId() negocioId: number,
+    @Body() body: CrearCitaRecurrenteDto,
+  ): Promise<{ base: Cita; instancesCreated: number }> {
+    return this.citasService.crearCitaRecurrente(negocioId, body);
+  }
+
+  @Get('/series')
+  @Roles('ADMIN')
+  async getSeries(
+    @TenantId() negocioId: number,
+    @Query(new ZodValidationPipe(serieIdQuerySchema)) query: { serieId: string },
+  ): Promise<Cita[]> {
+    return this.citasService.getSeriesRecurrente(query.serieId, negocioId);
+  }
+
+  @Delete('/series/:serieId')
+  @Roles('ADMIN')
+  async cancelarSerie(
+    @TenantId() negocioId: number,
+    @Param('serieId') serieId: string,
+  ): Promise<{ canceladas: number }> {
+    const canceladas = await this.citasService.cancelarSerieRecurrente(serieId, negocioId);
+    return { canceladas };
   }
 
   @Post('/:id/validar')
@@ -125,7 +155,7 @@ export class CitasController {
   async validarCita(
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { accion: string },
+    @Body() body: ValidarCitaDto,
   ): Promise<Cita> {
     return this.citasService.validarCita(id, negocioId, body.accion);
   }
@@ -136,7 +166,7 @@ export class CitasController {
   async reprogramarCita(
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { fecha: string; horario: string },
+    @Body() body: ReprogramarCitaDto,
   ): Promise<Cita> {
     return this.citasService.reprogramarCita(id, negocioId, body.fecha, body.horario);
   }
@@ -165,7 +195,7 @@ export class CitasController {
   async actualizarDescripcion(
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { descripcion?: string },
+    @Body() body: ActualizarDescripcionDto,
   ): Promise<Cita> {
     return this.citasService.actualizarDescripcion(id, negocioId, body.descripcion ?? '');
   }

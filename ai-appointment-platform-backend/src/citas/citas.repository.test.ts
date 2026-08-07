@@ -359,10 +359,10 @@ describe('CitasRepository', () => {
       ];
       prisma.cita.findMany.mockResolvedValue(citas);
 
-      const result = await repo.findRecurringSeries('abc-123');
+      const result = await repo.findRecurringSeries('abc-123', 1);
 
       expect(prisma.cita.findMany).toHaveBeenCalledWith({
-        where: { recurrenceId: 'abc-123' },
+        where: { recurrenceId: 'abc-123', negocioId: 1 },
         orderBy: { fecha: 'asc' },
       });
       expect(result).toHaveLength(2);
@@ -372,7 +372,7 @@ describe('CitasRepository', () => {
     it('should return empty array when series not found', async () => {
       prisma.cita.findMany.mockResolvedValue([]);
 
-      const result = await repo.findRecurringSeries('nonexistent');
+      const result = await repo.findRecurringSeries('nonexistent', 1);
 
       expect(result).toHaveLength(0);
     });
@@ -420,12 +420,13 @@ describe('CitasRepository', () => {
     it('should cancel future non-canceled citas in series', async () => {
       prisma.cita.updateMany.mockResolvedValue({ count: 2 });
 
-      const result = await repo.cancelRecurringSeries('abc-123');
+      const result = await repo.cancelRecurringSeries('abc-123', 1);
 
       expect(prisma.cita.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             recurrenceId: 'abc-123',
+            negocioId: 1,
             estado: { notIn: ['CANCELADA'] },
           }),
           data: { estado: 'CANCELADA' },

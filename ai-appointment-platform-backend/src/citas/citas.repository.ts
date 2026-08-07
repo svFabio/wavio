@@ -157,9 +157,9 @@ export class CitasRepository {
     return Number(result._sum.monto ?? 0);
   }
 
-  async findRecurringSeries(recurrenceId: string): Promise<Cita[]> {
+  async findRecurringSeries(recurrenceId: string, negocioId: number): Promise<Cita[]> {
     const citas = await this.prisma.cita.findMany({
-      where: { recurrenceId },
+      where: { recurrenceId, negocioId },
       orderBy: { fecha: 'asc' },
     });
     return citas.map((c) => ({ ...c, monto: Number(c.monto) }));
@@ -178,10 +178,11 @@ export class CitasRepository {
     return result.count;
   }
 
-  async cancelRecurringSeries(recurrenceId: string): Promise<number> {
+  async cancelRecurringSeries(recurrenceId: string, negocioId: number): Promise<number> {
     const { count } = await this.prisma.cita.updateMany({
       where: {
         recurrenceId,
+        negocioId,
         estado: { notIn: ['CANCELADA'] },
         fecha: { gte: new Date() },
       },
