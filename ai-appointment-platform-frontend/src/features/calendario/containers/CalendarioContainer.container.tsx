@@ -5,6 +5,7 @@ import { Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { useActualizarDescripcionMutation } from '../api/useActualizarDescripcionMutation';
 import { useCrearCitaMutation } from '../api/useCrearCitaMutation';
+import { useCrearCitaRecurrenteMutation } from '../api/useCrearCitaRecurrenteMutation';
 import { useReprogramarCitaMutation } from '../api/useReprogramarCitaMutation';
 import { useMarkNoShowMutation, useMarkAsistioMutation } from '../api/useNoShow';
 import type { EventoCalendario } from '../types';
@@ -20,6 +21,7 @@ export const CalendarioContainer = () => {
 
   const actualizarDesc = useActualizarDescripcionMutation();
   const crearCita = useCrearCitaMutation();
+  const crearCitaRecurrente = useCrearCitaRecurrenteMutation();
   const reprogramarCita = useReprogramarCitaMutation();
   const markNoShow = useMarkNoShowMutation();
   const markAsistio = useMarkAsistioMutation();
@@ -64,6 +66,7 @@ export const CalendarioContainer = () => {
     setCitaSeleccionada,
     queryClient,
     crearCita,
+    crearCitaRecurrente,
     reprogramarCita,
     actualizarDesc,
     setModalNuevaCita,

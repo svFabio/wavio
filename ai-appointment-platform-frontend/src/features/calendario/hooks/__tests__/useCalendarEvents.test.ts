@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { Views } from 'react-big-calendar';
-import { useCalendarEvents, calcularFechasRecurrentes } from '../useCalendarEvents';
+import { useCalendarEvents } from '../useCalendarEvents';
 import type { Cita } from '../../../../types';
 
 const mockCita: Cita = {
@@ -162,27 +162,5 @@ describe('useCalendarEvents', () => {
     };
     const style = result.current.eventStyleGetter(citaEvent, new Date(), new Date(), false);
     expect(style.style.borderLeftColor).toBeDefined();
-  });
-});
-
-describe('calcularFechasRecurrentes', () => {
-  it('generates weekly dates within range', () => {
-    const fechas = calcularFechasRecurrentes('2026-01-05', 'weekly', '2026-01-19');
-    expect(fechas).toEqual(['2026-01-05', '2026-01-12', '2026-01-19']);
-  });
-
-  it('generates biweekly dates', () => {
-    const fechas = calcularFechasRecurrentes('2026-01-05', 'biweekly', '2026-02-02');
-    expect(fechas).toEqual(['2026-01-05', '2026-01-19', '2026-02-02']);
-  });
-
-  it('generates monthly dates', () => {
-    const fechas = calcularFechasRecurrentes('2026-01-15', 'monthly', '2026-03-15');
-    expect(fechas).toEqual(['2026-01-15', '2026-02-15', '2026-03-15']);
-  });
-
-  it('returns single date when end equals start', () => {
-    const fechas = calcularFechasRecurrentes('2026-01-10', 'weekly', '2026-01-10');
-    expect(fechas).toEqual(['2026-01-10']);
   });
 });

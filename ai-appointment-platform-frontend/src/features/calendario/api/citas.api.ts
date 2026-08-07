@@ -49,6 +49,40 @@ export const citasApi = {
     }
   },
 
+  crearCitaRecurrente: async (datos: {
+    clienteNombre: string;
+    clienteTelefono: string;
+    fecha: string;
+    horario: string;
+    servicioId?: number;
+    staffId?: number;
+    recurrence: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+    recurrenceEnd: string;
+  }): Promise<{ success: boolean; instancesCreated?: number; error?: string }> => {
+    try {
+      const res = await apiClient.post<{ base: Cita; instancesCreated: number }>(
+        '/citas/recurrentes',
+        datos,
+      );
+      return { success: true, instancesCreated: res.instancesCreated };
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
+      return { success: false, error: 'Error de conexión' };
+    }
+  },
+
+  cancelarSerie: async (
+    serieId: string,
+  ): Promise<{ success: boolean; canceladas?: number; error?: string }> => {
+    try {
+      const res = await apiClient.delete<{ canceladas: number }>(`/citas/series/${serieId}`);
+      return { success: true, canceladas: res.canceladas };
+    } catch (err) {
+      if (err instanceof ApiError) return { success: false, error: err.message };
+      return { success: false, error: 'Error de conexión' };
+    }
+  },
+
   obtenerResumen: async (): Promise<{
     totalHoy: number;
     pendientes: number;
