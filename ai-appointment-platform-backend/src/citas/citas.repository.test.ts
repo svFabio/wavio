@@ -351,32 +351,6 @@ describe('CitasRepository', () => {
     });
   });
 
-  describe('cancelExpiredInProgress', () => {
-    it('should cancel expired EN_PROCESO citas and return count', async () => {
-      prisma.cita.updateMany.mockResolvedValue({ count: 3 });
-
-      const olderThan = new Date('2026-07-27T00:00:00.000Z');
-      const result = await repo.cancelExpiredInProgress(olderThan);
-
-      expect(prisma.cita.updateMany).toHaveBeenCalledWith({
-        where: {
-          estado: 'EN_PROCESO',
-          fecha: { lt: olderThan },
-        },
-        data: { estado: 'CANCELADA' },
-      });
-      expect(result).toBe(3);
-    });
-
-    it('should return 0 when no expired citas', async () => {
-      prisma.cita.updateMany.mockResolvedValue({ count: 0 });
-
-      const result = await repo.cancelExpiredInProgress(new Date());
-
-      expect(result).toBe(0);
-    });
-  });
-
   describe('findRecurringSeries', () => {
     it('should return citas matching recurrenceId', async () => {
       const citas = [

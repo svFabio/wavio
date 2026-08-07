@@ -17,7 +17,6 @@ import { WebhookModule } from './webhooks/webhook.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
-import { NoShowModule } from './noshow/noshow.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { PortalModule } from './portal/portal.module';
@@ -42,7 +41,6 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     StatisticsModule,
     SchedulingModule,
     WaitlistModule,
-    NoShowModule,
     ReportesModule,
     CalendarModule,
     PortalModule,

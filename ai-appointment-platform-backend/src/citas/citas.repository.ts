@@ -157,17 +157,6 @@ export class CitasRepository {
     return Number(result._sum.monto ?? 0);
   }
 
-  async cancelExpiredInProgress(olderThan: Date): Promise<number> {
-    const { count } = await this.prisma.cita.updateMany({
-      where: {
-        estado: 'EN_PROCESO',
-        fecha: { lt: olderThan },
-      },
-      data: { estado: 'CANCELADA' },
-    });
-    return count;
-  }
-
   async findRecurringSeries(recurrenceId: string): Promise<Cita[]> {
     const citas = await this.prisma.cita.findMany({
       where: { recurrenceId },
