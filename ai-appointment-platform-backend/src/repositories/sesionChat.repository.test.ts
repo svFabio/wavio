@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SesionChatRepository } from './sesion-chat.repository';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { SesionChatRepository } from './sesionChat.repository';
 import { createMockPrisma } from '../__tests__/mocks/prisma';
 import type { MockPrisma } from '../__tests__/mocks/prisma';
 import { buildSesionChat, resetIds } from '../__tests__/factories';
@@ -62,28 +62,6 @@ describe('SesionChatRepository', () => {
       });
 
       expect(result.estado).toBe('bloqueado');
-    });
-  });
-
-  describe('deleteInactiveSessions', () => {
-    it('should delete sessions older than limitDate', async () => {
-      const limit = new Date('2026-01-01');
-      prisma.sesionChat.deleteMany.mockResolvedValue({ count: 10 });
-
-      const result = await repo.deleteInactiveSessions(limit);
-
-      expect(prisma.sesionChat.deleteMany).toHaveBeenCalledWith({
-        where: { ultimoMensaje: { lt: limit } },
-      });
-      expect(result).toBe(10);
-    });
-
-    it('should return 0 when no inactive sessions', async () => {
-      prisma.sesionChat.deleteMany.mockResolvedValue({ count: 0 });
-
-      const result = await repo.deleteInactiveSessions(new Date('2026-01-01'));
-
-      expect(result).toBe(0);
     });
   });
 });

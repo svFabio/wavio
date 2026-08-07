@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ChatRepository } from './chat.repository';
-import { SesionChatRepository } from './sesion-chat.repository';
+import { SesionChatRepository } from '../repositories/sesionChat.repository';
 import { NegocioModule } from '../negocio/negocio.module';
 import { EventsModule } from '../events/events.module';
 

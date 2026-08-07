@@ -1,37 +1,48 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+export type CitaCandidata = {
+  id: number;
+  clienteNombre: string | null;
+  clienteTelefono: string;
+  fecha: Date;
+  horario: string;
+  servicio: string;
+  recordatorio24h: boolean;
+  recordatorio1h: boolean;
+  negocioId: number;
+};
+
+export type CitaEncuestaCandidata = {
+  id: number;
+  clienteNombre: string | null;
+  clienteTelefono: string;
+  encuestaEnviada: boolean;
+  negocioId: number;
+  fecha: Date;
+  horario: string;
+};
+
 @Injectable()
 export class AppointmentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Fetch CONFIRMADA citas whose day falls within [desde, hasta].
+   * Window boundaries are pre-computed by the caller; exact appointment
+   * datetime matching happens in the domain layer.
+   */
   async findUpcomingForReminder(
     negocioId: number,
-    horasMinimas: number,
-    horasMaximas: number,
-  ): Promise<
-    Array<{
-      id: number;
-      clienteNombre: string | null;
-      clienteTelefono: string;
-      fecha: Date;
-      horario: string;
-      servicio: string;
-      recordatorio24h: boolean;
-      recordatorio1h: boolean;
-      negocioId: number;
-    }>
-  > {
-    const ahora = new Date();
-    const desde = new Date(ahora.getTime() + horasMinimas * 60 * 60 * 1000);
-    const hasta = new Date(ahora.getTime() + horasMaximas * 60 * 60 * 1000);
-
+    desde: Date,
+    hasta: Date,
+  ): Promise<CitaCandidata[]> {
     const fechaMin = new Date(desde);
     fechaMin.setHours(0, 0, 0, 0);
     const fechaMax = new Date(hasta);
     fechaMax.setHours(23, 59, 59, 999);
 
-    const citas = await this.prisma.cita.findMany({
+    return this.prisma.cita.findMany({
       where: {
         negocioId,
         estado: 'CONFIRMADA',
@@ -49,13 +60,6 @@ export class AppointmentRepository {
         negocioId: true,
       },
     });
-
-    return citas.filter((cita) => {
-      const [h, m] = cita.horario.split(':').map(Number);
-      const citaDateTime = new Date(cita.fecha);
-      citaDateTime.setHours(h, m, 0, 0);
-      return citaDateTime >= desde && citaDateTime <= hasta;
-    });
   }
 
   async markReminderSent(citaId: number, tipo: '24h' | '1h'): Promise<void> {
@@ -66,25 +70,15 @@ export class AppointmentRepository {
     });
   }
 
-  async findCompletedForSurvey(
-    negocioId: number,
-    horasAtras: number,
-  ): Promise<
-    Array<{
-      id: number;
-      clienteNombre: string | null;
-      clienteTelefono: string;
-      encuestaEnviada: boolean;
-      negocioId: number;
-    }>
-  > {
-    const ahora = new Date();
-    const cutoff = new Date(ahora.getTime() - horasAtras * 60 * 60 * 1000);
-
+  /**
+   * Fetch CONFIRMADA citas from days up to the survey cutoff.
+   * Exact cutoff matching happens in the domain layer.
+   */
+  async findCompletedForSurvey(negocioId: number, cutoff: Date): Promise<CitaEncuestaCandidata[]> {
     const fechaMin = new Date(cutoff);
     fechaMin.setHours(0, 0, 0, 0);
 
-    const citas = await this.prisma.cita.findMany({
+    return this.prisma.cita.findMany({
       where: {
         negocioId,
         estado: 'CONFIRMADA',
@@ -101,13 +95,6 @@ export class AppointmentRepository {
         horario: true,
       },
     });
-
-    return citas.filter((cita) => {
-      const [h, m] = cita.horario.split(':').map(Number);
-      const citaDateTime = new Date(cita.fecha);
-      citaDateTime.setHours(h, m, 0, 0);
-      return citaDateTime < cutoff;
-    });
   }
 
   async markSurveySent(citaId: number): Promise<void> {
@@ -115,28 +102,5 @@ export class AppointmentRepository {
       where: { id: citaId },
       data: { encuestaEnviada: true },
     });
-  }
-
-  async updateLastAppointmentRating(
-    negocioId: number,
-    clienteTelefono: string,
-    rating: number,
-  ): Promise<boolean> {
-    const cita = await this.prisma.cita.findFirst({
-      where: {
-        negocioId,
-        clienteTelefono,
-        encuestaEnviada: true,
-        rating: null,
-      },
-      orderBy: { fecha: 'desc' },
-    });
-    if (!cita) return false;
-
-    await this.prisma.cita.update({
-      where: { id: cita.id },
-      data: { rating },
-    });
-    return true;
   }
 }

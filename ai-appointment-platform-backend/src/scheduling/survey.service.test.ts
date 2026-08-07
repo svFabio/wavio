@@ -1,8 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SurveyService } from './survey.service';
 import type { AppointmentRepository } from '../repositories/appointment.repository';
 import type { NegocioService } from '../negocio/negocio.service';
 import type { EventsService } from '../events/events.service';
+
+const originalTz = process.env.TZ;
+
+function cita({ id, horario }: { id: number; horario: string }, fechaISO: string) {
+  return {
+    id,
+    clienteNombre: 'Juan',
+    clienteTelefono: '+521234567890',
+    encuestaEnviada: false,
+    negocioId: 1,
+    fecha: new Date(fechaISO),
+    horario,
+  };
+}
 
 describe('SurveyService', () => {
   let service: SurveyService;
@@ -17,6 +31,9 @@ describe('SurveyService', () => {
   let mockEvents: { sendWhatsAppMessage: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    process.env.TZ = 'UTC';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-28T12:00:00.000Z'));
     mockAppointmentRepo = {
       findCompletedForSurvey: vi.fn(),
       markSurveySent: vi.fn(),
@@ -33,7 +50,13 @@ describe('SurveyService', () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+    process.env.TZ = originalTz;
+  });
+
   describe('handleSurveys', () => {
+    // Cutoff: now - 24h => 07-27 12:00Z. Only citas before that are eligible.
     it('should do nothing when no businesses', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([]);
 
@@ -42,19 +65,24 @@ describe('SurveyService', () => {
       expect(mockAppointmentRepo.findCompletedForSurvey).not.toHaveBeenCalled();
     });
 
+    it('should skip citas after the cutoff', async () => {
+      mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
+      // 07-27 13:00Z is after cutoff (12:00Z)
+      mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
+        cita({ id: 1, horario: '13:00' }, '2026-07-27'),
+      ]);
+
+      await service.handleSurveys();
+
+      expect(mockEvents.sendWhatsAppMessage).not.toHaveBeenCalled();
+      expect(mockAppointmentRepo.markSurveySent).not.toHaveBeenCalled();
+    });
+
     it('should skip citas where survey already sent', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
-      mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
-        {
-          id: 1,
-          clienteNombre: 'Juan',
-          clienteTelefono: '+521234567890',
-          encuestaEnviada: true,
-          negocioId: 1,
-          fecha: new Date(),
-          horario: '10:00',
-        },
-      ]);
+      const elegible = cita({ id: 1, horario: '10:00' }, '2026-07-27');
+      elegible.encuestaEnviada = true;
+      mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([elegible]);
 
       await service.handleSurveys();
 
@@ -64,15 +92,7 @@ describe('SurveyService', () => {
     it('should skip when negocio has no wa credentials', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
       mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
-        {
-          id: 1,
-          clienteNombre: 'Juan',
-          clienteTelefono: '+521234567890',
-          encuestaEnviada: false,
-          negocioId: 1,
-          fecha: new Date(),
-          horario: '10:00',
-        },
+        cita({ id: 1, horario: '10:00' }, '2026-07-27'),
       ]);
       mockNegocio.findByIdForInternal.mockResolvedValue({
         waAccessToken: null,
@@ -87,15 +107,7 @@ describe('SurveyService', () => {
     it('should send survey and mark sent', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
       mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
-        {
-          id: 1,
-          clienteNombre: 'Juan',
-          clienteTelefono: '+521234567890',
-          encuestaEnviada: false,
-          negocioId: 1,
-          fecha: new Date(),
-          horario: '10:00',
-        },
+        cita({ id: 1, horario: '10:00' }, '2026-07-27'),
       ]);
       mockNegocio.findByIdForInternal.mockResolvedValue({
         waAccessToken: 'token',

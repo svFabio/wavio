@@ -41,11 +41,4 @@ export class SesionChatRepository {
       },
     });
   }
-
-  async deleteInactiveSessions(limitDate: Date): Promise<number> {
-    const result = await this.prisma.sesionChat.deleteMany({
-      where: { ultimoMensaje: { lt: limitDate } },
-    });
-    return result.count;
-  }
 }

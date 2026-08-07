@@ -127,7 +127,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 3. **Phase 3** — Convert EventsModule (WebSocket/Socket.IO gateway), ChatModule, WebhookModule.
 4. **Phase 4** — Convert StatisticsModule, SchedulingModule, add ThrottlerModule, Swagger. Remove all Express legacy code.
 
-**Module structure** (20 modules registered in `app.module.ts`):
+**Module structure** (19 modules registered in `app.module.ts`):
 
 ```
 PrismaModule (@Global)      — database access, injected everywhere
@@ -144,8 +144,6 @@ WebhookModule               — WhatsApp Cloud API webhooks
 StatisticsModule            — analytics and reporting
 SchedulingModule            — automated scheduling logic
 WaitlistModule              — waitlist management
-NoShowModule                — no-show tracking
-ReportesModule              — PDF/structured reports
 CalendarModule              — calendar integration
 PortalModule                — client-facing portal
 PushModule                  — push notifications
@@ -181,7 +179,7 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 
 ### Risks
 
-- **Over-engineering**: for small modules like WaitlistModule or NoShowModule, the NestJS structure adds files without proportional benefit. Acceptable tradeoff for consistency.
+- **Over-engineering**: for small modules like WaitlistModule, the NestJS structure adds files without proportional benefit. Acceptable tradeoff for consistency.
 - **Express under the hood**: NestJS uses Express (or Fastify) as the HTTP adapter. Debugging may require understanding both frameworks.
 
 ---

@@ -3,6 +3,9 @@ import { Cron } from '@nestjs/schedule';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
+import { isBeforeSurveyCutoff } from '../domain/cita-time';
+
+const HORA_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class SurveyService {
@@ -25,7 +28,12 @@ export class SurveyService {
     try {
       const negocios = await this.negocioService.getActiveBusinessIds();
       for (const negocioId of negocios) {
-        const citas = await this.appointmentRepository.findCompletedForSurvey(negocioId, 24);
+        const cutoff = new Date(Date.now() - 24 * HORA_MS);
+        const candidatas = await this.appointmentRepository.findCompletedForSurvey(
+          negocioId,
+          cutoff,
+        );
+        const citas = candidatas.filter((cita) => isBeforeSurveyCutoff(cita, cutoff));
 
         for (const cita of citas) {
           if (cita.encuestaEnviada) continue;

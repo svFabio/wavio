@@ -35,22 +35,4 @@ export class PushRepository {
     });
     return result.count > 0;
   }
-
-  async getByNegocioId(
-    negocioId: number,
-  ): Promise<Array<{ endpoint: string; p256dh: string; auth: string }>> {
-    return this.prisma.pushSubscription.findMany({
-      where: { negocioId },
-      select: { endpoint: true, p256dh: true, auth: true },
-    });
-  }
-
-  async getByUserId(
-    userId: number,
-  ): Promise<Array<{ endpoint: string; p256dh: string; auth: string }>> {
-    return this.prisma.pushSubscription.findMany({
-      where: { userId },
-      select: { endpoint: true, p256dh: true, auth: true },
-    });
-  }
 }

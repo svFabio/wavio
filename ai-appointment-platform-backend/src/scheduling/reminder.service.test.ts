@@ -1,8 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ReminderService } from './reminder.service';
 import type { AppointmentRepository } from '../repositories/appointment.repository';
 import type { NegocioService } from '../negocio/negocio.service';
 import type { EventsService } from '../events/events.service';
+
+const originalTz = process.env.TZ;
+
+function cita({ id, horario }: { id: number; horario: string }, fechaISO: string) {
+  return {
+    id,
+    clienteNombre: 'Juan',
+    clienteTelefono: '+521234567890',
+    fecha: new Date(fechaISO),
+    horario,
+    servicio: 'Corte',
+    recordatorio24h: false,
+    recordatorio1h: false,
+    negocioId: 1,
+  };
+}
 
 describe('ReminderService', () => {
   let service: ReminderService;
@@ -17,6 +33,9 @@ describe('ReminderService', () => {
   let mockEvents: { sendWhatsAppMessage: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    process.env.TZ = 'UTC';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-28T12:00:00.000Z'));
     mockAppointmentRepo = {
       findUpcomingForReminder: vi.fn(),
       markReminderSent: vi.fn(),
@@ -33,7 +52,13 @@ describe('ReminderService', () => {
     );
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+    process.env.TZ = originalTz;
+  });
+
   describe('handleReminders24h', () => {
+    // Window: now (07-28 12:00Z) +23h..+25h => 07-29 11:00Z..13:00Z
     it('should do nothing when no businesses', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([]);
 
@@ -42,21 +67,24 @@ describe('ReminderService', () => {
       expect(mockAppointmentRepo.findUpcomingForReminder).not.toHaveBeenCalled();
     });
 
+    it('should skip citas outside the reminder window', async () => {
+      mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
+      // horario 10:00 => 07-29 10:00Z, before window start (11:00Z)
+      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
+        cita({ id: 1, horario: '10:00' }, '2026-07-29'),
+      ]);
+
+      await service.handleReminders24h();
+
+      expect(mockEvents.sendWhatsAppMessage).not.toHaveBeenCalled();
+      expect(mockAppointmentRepo.markReminderSent).not.toHaveBeenCalled();
+    });
+
     it('should skip already reminded citas', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
-      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
-        {
-          id: 1,
-          clienteNombre: 'Juan',
-          clienteTelefono: '+521234567890',
-          fecha: new Date(),
-          horario: '10:00',
-          servicio: 'Corte',
-          recordatorio24h: true,
-          recordatorio1h: false,
-          negocioId: 1,
-        },
-      ]);
+      const enVentana = cita({ id: 1, horario: '12:00' }, '2026-07-29');
+      enVentana.recordatorio24h = true;
+      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([enVentana]);
 
       await service.handleReminders24h();
 
@@ -66,17 +94,7 @@ describe('ReminderService', () => {
     it('should skip when negocio has no wa credentials', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
       mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
-        {
-          id: 1,
-          clienteNombre: 'Juan',
-          clienteTelefono: '+521234567890',
-          fecha: new Date(),
-          horario: '10:00',
-          servicio: 'Corte',
-          recordatorio24h: false,
-          recordatorio1h: false,
-          negocioId: 1,
-        },
+        cita({ id: 1, horario: '12:00' }, '2026-07-29'),
       ]);
       mockNegocio.findByIdForInternal.mockResolvedValue({
         waAccessToken: null,
@@ -91,17 +109,7 @@ describe('ReminderService', () => {
     it('should send 24h reminder and mark sent', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
       mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
-        {
-          id: 1,
-          clienteNombre: 'Juan',
-          clienteTelefono: '+521234567890',
-          fecha: new Date(),
-          horario: '10:00',
-          servicio: 'Corte',
-          recordatorio24h: false,
-          recordatorio1h: false,
-          negocioId: 1,
-        },
+        cita({ id: 1, horario: '12:00' }, '2026-07-29'),
       ]);
       mockNegocio.findByIdForInternal.mockResolvedValue({
         waAccessToken: 'token',
@@ -116,20 +124,11 @@ describe('ReminderService', () => {
   });
 
   describe('handleReminders1h', () => {
+    // Window: now +0.75h..+1.25h => 12:45Z..13:15Z
     it('should send 1h reminder and mark sent', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
       mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
-        {
-          id: 2,
-          clienteNombre: 'María',
-          clienteTelefono: '+529876543210',
-          fecha: new Date(),
-          horario: '11:00',
-          servicio: 'Barba',
-          recordatorio24h: true,
-          recordatorio1h: false,
-          negocioId: 1,
-        },
+        cita({ id: 2, horario: '13:00' }, '2026-07-28'),
       ]);
       mockNegocio.findByIdForInternal.mockResolvedValue({
         waAccessToken: 'token',
@@ -144,9 +143,9 @@ describe('ReminderService', () => {
 
     it('should skip already reminded 1h citas', async () => {
       mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
-      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
-        { id: 2, recordatorio1h: true },
-      ]);
+      const enVentana = cita({ id: 2, horario: '13:00' }, '2026-07-28');
+      enVentana.recordatorio1h = true;
+      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([enVentana]);
 
       await service.handleReminders1h();
 
