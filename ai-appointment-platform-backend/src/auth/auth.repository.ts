@@ -81,6 +81,21 @@ export class AuthRepository {
     return negocio;
   }
 
+  async findNegocioByEmail(email: string): Promise<NegocioBase | null> {
+    return this.prisma.negocio.findUnique({
+      where: { email },
+      select: NEGOCIO_SAFE_SELECT,
+    });
+  }
+
+  async updateNegocioGoogleId(id: number, googleId: string): Promise<NegocioBase> {
+    return this.prisma.negocio.update({
+      where: { id },
+      data: { googleId },
+      select: NEGOCIO_SAFE_SELECT,
+    });
+  }
+
   async findUsuarioByNegocioAndGoogleId(
     negocioId: number,
     googleId: string,
@@ -90,6 +105,27 @@ export class AuthRepository {
         googleId,
         usuarioNegocios: { some: { negocioId } },
       },
+      select: USUARIO_SAFE_SELECT,
+    });
+  }
+
+  async findUsuarioByNegocioAndEmail(
+    negocioId: number,
+    email: string,
+  ): Promise<UsuarioSafe | null> {
+    return this.prisma.usuario.findFirst({
+      where: {
+        email,
+        usuarioNegocios: { some: { negocioId } },
+      },
+      select: USUARIO_SAFE_SELECT,
+    });
+  }
+
+  async updateUsuarioGoogleId(id: number, googleId: string): Promise<UsuarioSafe> {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { googleId },
       select: USUARIO_SAFE_SELECT,
     });
   }

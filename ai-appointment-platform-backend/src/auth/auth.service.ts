@@ -83,21 +83,37 @@ export class AuthService {
     nombre = payload.name || email.split('@')[0];
 
     let negocio = await this.authRepository.findNegocioByGoogleId(googleId);
-    const esNuevo = !negocio;
+    let esNuevo = false;
 
     if (!negocio) {
-      negocio = await this.authRepository.createNegocioWithAdmin(googleId, email, nombre);
+      negocio = await this.authRepository.findNegocioByEmail(email);
+      if (negocio) {
+        await this.authRepository.updateNegocioGoogleId(negocio.id, googleId);
+      } else {
+        negocio = await this.authRepository.createNegocioWithAdmin(googleId, email, nombre);
+        esNuevo = true;
+      }
     }
 
     let usuario = await this.authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
     if (!usuario) {
-      const existingUser = await this.authRepository.findFirstByGoogleId(googleId);
-      if (existingUser) {
-        await this.authRepository.upsertMembership(existingUser.id, negocio.id, 'OWNER');
-        usuario = await this.authRepository.findUsuarioById(existingUser.id);
-      }
-      if (!usuario) {
-        throw new NotFoundError('Usuario del negocio');
+      usuario = await this.authRepository.findUsuarioByNegocioAndEmail(negocio.id, email);
+      if (usuario) {
+        await this.authRepository.updateUsuarioGoogleId(usuario.id, googleId);
+      } else {
+        const existingUser = await this.authRepository.findFirstByGoogleId(googleId);
+        if (existingUser) {
+          const membership = await this.authRepository.findUsuarioNegocioMembership(
+            existingUser.id,
+            negocio.id,
+          );
+          if (membership) {
+            usuario = await this.authRepository.findUsuarioById(existingUser.id);
+          }
+        }
+        if (!usuario) {
+          throw new NotFoundError('Usuario del negocio');
+        }
       }
     }
 

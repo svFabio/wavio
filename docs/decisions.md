@@ -228,3 +228,26 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 - The frontend must always send `x-negocio-id`; the backend derives the effective role from that header. Socket connections verify the negocio against `negocios[]` instead of a flat claim.
 - `GET /auth/me` now returns `usuario.rol` = role of the active membership and `negocios[].rol` per membership.
 - All consumers of `request.usuario` inside a guarded handler see `rol`/`negocioId` already resolved by `TenantGuard` (typed as `TenantUser`).
+
+---
+
+## ADR-009 — Google login no duplica negocio ni promueve roles
+
+**Date**: 2026-08-07
+**Status**: Accepted
+
+**Context**: `loginConGoogle` buscaba el negocio solo por `sub` de Google. Si el usuario se había registrado antes con `registrarConEmail` (que crea el negocio con `googleId = 'email-<email>'`), el login con Google no encontraba el negocio y `createNegocioWithAdmin` intentaba crear uno nuevo con el mismo email único → error P2002 (500). Además, el staff creado por un admin tiene `googleId = null` y no podía entrar con Google (buscaba por googleId y fallaba con 404). Y un usuario con `googleId` existente que entraba a un negocio que ya existía recibía un `upsertMembership(..., 'OWNER')`, promoviéndolo a OWNER de un negocio ajeno.
+
+**Options considered**:
+
+- Mantener el flujo actual y exigir migración de datos: no es viable, el schema no cambia y los datos ya existen en producción.
+- Resolver negocio y usuario por `sub` o por email y vincular el `googleId` al primer login: sin escrituras extras en el happy path y sin duplicar datos.
+
+**Decision**: Google login no duplica negocio ni promueve roles. El negocio creado por email se vincula al `sub` de Google al primer login (`updateNegocioGoogleId`); el staff sin `googleId` se vincula por email (`updateUsuarioGoogleId`). El login con Google NUNCA crea membresías ni promueve a OWNER; la membresía la crea solo `createNegocioWithAdmin` (dueño) o `usuarios.service` (staff por invitación/admin).
+
+**Consequences**:
+
+- Un usuario registrado por email que luego entra con Google conserva UN solo negocio: `findNegocioByEmail` lo encuentra, se le escribe el `googleId` y no se llama `createNegocioWithAdmin`.
+- El staff sin `googleId` entra con Google por su email: `findUsuarioByNegocioAndEmail` lo encuentra, se le escribe el `googleId` y conserva su rol de membresía (nunca OWNER).
+- Un usuario con `googleId` que no tiene membresía en el negocio recibe `NotFoundError`; su membresía existente, si la tiene, se usa tal cual.
+- `upsertMembership` se mantiene en el repository (otros flujos lo usan) pero `loginConGoogle` ya no lo invoca.

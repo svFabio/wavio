@@ -40,6 +40,45 @@ describe('AuthRepository', () => {
     });
   });
 
+  describe('findNegocioByEmail', () => {
+    it('should return negocio when found', async () => {
+      const negocio = buildNegocio({ email: 'owner@test.com' });
+      prisma.negocio.findUnique.mockResolvedValue(negocio);
+
+      const result = await repo.findNegocioByEmail('owner@test.com');
+
+      expect(prisma.negocio.findUnique).toHaveBeenCalledWith({
+        where: { email: 'owner@test.com' },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(negocio);
+    });
+
+    it('should return null when not found', async () => {
+      prisma.negocio.findUnique.mockResolvedValue(null);
+
+      const result = await repo.findNegocioByEmail('nonexistent@test.com');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateNegocioGoogleId', () => {
+    it('should update negocio googleId and return negocio', async () => {
+      const negocio = buildNegocio({ googleId: 'google_abc' });
+      prisma.negocio.update.mockResolvedValue(negocio);
+
+      const result = await repo.updateNegocioGoogleId(1, 'google_abc');
+
+      expect(prisma.negocio.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { googleId: 'google_abc' },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(negocio);
+    });
+  });
+
   describe('createNegocioWithAdmin', () => {
     it('should create negocio, usuario, and membership with OWNER role', async () => {
       const negocio = buildNegocio({ googleId: 'g-123' });
@@ -89,6 +128,45 @@ describe('AuthRepository', () => {
       const result = await repo.findUsuarioByNegocioAndGoogleId(1, 'nonexistent');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findUsuarioByNegocioAndEmail', () => {
+    it('should return usuario when found', async () => {
+      const usuario = buildUsuario({ email: 'staff@test.com' });
+      prisma.usuario.findFirst.mockResolvedValue(usuario);
+
+      const result = await repo.findUsuarioByNegocioAndEmail(1, 'staff@test.com');
+
+      expect(prisma.usuario.findFirst).toHaveBeenCalledWith({
+        where: { email: 'staff@test.com', usuarioNegocios: { some: { negocioId: 1 } } },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(usuario);
+    });
+
+    it('should return null when not found', async () => {
+      prisma.usuario.findFirst.mockResolvedValue(null);
+
+      const result = await repo.findUsuarioByNegocioAndEmail(1, 'nonexistent@test.com');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateUsuarioGoogleId', () => {
+    it('should update usuario googleId and return usuario', async () => {
+      const usuario = buildUsuario({ googleId: 'google_abc' });
+      prisma.usuario.update.mockResolvedValue(usuario);
+
+      const result = await repo.updateUsuarioGoogleId(1, 'google_abc');
+
+      expect(prisma.usuario.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { googleId: 'google_abc' },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(usuario);
     });
   });
 
