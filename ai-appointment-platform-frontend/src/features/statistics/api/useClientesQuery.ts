@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { clientesApi } from './clientes.api';
 
 export function useClientesQuery() {
   return useQuery({
     queryKey: ['clientes'],
-    queryFn: () => api.getClientes(),
+    queryFn: () => clientesApi.getClientes(),
   });
 }

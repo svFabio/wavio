@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { useNotifications } from '../../../shared/hooks/useNotifications';
+import { citasApi } from '../../calendario/api/citas.api';
 
 export const useValidarPagoMutation = (): UseMutationResult<
   void,
@@ -12,10 +12,10 @@ export const useValidarPagoMutation = (): UseMutationResult<
   const { showNotification } = useNotifications();
 
   return useMutation({
-    mutationFn: ({ id, accion }: { id: string; accion: 'APROBAR' | 'RECHAZAR' }) =>
-      api.validarPago(id, accion).then((success) => {
-        if (!success) throw new Error('Error al realizar la acción');
-      }),
+    mutationFn: async ({ id, accion }: { id: string; accion: 'APROBAR' | 'RECHAZAR' }) => {
+      const success = await citasApi.validarPago(id, accion);
+      if (!success) throw new Error('Error al realizar la acción');
+    },
     onSuccess: () => {
       showNotification('Acción realizada con éxito', 'success');
       queryClient.invalidateQueries({ queryKey: ['citas'] });

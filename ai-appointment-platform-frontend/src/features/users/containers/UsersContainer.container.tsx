@@ -1,15 +1,15 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { UsersView } from '../components/UsersView';
 import { EmptyState } from '../components/EmptyState';
 import { UserModal } from '../components/UserModal';
 import { UsersSkeleton } from '../../../shared/components/skeletons/UsersSkeleton';
 import type { User, UserFormData } from '../types';
+import { usersApi } from '../api/users.api';
 
 const EMPTY_FORM: UserFormData = { nombre: '', email: '', password: '', rol: 'STAFF' };
 
-export const UsersContainer = () => {
+export const UsersContainer = (): React.JSX.Element => {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -17,15 +17,15 @@ export const UsersContainer = () => {
 
   const { data: users = [], isLoading: loading } = useQuery<User[]>({
     queryKey: ['users'],
-    queryFn: () => api.getUsers(),
+    queryFn: () => usersApi.getUsers(),
   });
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (editingUser) {
-        return api.updateUser(editingUser.id, formData);
+        return usersApi.updateUser(editingUser.id, formData);
       }
-      return api.createUser(formData);
+      return usersApi.createUser(formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -36,7 +36,7 @@ export const UsersContainer = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.deleteUser(id),
+    mutationFn: (id: number) => usersApi.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },

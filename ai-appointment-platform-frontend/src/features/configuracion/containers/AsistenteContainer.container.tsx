@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { AsistenteView } from '../components/AsistenteView';
 import type { ConfigData } from '../types';
 import type { ChatFlowStep } from '../types/domain';
+import { configuracionApi } from '../api/configuracion.api';
 
-export const AsistenteContainer = () => {
+export const AsistenteContainer = (): React.JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: config, isLoading: loadingConfig } = useQuery<ConfigData>({
     queryKey: ['configuracion'],
-    queryFn: api.getConfiguracion,
+    queryFn: configuracionApi.getConfiguracion,
   });
 
   const [trigger, setTrigger] = useState('');
@@ -38,7 +38,7 @@ export const AsistenteContainer = () => {
 
   const saveMutation = useMutation({
     mutationFn: () =>
-      api.updateConfiguracion({
+      configuracionApi.updateConfiguracion({
         trigger,
         mensajeBienvenida,
         mensajeConfirmacion,
@@ -55,7 +55,7 @@ export const AsistenteContainer = () => {
   });
 
   const uploadQRMutation = useMutation({
-    mutationFn: (base64: string) => api.uploadQR(base64),
+    mutationFn: (base64: string) => configuracionApi.uploadQR(base64),
     onSuccess: (data) => {
       setQrFotoUrl(data.qrFotoUrl);
       queryClient.invalidateQueries({ queryKey: ['configuracion'] });

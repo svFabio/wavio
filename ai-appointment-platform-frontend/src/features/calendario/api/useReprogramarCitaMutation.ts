@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { citasApi } from './citas.api';
 
 export function useReprogramarCitaMutation(): UseMutationResult<
   { success: boolean; error?: string },
@@ -11,7 +11,7 @@ export function useReprogramarCitaMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ citaId, fecha, horario }: { citaId: string; fecha: string; horario: string }) =>
-      api.reprogramarCita(citaId, fecha, horario),
+      citasApi.reprogramarCita(citaId, fecha, horario),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },

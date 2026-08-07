@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../../lib/api';
 import { OnboardingView } from '../components/OnboardingView';
+import { configuracionApi } from '../../configuracion/api/configuracion.api';
 
-export const OnboardingContainer = () => {
+export const OnboardingContainer = (): React.JSX.Element => {
   const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export const OnboardingContainer = () => {
     setError(null);
 
     try {
-      await api.configurarNegocio(nombre.trim());
+      await configuracionApi.configurarNegocio(nombre.trim());
       navigate('/dashboard', { replace: true });
     } catch (error) {
       setError('Error al configurar el negocio. Intenta de nuevo.');

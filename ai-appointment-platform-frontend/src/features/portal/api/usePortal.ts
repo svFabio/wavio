@@ -1,11 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import type { BookAppointmentPayload } from '../types';
+import { portalApi } from './portal.api';
 
 export function useValidateMagicLinkQuery(token: string) {
   return useQuery({
     queryKey: ['portal', 'validate', token],
-    queryFn: () => api.validateMagicLink(token),
+    queryFn: () => portalApi.validateMagicLink(token),
     retry: 1,
     enabled: !!token,
   });
@@ -14,7 +14,7 @@ export function useValidateMagicLinkQuery(token: string) {
 export function usePortalAppointmentsQuery(token: string) {
   return useQuery({
     queryKey: ['portal', 'appointments', token],
-    queryFn: () => api.getPortalAppointments(token),
+    queryFn: () => portalApi.getPortalAppointments(token),
     retry: 1,
     enabled: !!token,
   });
@@ -23,7 +23,7 @@ export function usePortalAppointmentsQuery(token: string) {
 export function usePortalServicesQuery(token: string) {
   return useQuery({
     queryKey: ['portal', 'services', token],
-    queryFn: () => api.getPortalServices(token),
+    queryFn: () => portalApi.getPortalServices(token),
     retry: 1,
     enabled: !!token,
   });
@@ -32,7 +32,7 @@ export function usePortalServicesQuery(token: string) {
 export function usePortalAvailableSlotsQuery(token: string, fecha: string, servicioId?: number) {
   return useQuery({
     queryKey: ['portal', 'slots', token, fecha, servicioId],
-    queryFn: () => api.getPortalAvailableSlots(token, fecha, servicioId),
+    queryFn: () => portalApi.getPortalAvailableSlots(token, fecha, servicioId),
     retry: 1,
     enabled: !!token && !!fecha,
   });
@@ -40,12 +40,12 @@ export function usePortalAvailableSlotsQuery(token: string, fecha: string, servi
 
 export function useBookAppointmentMutation(token: string) {
   return useMutation({
-    mutationFn: (data: BookAppointmentPayload) => api.bookPortalAppointment(token, data),
+    mutationFn: (data: BookAppointmentPayload) => portalApi.bookPortalAppointment(token, data),
   });
 }
 
 export function useGenerateLinkMutation() {
   return useMutation({
-    mutationFn: (clienteId: number) => api.generateMagicLink(clienteId),
+    mutationFn: (clienteId: number) => portalApi.generateMagicLink(clienteId),
   });
 }

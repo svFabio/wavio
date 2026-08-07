@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHookWithProviders } from '../../../../test-utils';
 import { useClientesQuery } from '../useClientesQuery';
+import { clientesApi } from '../clientes.api';
 
-vi.mock('../../../../lib/api', () => ({
-  api: {
+vi.mock('../clientes.api', () => ({
+  clientesApi: {
     getClientes: vi.fn(),
   },
 }));
-
-import { api } from '../../../../lib/api';
 
 describe('useClientesQuery', () => {
   beforeEach(() => {
@@ -16,7 +15,7 @@ describe('useClientesQuery', () => {
   });
 
   it('fetches clientes with correct query key', async () => {
-    vi.mocked(api.getClientes).mockResolvedValue([]);
+    vi.mocked(clientesApi.getClientes).mockResolvedValue([]);
     const { result } = renderHookWithProviders(() => useClientesQuery());
     expect(result.current.isLoading).toBe(true);
     await vi.waitFor(() => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHookWithProviders } from '../../../../test-utils';
+import { waitlistApi } from '../waitlist.api';
 import {
   useWaitlistQuery,
   useAddToWaitlistMutation,
@@ -7,8 +8,8 @@ import {
   useNotifyWaitlistMutation,
 } from '../useWaitlist';
 
-vi.mock('../../../../lib/api', () => ({
-  api: {
+vi.mock('../waitlist.api', () => ({
+  waitlistApi: {
     getWaitlist: vi.fn(),
     addToWaitlist: vi.fn(),
     removeFromWaitlist: vi.fn(),
@@ -16,15 +17,13 @@ vi.mock('../../../../lib/api', () => ({
   },
 }));
 
-import { api } from '../../../../lib/api';
-
 describe('useWaitlistQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('fetches waitlist entries', async () => {
-    vi.mocked(api.getWaitlist).mockResolvedValue([]);
+    vi.mocked(waitlistApi.getWaitlist).mockResolvedValue([]);
     const { result } = renderHookWithProviders(() => useWaitlistQuery());
     expect(result.current.isLoading).toBe(true);
     await vi.waitFor(() => {
@@ -40,7 +39,7 @@ describe('useAddToWaitlistMutation', () => {
   });
 
   it('calls addToWaitlist and invalidates query', async () => {
-    vi.mocked(api.addToWaitlist).mockResolvedValue({} as never);
+    vi.mocked(waitlistApi.addToWaitlist).mockResolvedValue({} as never);
     const { result } = renderHookWithProviders(() => useAddToWaitlistMutation());
     result.current.mutate({
       clienteNombre: 'Juan',
@@ -48,7 +47,7 @@ describe('useAddToWaitlistMutation', () => {
       fechaPreferida: '2026-02-01',
     });
     await vi.waitFor(() => {
-      expect(api.addToWaitlist).toHaveBeenCalled();
+      expect(waitlistApi.addToWaitlist).toHaveBeenCalled();
     });
   });
 });
@@ -59,11 +58,11 @@ describe('useRemoveFromWaitlistMutation', () => {
   });
 
   it('calls removeFromWaitlist with id', async () => {
-    vi.mocked(api.removeFromWaitlist).mockResolvedValue({} as never);
+    vi.mocked(waitlistApi.removeFromWaitlist).mockResolvedValue({} as never);
     const { result } = renderHookWithProviders(() => useRemoveFromWaitlistMutation());
     result.current.mutate(1);
     await vi.waitFor(() => {
-      expect(api.removeFromWaitlist).toHaveBeenCalledWith(1);
+      expect(waitlistApi.removeFromWaitlist).toHaveBeenCalledWith(1);
     });
   });
 });
@@ -74,11 +73,11 @@ describe('useNotifyWaitlistMutation', () => {
   });
 
   it('calls notifyWaitlist with id', async () => {
-    vi.mocked(api.notifyWaitlist).mockResolvedValue({} as never);
+    vi.mocked(waitlistApi.notifyWaitlist).mockResolvedValue({} as never);
     const { result } = renderHookWithProviders(() => useNotifyWaitlistMutation());
     result.current.mutate(1);
     await vi.waitFor(() => {
-      expect(api.notifyWaitlist).toHaveBeenCalledWith(1);
+      expect(waitlistApi.notifyWaitlist).toHaveBeenCalledWith(1);
     });
   });
 });

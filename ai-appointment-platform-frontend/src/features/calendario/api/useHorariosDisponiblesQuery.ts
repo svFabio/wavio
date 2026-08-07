@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { citasApi } from './citas.api';
 
 export function useHorariosDisponiblesQuery(
   fecha: string,
@@ -9,7 +9,7 @@ export function useHorariosDisponiblesQuery(
 ): UseQueryResult<string[], Error> {
   return useQuery({
     queryKey: ['horarios', fecha, servicioId],
-    queryFn: () => api.obtenerHorariosDisponibles(fecha, servicioId),
+    queryFn: () => citasApi.obtenerHorariosDisponibles(fecha, servicioId),
     enabled,
     staleTime: 5 * 60 * 1000,
   });

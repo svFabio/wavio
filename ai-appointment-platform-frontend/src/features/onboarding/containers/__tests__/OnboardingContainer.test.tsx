@@ -3,9 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { OnboardingContainer } from '../OnboardingContainer.container';
+import { configuracionApi } from '../../../configuracion/api/configuracion.api';
 
-vi.mock('../../../../lib/api', () => ({
-  api: {
+vi.mock('../../../configuracion/api/configuracion.api', () => ({
+  configuracionApi: {
     configurarNegocio: vi.fn(),
   },
 }));
@@ -17,8 +18,6 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => vi.fn(),
   };
 });
-
-import { api } from '../../../../lib/api';
 
 describe('OnboardingContainer', () => {
   beforeEach(() => {
@@ -39,14 +38,14 @@ describe('OnboardingContainer', () => {
   });
 
   it('calls configurarNegocio on submit', async () => {
-    vi.mocked(api.configurarNegocio).mockResolvedValue({} as never);
+    vi.mocked(configuracionApi.configurarNegocio).mockResolvedValue({} as never);
     const user = userEvent.setup();
     renderWithProviders(<OnboardingContainer />);
     const input = screen.getByPlaceholderText('Ej: Samsara Spa, Barberia El Punto...');
     await user.type(input, 'Mi Nuevo Spa');
     await user.click(screen.getByText('Comenzar'));
     await vi.waitFor(() => {
-      expect(api.configurarNegocio).toHaveBeenCalledWith('Mi Nuevo Spa');
+      expect(configuracionApi.configurarNegocio).toHaveBeenCalledWith('Mi Nuevo Spa');
     });
   });
 });

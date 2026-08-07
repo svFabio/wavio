@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { HomeView } from '../components/HomeView';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import type { ResumenData } from '../types';
+import { citasApi } from '../../calendario/api/citas.api';
 
 export const HomeContainer = (): React.JSX.Element => {
   const {
@@ -12,12 +12,12 @@ export const HomeContainer = (): React.JSX.Element => {
     isError: isErrorResumen,
   } = useQuery<ResumenData | null>({
     queryKey: ['citas', 'resumen'],
-    queryFn: () => api.obtenerResumen(),
+    queryFn: () => citasApi.obtenerResumen(),
   });
 
   const { data: citasData, isError: isErrorCitas } = useQuery({
     queryKey: ['citas', 'hoy'],
-    queryFn: () => api.obtenerCitas(new Date().toISOString().split('T')[0]),
+    queryFn: () => citasApi.obtenerCitas(new Date().toISOString().split('T')[0]),
   });
 
   const error = isErrorResumen || isErrorCitas ? 'Error cargando el resumen del día' : null;

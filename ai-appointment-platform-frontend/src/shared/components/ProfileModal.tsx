@@ -2,9 +2,9 @@ import { useReducer, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModalAccessibility } from '../hooks/useModalAccessibility';
-import { api } from '../../lib/api';
 import { AvatarSection } from './AvatarSection';
 import { NameEditSection } from './NameEditSection';
+import { authApi } from '../../features/auth/api/auth.api';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -49,7 +49,7 @@ const profileReducer = (
   }
 };
 
-export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
+export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps): React.JSX.Element => {
   const { usuario, setFotoPerfil, setNombre } = useAuth();
 
   const [state, dispatch] = useReducer(profileReducer, {
@@ -106,7 +106,7 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
       try {
         const result = reader.result;
         if (typeof result !== 'string') throw new Error('Error al procesar la imagen');
-        const res = await api.updateAvatar(result);
+        const res = await authApi.updateAvatar(result);
         if (isMounted.current) setFotoPerfil(res.url);
       } catch (err: unknown) {
         if (isMounted.current) {
@@ -132,7 +132,7 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
     dispatch({ type: 'SET_AVATAR_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
-      await api.deleteAvatar();
+      await authApi.deleteAvatar();
       setFotoPerfil(null);
     } catch (err: unknown) {
       dispatch({
@@ -153,7 +153,7 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
     dispatch({ type: 'SET_NOMBRE_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     try {
-      const res = await api.updateNombre(trimmed);
+      const res = await authApi.updateNombre(trimmed);
       setNombre(res.nombre);
       dispatch({ type: 'SET_EDITING_NOMBRE', payload: false });
     } catch (err: unknown) {

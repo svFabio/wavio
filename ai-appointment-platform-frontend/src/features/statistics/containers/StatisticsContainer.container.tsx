@@ -1,21 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { StatisticsView } from '../components/StatisticsView';
+import { statisticsApi } from '../api/statistics.api';
+import { clientesApi } from '../api/clientes.api';
 
-export const StatisticsContainer = () => {
+export const StatisticsContainer = (): React.JSX.Element => {
   const overviewQuery = useQuery({
     queryKey: ['statistics', 'overview'],
-    queryFn: () => api.getStatisticsOverview(),
+    queryFn: () => statisticsApi.getStatisticsOverview(),
   });
 
   const revenueQuery = useQuery({
     queryKey: ['statistics', 'revenue'],
-    queryFn: () => api.getStatisticsRevenue(6),
+    queryFn: () => statisticsApi.getStatisticsRevenue(6),
   });
 
   const clientesQuery = useQuery({
     queryKey: ['clientes'],
-    queryFn: () => api.getClientes(),
+    queryFn: () => clientesApi.getClientes(),
   });
 
   const loading = overviewQuery.isLoading || revenueQuery.isLoading;

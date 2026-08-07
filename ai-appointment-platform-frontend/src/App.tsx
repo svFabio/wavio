@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useCallback, Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
-import { useSocketEvent } from './shared/hooks/useSocketEvent';
+import { useNuevaCitaNotification } from './shared/hooks/useNuevaCitaNotification';
 
 // NotificationToast is eagerly loaded — small component used on every page
 import { NotificationToast } from './shared/components/NotificationToast';
@@ -24,31 +24,10 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Portal = lazy(() => import('./pages/Portal'));
 
-import { useNotifications } from './shared/hooks/useNotifications';
-import { playNotificationSound } from './utils/notificationSound';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 function App() {
-  const { notifications, addNotification, dismissNotification } = useNotifications();
-
-  const handleNuevaCita = useCallback(
-    (data: { clienteNombre: string; clienteTelefono: string; fecha: string; horario: string }) => {
-      const fechaFormateada = format(new Date(data.fecha), 'dd MMM yyyy', { locale: es });
-      addNotification({
-        message: `Nueva cita de ${data.clienteNombre}`,
-        clienteNombre: data.clienteNombre,
-        fecha: fechaFormateada,
-        horario: data.horario,
-      });
-      playNotificationSound();
-    },
-    [addNotification],
-  );
-
-  useSocketEvent('nueva-cita', handleNuevaCita);
+  const { notifications, dismissNotification } = useNuevaCitaNotification();
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
