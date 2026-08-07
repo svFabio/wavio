@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthService } from './auth.service';
 import type { AuthRepository } from './auth.repository';
 import { UnauthorizedError, ConflictError, NotFoundError } from '../domain/errors';
-
 vi.hoisted(() => {
   process.env.LOG_LEVEL = 'fatal';
 });
@@ -64,6 +63,8 @@ describe('AuthService', () => {
       findUsuarioByNegocioId: vi.fn(),
       updateUsuario: vi.fn(),
       findUsuarioNegocioMembership: vi.fn(),
+      findUsuarioByIdWithPassword: vi.fn(),
+      updatePassword: vi.fn(),
     };
 
     service = new AuthService(mockAuthRepository as unknown as AuthRepository);
@@ -779,6 +780,73 @@ describe('AuthService', () => {
 
       expect(result.nombre).toBe('New Name');
       expect(mockAuthRepository.updateUsuario).toHaveBeenCalledWith(1, { nombre: 'New Name' });
+    });
+  });
+
+  /* ─── cambiarPassword ────────────────────────────────────────────── */
+
+  describe('cambiarPassword', () => {
+    it('should change the password when the current password is valid', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue({
+        id: 1,
+        email: 'u@t.com',
+        password: 'hashed',
+      });
+      mockBcryptCompare.mockResolvedValue(true);
+      mockBcryptHash.mockResolvedValue('new_hashed');
+
+      const result = await service.cambiarPassword(1, 'oldpass', 'newpass123');
+
+      expect(mockBcryptCompare).toHaveBeenCalledWith('oldpass', 'hashed');
+      expect(mockBcryptHash).toHaveBeenCalledWith('newpass123', 10);
+      expect(mockAuthRepository.updatePassword).toHaveBeenCalledWith(1, 'new_hashed');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should throw UnauthorizedError when the current password is wrong', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue({
+        id: 1,
+        email: 'u@t.com',
+        password: 'hashed',
+      });
+      mockBcryptCompare.mockResolvedValue(false);
+
+      await expect(service.cambiarPassword(1, 'wrong', 'newpass123')).rejects.toThrow(
+        UnauthorizedError,
+      );
+      expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
+    });
+
+    it('should allow setting a password directly when the user has none (first login)', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue({
+        id: 1,
+        email: 'u@t.com',
+        password: '',
+      });
+      mockBcryptHash.mockResolvedValue('new_hashed');
+
+      const result = await service.cambiarPassword(1, undefined, 'newpass123');
+
+      expect(mockBcryptCompare).not.toHaveBeenCalled();
+      expect(mockAuthRepository.updatePassword).toHaveBeenCalledWith(1, 'new_hashed');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should throw NotFoundError when the usuario does not exist', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue(null);
+
+      await expect(service.cambiarPassword(999, 'x', 'newpass123')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  /* ─── resetPassword ──────────────────────────────────────────────── */
+
+  describe('resetPassword', () => {
+    it('should always return ok without generating anything (no email channel yet)', async () => {
+      const result = await service.resetPassword('anyone@test.com');
+
+      expect(result).toEqual({ ok: true });
+      expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
     });
   });
 });

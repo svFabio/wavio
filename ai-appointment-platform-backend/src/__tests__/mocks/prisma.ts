@@ -79,6 +79,7 @@ export interface MockPrisma {
   configuracion: MockModelMethods;
   listaEspera: MockModelMethods;
   pushSubscription: MockModelMethods;
+  invitacion: MockModelMethods;
 }
 
 /* ─── Factory ─────────────────────────────────────────────────────── */
@@ -107,4 +108,5 @@ export const createMockPrisma = (): MockPrisma => ({
   configuracion: createModelMethods(),
   listaEspera: createModelMethods(),
   pushSubscription: createModelMethods(),
+  invitacion: createModelMethods(),
 });

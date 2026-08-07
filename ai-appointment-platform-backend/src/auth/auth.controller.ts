@@ -8,7 +8,14 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { NegocioIdHeader } from '../common/decorators/negocio-id-header.decorator';
 import type { JwtPayload } from '../common/utils/jwt';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import { googleLoginSchema, emailAuthSchema, avatarSchema, nombreSchema } from './dto/auth.dto';
+import {
+  googleLoginSchema,
+  emailAuthSchema,
+  avatarSchema,
+  nombreSchema,
+  cambiarPasswordSchema,
+  resetPasswordSchema,
+} from './dto/auth.dto';
 
 type LoginGoogleResult = Awaited<ReturnType<AuthService['loginConGoogle']>>;
 type RegistrarResult = Awaited<ReturnType<AuthService['registrarConEmail']>>;
@@ -17,6 +24,8 @@ type MeResult = Awaited<ReturnType<AuthService['obtenerUsuarioActual']>>;
 type AvatarResult = Awaited<ReturnType<AuthService['updateAvatar']>>;
 type DeleteAvatarResult = Awaited<ReturnType<AuthService['deleteAvatar']>>;
 type NombreResult = Awaited<ReturnType<AuthService['updateNombre']>>;
+type CambiarPasswordResult = Awaited<ReturnType<AuthService['cambiarPassword']>>;
+type ResetPasswordResult = Awaited<ReturnType<AuthService['resetPassword']>>;
 
 @Controller('api/v1/auth')
 @ApiBearerAuth()
@@ -78,5 +87,23 @@ export class AuthController {
     @Body(new ZodValidationPipe(nombreSchema)) body: { nombre: string },
   ): Promise<NombreResult> {
     return this.authService.updateNombre(user.id, user.negocioId, body.nombre);
+  }
+
+  @Post('cambiar-password')
+  @UseGuards(JwtAuthGuard)
+  cambiarPassword(
+    @CurrentUser() user: JwtPayload,
+    @Body(new ZodValidationPipe(cambiarPasswordSchema))
+    body: { passwordActual?: string; passwordNueva: string },
+  ): Promise<CambiarPasswordResult> {
+    return this.authService.cambiarPassword(user.id, body.passwordActual, body.passwordNueva);
+  }
+
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  resetPassword(
+    @Body(new ZodValidationPipe(resetPasswordSchema)) body: { email: string },
+  ): Promise<ResetPasswordResult> {
+    return this.authService.resetPassword(body.email);
   }
 }

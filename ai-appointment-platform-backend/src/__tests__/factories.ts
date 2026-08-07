@@ -436,3 +436,37 @@ export const buildPushSubscription = (
   createdAt: today(),
   ...overrides,
 });
+
+/* ─── INVITACION ───────────────────────────────────────────────────── */
+
+export interface FactoryInvitacion {
+  id: number;
+  negocioId: number;
+  email: string;
+  rol: string;
+  tokenHash: string;
+  expiraEn: Date;
+  estado: string;
+  creadoEn: Date;
+  creadoPor: number;
+  aceptadaEn: Date | null;
+}
+
+export const buildInvitacion = (
+  negocioId: number,
+  overrides: Partial<FactoryInvitacion> = {},
+): FactoryInvitacion => ({
+  id: nextId(),
+  negocioId,
+  email: `staff${_nextId}@test.com`,
+  rol: 'STAFF',
+  tokenHash: `token-hash-${nextId()}`,
+  // La expiración debe quedar en el futuro respecto al reloj real del test,
+  // porque el servicio compara contra new Date() en tiempo de ejecución.
+  expiraEn: new Date(Date.now() + 72 * 60 * 60 * 1000),
+  estado: 'PENDIENTE',
+  creadoEn: today(),
+  creadoPor: 1,
+  aceptadaEn: null,
+  ...overrides,
+});

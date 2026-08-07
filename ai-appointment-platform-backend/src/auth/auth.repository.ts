@@ -198,4 +198,20 @@ export class AuthRepository {
       select: { id: true, nombre: true, email: true, rol: true, creadoEn: true },
     });
   }
+
+  async findUsuarioByIdWithPassword(
+    id: number,
+  ): Promise<{ id: number; email: string; password: string | null } | null> {
+    return this.prisma.usuario.findUnique({
+      where: { id },
+      select: { id: true, email: true, password: true },
+    });
+  }
+
+  async updatePassword(id: number, password: string): Promise<void> {
+    await this.prisma.usuario.update({
+      where: { id },
+      data: { password },
+    });
+  }
 }

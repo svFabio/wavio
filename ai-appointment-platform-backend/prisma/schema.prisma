@@ -62,6 +62,7 @@ model Negocio {
   clientes           Cliente[]
   listaEspera        ListaEspera[]
   pushSubscriptions  PushSubscription[]
+  invitaciones       Invitacion[]
 }
 
 // ─── USUARIO-NEGOCIO (M:N junction) ──────────────────────────────────────────
@@ -306,4 +307,26 @@ model PushSubscription {
   @@unique([endpoint])
   @@index([negocioId])
   @@index([userId])
+}
+
+// ─── INVITACIÓN (staff/admin por email) ─────────────────────────────────────
+// Solo el OWNER/ADMIN crea invitaciones con email+rol (nunca contraseña).
+// El token se guarda HASEADO (SHA-256) en tokenHash; el token crudo solo se
+// devuelve una vez en la respuesta de creación. El Usuario se crea al aceptar.
+model Invitacion {
+  id        Int      @id @default(autoincrement())
+  negocioId Int
+  email     String
+  rol       Rol      @default(STAFF)
+  tokenHash String   @unique
+  expiraEn  DateTime
+  estado    String   @default("PENDIENTE") // PENDIENTE | ACEPTADA | CANCELADA | EXPIRADA
+  creadoEn  DateTime @default(now())
+  creadoPor Int
+  aceptadaEn DateTime?
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@index([negocioId])
+  @@index([email])
 }

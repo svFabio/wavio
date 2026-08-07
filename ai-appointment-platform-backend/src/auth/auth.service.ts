@@ -285,4 +285,42 @@ export class AuthService {
     });
     return { nombre: updated.nombre };
   }
+
+  /**
+   * Cambia la contraseña del usuario autenticado.
+   * Si el usuario aún no tiene contraseña ('' — p.ej. staff invitado que aún no
+   * la estableció), permite fijar la nueva directamente sin `passwordActual`.
+   */
+  async cambiarPassword(
+    userId: number,
+    passwordActual: string | undefined,
+    passwordNueva: string,
+  ): Promise<{ ok: boolean }> {
+    const usuario = await this.authRepository.findUsuarioByIdWithPassword(userId);
+    if (!usuario) {
+      throw new NotFoundError('Usuario');
+    }
+
+    if (usuario.password) {
+      const valida = await bcrypt.compare(passwordActual ?? '', usuario.password);
+      if (!valida) {
+        throw new UnauthorizedError('La contraseña actual es incorrecta');
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(passwordNueva, BCRYPT_SALT_ROUNDS);
+    await this.authRepository.updatePassword(userId, hashedPassword);
+
+    return { ok: true };
+  }
+
+  /**
+   * Reset de contraseña por email (superficie de contrato).
+   * TODO: sin un canal de email/WhatsApp no podemos entregar un token de reset,
+   * así que NO se genera nada y se responde { ok: true } SIEMPRE para evitar
+   * enumeración de usuarios. Implementar el delivery real cuando exista el canal.
+   */
+  async resetPassword(_email: string): Promise<{ ok: boolean }> {
+    return { ok: true };
+  }
 }
