@@ -63,7 +63,7 @@ export class AuthRepository {
           email,
           googleId: hashedPassword ? null : googleId,
           password: hashedPassword || '',
-          rol: 'ADMIN',
+          rol: 'OWNER',
         },
       }),
     ]);
@@ -72,7 +72,7 @@ export class AuthRepository {
       data: {
         usuarioId: usuario.id,
         negocioId: negocio.id,
-        rol: 'ADMIN',
+        rol: 'OWNER',
       },
     });
 
@@ -137,7 +137,7 @@ export class AuthRepository {
         usuarioId_negocioId: { usuarioId, negocioId },
       },
       update: {},
-      create: { usuarioId, negocioId, rol: rol as 'ADMIN' | 'STAFF' },
+      create: { usuarioId, negocioId, rol: rol as 'OWNER' | 'ADMIN' | 'STAFF' },
     });
   }
 

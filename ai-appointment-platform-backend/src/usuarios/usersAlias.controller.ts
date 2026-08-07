@@ -21,6 +21,10 @@ import type { JwtPayload } from '../common/utils/jwt';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { createUserSchema, updateUserSchema } from '../usuarios/dto/usuarios.dto';
 
+type GetAllUsuariosResult = Awaited<ReturnType<UsuariosService['getAllUsers']>>;
+type CreateUsuarioResult = Awaited<ReturnType<UsuariosService['createUser']>>;
+type UpdateUsuarioResult = Awaited<ReturnType<UsuariosService['updateUser']>>;
+
 /**
  * Alias controller — the frontend calls /api/v1/users
  * but the canonical controller is /api/v1/usuarios.
@@ -33,7 +37,7 @@ export class UsersAliasController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Get('/')
-  async getAll(@TenantId() negocioId: number) {
+  async getAll(@TenantId() negocioId: number): Promise<GetAllUsuariosResult> {
     return this.usuariosService.getAllUsers(negocioId, 1, 100);
   }
 
@@ -42,8 +46,9 @@ export class UsersAliasController {
   async create(
     @TenantId() negocioId: number,
     @Body() body: { nombre: string; email: string; password: string; rol?: string },
-  ) {
-    return this.usuariosService.createUser(negocioId, body);
+    @CurrentUser() user: JwtPayload,
+  ): Promise<CreateUsuarioResult> {
+    return this.usuariosService.createUser(negocioId, body, user.rol);
   }
 
   @Put('/:id')
@@ -52,8 +57,9 @@ export class UsersAliasController {
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { nombre?: string; email?: string; rol?: string },
-  ) {
-    return this.usuariosService.updateUser(negocioId, id, body);
+    @CurrentUser() user: JwtPayload,
+  ): Promise<UpdateUsuarioResult> {
+    return this.usuariosService.updateUser(negocioId, id, body, user.rol);
   }
 
   @Delete('/:id')
@@ -61,7 +67,7 @@ export class UsersAliasController {
     @TenantId() negocioId: number,
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
-  ) {
-    return this.usuariosService.deleteUser(negocioId, id, user.id);
+  ): Promise<void> {
+    return this.usuariosService.deleteUser(negocioId, id, user.id, user.rol);
   }
 }

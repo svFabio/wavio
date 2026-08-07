@@ -149,4 +149,13 @@ export class UsuariosRepository {
       select: { id: true },
     });
   }
+
+  async countAdminsByNegocio(negocioId: number): Promise<number> {
+    return this.prisma.usuario.count({
+      where: {
+        rol: { in: ['ADMIN', 'OWNER'] },
+        usuarioNegocios: { some: { negocioId } },
+      },
+    });
+  }
 }

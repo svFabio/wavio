@@ -43,6 +43,24 @@ describe('RolesGuard', () => {
     expect(result).toBe(true);
   });
 
+  it('should allow OWNER access to routes requiring ADMIN', () => {
+    mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    const context = createContext({ rol: 'OWNER' });
+
+    const result = guard.canActivate(context);
+
+    expect(result).toBe(true);
+  });
+
+  it('should deny STAFF access to routes requiring ADMIN', () => {
+    mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    const context = createContext({ rol: 'STAFF' });
+
+    const result = guard.canActivate(context);
+
+    expect(result).toBe(false);
+  });
+
   it('should deny access when user role does not match', () => {
     mockReflector.getAllAndOverride.mockReturnValue(['ADMIN']);
     const context = createContext({ rol: 'STAFF' });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UsuariosService } from './usuarios.service';
 import type { UsuariosRepository } from './usuarios.repository';
-import { ValidationError, ConflictError, NotFoundError } from '../domain/errors';
+import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '../domain/errors';
 
 vi.mock('bcryptjs', () => ({
   default: { hash: vi.fn().mockResolvedValue('hashed_password') },
@@ -16,6 +16,32 @@ describe('UsuariosService', () => {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
+    countAdminsByNegocio: ReturnType<typeof vi.fn>;
+  };
+
+  const staffTarget = {
+    id: 2,
+    nombre: 'Staff',
+    email: 'staff@test.com',
+    rol: 'STAFF',
+    creadoEn: new Date(),
+    fotoPerfil: null,
+  };
+  const adminTarget = {
+    id: 2,
+    nombre: 'Admin',
+    email: 'admin@test.com',
+    rol: 'ADMIN',
+    creadoEn: new Date(),
+    fotoPerfil: null,
+  };
+  const ownerTarget = {
+    id: 2,
+    nombre: 'Owner',
+    email: 'owner@test.com',
+    rol: 'OWNER',
+    creadoEn: new Date(),
+    fotoPerfil: null,
   };
 
   beforeEach(() => {
@@ -26,6 +52,7 @@ describe('UsuariosService', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      countAdminsByNegocio: vi.fn(),
     };
     service = new UsuariosService(mockRepo as unknown as UsuariosRepository);
   });
@@ -54,18 +81,24 @@ describe('UsuariosService', () => {
 
   describe('createUser', () => {
     it('should throw ValidationError when required fields are missing', async () => {
-      await expect(service.createUser(1, {})).rejects.toThrow(ValidationError);
-      await expect(service.createUser(1, { nombre: 'Test' })).rejects.toThrow(ValidationError);
+      await expect(service.createUser(1, {}, 'OWNER')).rejects.toThrow(ValidationError);
+      await expect(service.createUser(1, { nombre: 'Test' }, 'OWNER')).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it('should throw ValidationError for invalid role', async () => {
       await expect(
-        service.createUser(1, {
-          nombre: 'Test',
-          email: 'test@test.com',
-          password: '123',
-          rol: 'OWNER',
-        }),
+        service.createUser(
+          1,
+          {
+            nombre: 'Test',
+            email: 'test@test.com',
+            password: '123',
+            rol: 'OWNER',
+          },
+          'OWNER',
+        ),
       ).rejects.toThrow(ValidationError);
     });
 
@@ -79,12 +112,16 @@ describe('UsuariosService', () => {
       });
 
       await expect(
-        service.createUser(1, {
-          nombre: 'Test',
-          email: 'test@test.com',
-          password: '123',
-          rol: 'STAFF',
-        }),
+        service.createUser(
+          1,
+          {
+            nombre: 'Test',
+            email: 'test@test.com',
+            password: '123',
+            rol: 'STAFF',
+          },
+          'OWNER',
+        ),
       ).rejects.toThrow(ConflictError);
     });
 
@@ -100,12 +137,16 @@ describe('UsuariosService', () => {
       };
       mockRepo.create.mockResolvedValue(created);
 
-      const result = await service.createUser(1, {
-        nombre: 'Test',
-        email: 'test@test.com',
-        password: '123',
-        rol: 'STAFF',
-      });
+      const result = await service.createUser(
+        1,
+        {
+          nombre: 'Test',
+          email: 'test@test.com',
+          password: '123',
+          rol: 'STAFF',
+        },
+        'OWNER',
+      );
 
       expect(result).toEqual(created);
       expect(mockRepo.create).toHaveBeenCalledWith(
@@ -117,77 +158,110 @@ describe('UsuariosService', () => {
         }),
       );
     });
+
+    it('should throw ForbiddenError when ADMIN tries to create an ADMIN', async () => {
+      await expect(
+        service.createUser(
+          1,
+          {
+            nombre: 'Test',
+            email: 'test@test.com',
+            password: '123',
+            rol: 'ADMIN',
+          },
+          'ADMIN',
+        ),
+      ).rejects.toThrow(ForbiddenError);
+      expect(mockRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('should allow OWNER to create an ADMIN', async () => {
+      mockRepo.findByEmail.mockResolvedValue(null);
+      const created = {
+        id: 1,
+        nombre: 'Test',
+        email: 'test@test.com',
+        rol: 'ADMIN',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      };
+      mockRepo.create.mockResolvedValue(created);
+
+      const result = await service.createUser(
+        1,
+        {
+          nombre: 'Test',
+          email: 'test@test.com',
+          password: '123',
+          rol: 'ADMIN',
+        },
+        'OWNER',
+      );
+
+      expect(result).toEqual(created);
+      expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({ rol: 'ADMIN' }));
+    });
+
+    it('should throw ForbiddenError when STAFF tries to create a user', async () => {
+      await expect(
+        service.createUser(
+          1,
+          {
+            nombre: 'Test',
+            email: 'test@test.com',
+            password: '123',
+            rol: 'STAFF',
+          },
+          'STAFF',
+        ),
+      ).rejects.toThrow(ForbiddenError);
+      expect(mockRepo.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateUser', () => {
     it('should throw NotFoundError when user does not exist', async () => {
       mockRepo.findByIdAndNegocioId.mockResolvedValue(null);
 
-      await expect(service.updateUser(1, 99, { nombre: 'New' })).rejects.toThrow(NotFoundError);
+      await expect(service.updateUser(1, 99, { nombre: 'New' }, 'OWNER')).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it('should throw ConflictError when email is taken by another user', async () => {
-      mockRepo.findByIdAndNegocioId.mockResolvedValue({
-        id: 1,
-        nombre: 'Old',
-        email: 'old@test.com',
-        rol: 'STAFF',
-        creadoEn: new Date(),
-        fotoPerfil: null,
-      });
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
       mockRepo.findByEmail.mockResolvedValue({
-        id: 2,
+        id: 3,
         email: 'taken@test.com',
         password: 'x',
         rol: 'STAFF',
         fotoPerfil: null,
       });
 
-      await expect(service.updateUser(1, 1, { email: 'taken@test.com' })).rejects.toThrow(
+      await expect(service.updateUser(1, 1, { email: 'taken@test.com' }, 'OWNER')).rejects.toThrow(
         ConflictError,
       );
     });
 
     it('should throw ValidationError for invalid role', async () => {
-      mockRepo.findByIdAndNegocioId.mockResolvedValue({
-        id: 1,
-        nombre: 'Old',
-        email: 'old@test.com',
-        rol: 'STAFF',
-        creadoEn: new Date(),
-        fotoPerfil: null,
-      });
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
 
-      await expect(service.updateUser(1, 1, { rol: 'MANAGER' })).rejects.toThrow(ValidationError);
+      await expect(service.updateUser(1, 1, { rol: 'MANAGER' }, 'OWNER')).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it('should return existing user when no changes provided', async () => {
-      const existing = {
-        id: 1,
-        nombre: 'Old',
-        email: 'old@test.com',
-        rol: 'STAFF',
-        creadoEn: new Date(),
-        fotoPerfil: null,
-      };
-      mockRepo.findByIdAndNegocioId.mockResolvedValue(existing);
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
 
-      const result = await service.updateUser(1, 1, {});
+      const result = await service.updateUser(1, 1, {}, 'OWNER');
 
-      expect(result).toEqual(existing);
+      expect(result).toEqual(staffTarget);
       expect(mockRepo.update).not.toHaveBeenCalled();
     });
 
     it('should update user fields', async () => {
-      const existing = {
-        id: 1,
-        nombre: 'Old',
-        email: 'old@test.com',
-        rol: 'STAFF',
-        creadoEn: new Date(),
-        fotoPerfil: null,
-      };
-      mockRepo.findByIdAndNegocioId.mockResolvedValue(existing);
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
       mockRepo.findByEmail.mockResolvedValue(null);
       const updated = {
         id: 1,
@@ -198,39 +272,125 @@ describe('UsuariosService', () => {
       };
       mockRepo.update.mockResolvedValue(updated);
 
-      const result = await service.updateUser(1, 1, {
-        nombre: 'New',
-        email: 'new@test.com',
-        password: 'newpass',
-        rol: 'ADMIN',
-      });
+      const result = await service.updateUser(
+        1,
+        1,
+        {
+          nombre: 'New',
+          email: 'new@test.com',
+          password: 'newpass',
+          rol: 'ADMIN',
+        },
+        'OWNER',
+      );
 
       expect(result).toEqual(updated);
+    });
+
+    it('should throw ForbiddenError when ADMIN tries to demote an ADMIN', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+
+      await expect(service.updateUser(1, 2, { rol: 'STAFF' }, 'ADMIN')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when ADMIN tries to promote STAFF to ADMIN', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
+
+      await expect(service.updateUser(1, 2, { rol: 'ADMIN' }, 'ADMIN')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when modifying an OWNER', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
+
+      await expect(service.updateUser(1, 2, { rol: 'STAFF' }, 'OWNER')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when demoting the last admin', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+      mockRepo.countAdminsByNegocio.mockResolvedValue(1);
+
+      await expect(service.updateUser(1, 2, { rol: 'STAFF' }, 'OWNER')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.countAdminsByNegocio).toHaveBeenCalledWith(1);
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should allow OWNER to demote an ADMIN when there are more admins', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+      mockRepo.countAdminsByNegocio.mockResolvedValue(2);
+      const updated = {
+        id: 2,
+        nombre: 'Admin',
+        email: 'admin@test.com',
+        rol: 'STAFF',
+        creadoEn: new Date(),
+      };
+      mockRepo.update.mockResolvedValue(updated);
+
+      const result = await service.updateUser(1, 2, { rol: 'STAFF' }, 'OWNER');
+
+      expect(result).toEqual(updated);
+      expect(mockRepo.update).toHaveBeenCalledWith(2, { rol: 'STAFF' });
     });
   });
 
   describe('deleteUser', () => {
     it('should throw ValidationError when deleting self', async () => {
-      await expect(service.deleteUser(1, 1, 1)).rejects.toThrow(ValidationError);
+      await expect(service.deleteUser(1, 1, 1, 'OWNER')).rejects.toThrow(ValidationError);
     });
 
     it('should throw NotFoundError when user does not exist', async () => {
       mockRepo.findByIdAndNegocioId.mockResolvedValue(null);
 
-      await expect(service.deleteUser(1, 2, 1)).rejects.toThrow(NotFoundError);
+      await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(NotFoundError);
     });
 
     it('should delete user', async () => {
-      mockRepo.findByIdAndNegocioId.mockResolvedValue({
-        id: 2,
-        nombre: 'Staff',
-        email: 'staff@test.com',
-        rol: 'STAFF',
-        creadoEn: new Date(),
-        fotoPerfil: null,
-      });
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
 
-      await service.deleteUser(1, 2, 1);
+      await service.deleteUser(1, 2, 1, 'OWNER');
+
+      expect(mockRepo.delete).toHaveBeenCalledWith(2);
+    });
+
+    it('should throw ForbiddenError when trying to delete an OWNER', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
+
+      await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(ForbiddenError);
+      expect(mockRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when ADMIN tries to delete an ADMIN', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+
+      await expect(service.deleteUser(1, 2, 1, 'ADMIN')).rejects.toThrow(ForbiddenError);
+      expect(mockRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when deleting the last admin', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+      mockRepo.countAdminsByNegocio.mockResolvedValue(1);
+
+      await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(ForbiddenError);
+      expect(mockRepo.countAdminsByNegocio).toHaveBeenCalledWith(1);
+      expect(mockRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('should allow OWNER to delete an ADMIN when there are more admins', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+      mockRepo.countAdminsByNegocio.mockResolvedValue(2);
+
+      await service.deleteUser(1, 2, 1, 'OWNER');
 
       expect(mockRepo.delete).toHaveBeenCalledWith(2);
     });

@@ -98,7 +98,7 @@ describe('AuthService', () => {
         nombre: 'Test User',
         email: 'test@example.com',
         googleId: 'google_123',
-        rol: 'ADMIN',
+        rol: 'OWNER',
         creadoEn: new Date(),
         fotoPerfil: null,
       });
@@ -121,11 +121,66 @@ describe('AuthService', () => {
 
       expect(result.token).toBe('mock-jwt-token');
       expect(result.esNuevo).toBe(true);
+      expect(result.usuario.rol).toBe('OWNER');
       expect(mockAuthRepository.createNegocioWithAdmin).toHaveBeenCalledWith(
         'google_123',
         'test@example.com',
         'Test User',
       );
+    });
+
+    it('should upsert OWNER membership when existing user joins an existing negocio', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload(),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue({
+        id: 5,
+        googleId: 'google_123',
+        email: 'test@example.com',
+        nombre: 'Existing',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findFirstByGoogleId.mockResolvedValue({ id: 2 });
+      mockAuthRepository.upsertMembership.mockResolvedValue({
+        usuarioId: 2,
+        negocioId: 5,
+        rol: 'OWNER',
+      });
+      mockAuthRepository.findUsuarioById.mockResolvedValue({
+        id: 2,
+        nombre: 'Test User',
+        email: 'test@example.com',
+        googleId: 'google_123',
+        rol: 'OWNER',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 5,
+          googleId: 'google_123',
+          email: 'test@example.com',
+          nombre: 'Existing',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+        },
+      ]);
+
+      const result = await service.loginConGoogle(validGoogleToken);
+
+      expect(result.esNuevo).toBe(false);
+      expect(mockAuthRepository.upsertMembership).toHaveBeenCalledWith(2, 5, 'OWNER');
+      expect(result.usuario.rol).toBe('OWNER');
     });
 
     it('should return existing negocio for returning user', async () => {
@@ -210,7 +265,7 @@ describe('AuthService', () => {
         nombre: 'test',
         email: 'test@example.com',
         googleId: null,
-        rol: 'ADMIN',
+        rol: 'OWNER',
         creadoEn: new Date(),
         fotoPerfil: null,
       });
@@ -233,6 +288,7 @@ describe('AuthService', () => {
 
       expect(result.token).toBe('mock-jwt-token');
       expect(result.esNuevo).toBe(true);
+      expect(result.usuario.rol).toBe('OWNER');
       expect(mockBcryptHash).toHaveBeenCalledWith('securepass', 10);
     });
 

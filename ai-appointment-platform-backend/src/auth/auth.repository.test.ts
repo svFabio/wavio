@@ -41,9 +41,9 @@ describe('AuthRepository', () => {
   });
 
   describe('createNegocioWithAdmin', () => {
-    it('should create negocio, usuario, and membership', async () => {
+    it('should create negocio, usuario, and membership with OWNER role', async () => {
       const negocio = buildNegocio({ googleId: 'g-123' });
-      const usuario = buildUsuario({ email: 'test@test.com', rol: 'ADMIN' });
+      const usuario = buildUsuario({ email: 'test@test.com', rol: 'OWNER' });
 
       prisma.negocio.create.mockResolvedValue(negocio);
       prisma.usuario.create.mockResolvedValue(usuario);
@@ -55,8 +55,16 @@ describe('AuthRepository', () => {
         data: { googleId: 'g-123', email: 'test@test.com', nombre: 'Test' },
         select: expect.any(Object),
       });
-      expect(prisma.usuario.create).toHaveBeenCalled();
-      expect(prisma.usuarioNegocio.create).toHaveBeenCalled();
+      expect(prisma.usuario.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ rol: 'OWNER' }),
+        }),
+      );
+      expect(prisma.usuarioNegocio.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ rol: 'OWNER' }),
+        }),
+      );
       expect(result).toEqual(negocio);
     });
   });
@@ -203,6 +211,20 @@ describe('AuthRepository', () => {
         where: { usuarioId_negocioId: { usuarioId: 1, negocioId: 1 } },
         update: {},
         create: { usuarioId: 1, negocioId: 1, rol: 'STAFF' },
+      });
+      expect(result).toEqual(membership);
+    });
+
+    it('should pass OWNER role through to create', async () => {
+      const membership = { usuarioId: 1, negocioId: 1, rol: 'OWNER' };
+      prisma.usuarioNegocio.upsert.mockResolvedValue(membership);
+
+      const result = await repo.upsertMembership(1, 1, 'OWNER');
+
+      expect(prisma.usuarioNegocio.upsert).toHaveBeenCalledWith({
+        where: { usuarioId_negocioId: { usuarioId: 1, negocioId: 1 } },
+        update: {},
+        create: { usuarioId: 1, negocioId: 1, rol: 'OWNER' },
       });
       expect(result).toEqual(membership);
     });

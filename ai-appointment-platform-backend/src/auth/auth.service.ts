@@ -91,7 +91,7 @@ export class AuthService {
     if (!usuario) {
       const existingUser = await this.authRepository.findFirstByGoogleId(googleId);
       if (existingUser) {
-        await this.authRepository.upsertMembership(existingUser.id, negocio.id, 'ADMIN');
+        await this.authRepository.upsertMembership(existingUser.id, negocio.id, 'OWNER');
         usuario = await this.authRepository.findUsuarioById(existingUser.id);
       }
       if (!usuario) {
