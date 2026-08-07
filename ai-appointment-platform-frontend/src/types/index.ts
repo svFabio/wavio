@@ -3,7 +3,7 @@ export interface Usuario {
   id: number;
   nombre: string;
   email: string;
-  rol: 'ADMIN' | 'STAFF';
+  rol: 'OWNER' | 'ADMIN' | 'STAFF';
   fotoPerfil?: string;
 }
 

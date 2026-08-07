@@ -25,6 +25,7 @@ interface MockAuthOptions {
   token?: string | null;
   loading?: boolean;
   isAdmin?: boolean;
+  isOwner?: boolean;
   setFotoPerfil?: (url: string | null) => void;
   setNombre?: (nombre: string) => void;
   switchNegocio?: (negocioId: number) => void;
@@ -58,6 +59,7 @@ function buildAuthValue(auth?: MockAuthOptions) {
     logout: vi.fn() as unknown as () => void,
     isAuthenticated: false,
     isAdmin: false,
+    isOwner: false,
     setFotoPerfil: vi.fn() as unknown as (url: string | null) => void,
     setNombre: vi.fn() as unknown as (nombre: string) => void,
     switchNegocio: vi.fn() as unknown as (negocioId: number) => void,

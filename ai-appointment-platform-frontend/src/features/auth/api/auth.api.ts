@@ -6,7 +6,7 @@ type AuthResponse = {
     id: number;
     nombre: string;
     email: string;
-    rol: 'ADMIN' | 'STAFF';
+    rol: 'OWNER' | 'ADMIN' | 'STAFF';
     fotoPerfil?: string;
   };
   negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
@@ -41,7 +41,7 @@ export const authApi = {
       id: number;
       nombre: string;
       email: string;
-      rol: 'ADMIN' | 'STAFF';
+      rol: 'OWNER' | 'ADMIN' | 'STAFF';
       fotoPerfil?: string;
     };
     negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;
@@ -52,7 +52,7 @@ export const authApi = {
           id: number;
           nombre: string;
           email: string;
-          rol: 'ADMIN' | 'STAFF';
+          rol: 'OWNER' | 'ADMIN' | 'STAFF';
           fotoPerfil?: string;
         };
         negocios: Array<{ id: number; nombre: string; plan: 'FREE' | 'PRO' }>;

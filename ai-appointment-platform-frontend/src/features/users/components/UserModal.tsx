@@ -1,6 +1,5 @@
-import { useRef } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
+import { Loader2, ShieldAlert } from 'lucide-react';
+import { ModalShell } from '../../../shared/components/ModalShell';
 import type { User, UserFormData } from '../types';
 
 interface UserModalProps {
@@ -8,6 +7,10 @@ interface UserModalProps {
   editingUser: User | null;
   formData: UserFormData;
   isSaving: boolean;
+  /** Role of the authenticated user viewing this modal */
+  viewerRole: 'OWNER' | 'ADMIN' | 'STAFF';
+  /** Total number of admins (including OWNER) in the negocio — used to prevent demoting the last admin */
+  adminCount: number;
   onFormDataChange: (data: UserFormData) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
@@ -18,52 +21,50 @@ export const UserModal = ({
   editingUser,
   formData,
   isSaving,
+  viewerRole,
+  adminCount,
   onFormDataChange,
   onSubmit,
   onClose,
-}: UserModalProps) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
+}: UserModalProps): React.JSX.Element | null => {
+  const isOwner = viewerRole === 'OWNER';
+  const isEditingOwner = editingUser?.rol === 'OWNER';
 
-  const { handleKeyDown } = useModalAccessibility({
-    isOpen,
-    onClose,
-    modalRef,
-    triggerRef,
-  });
+  // Only OWNER can assign ADMIN role. ADMINs can only create STAFF.
+  const canAssignAdmin = isOwner;
 
-  if (!isOpen) return null;
+  // Prevent demoting the last admin: if editing the only admin (and viewer is OWNER), block.
+  const isLastAdmin = editingUser?.rol === 'ADMIN' && adminCount <= 1 && formData.rol === 'STAFF';
 
   const update = (patch: Partial<UserFormData>) => onFormDataChange({ ...formData, ...patch });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-modal">
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={editingUser ? 'Editar usuario' : 'Nuevo usuario'}
-        onKeyDown={handleKeyDown}
-        className="bg-surface rounded-lg p-6 w-full max-w-md shadow-xl"
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-txt">
-            {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
-          </h2>
-          <button onClick={onClose} aria-label="Cerrar" className="text-txt-muted hover:text-txt">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editingUser ? 'Edit User' : 'New User'}
+      size="md"
+    >
+      <div className="p-6">
+        {isEditingOwner && (
+          <div className="flex items-center gap-2 mb-4 p-3 rounded-md bg-warning/10 border border-warning/30">
+            <ShieldAlert className="w-4 h-4 text-warning flex-shrink-0" />
+            <p className="text-sm text-txt-secondary">
+              The <strong>Owner</strong> account cannot be modified.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Nombre</label>
+            <label className="block text-sm font-medium text-txt mb-1">Name</label>
             <input
               type="text"
               required
+              disabled={isEditingOwner}
               value={formData.nombre}
               onChange={(e) => update({ nombre: e.target.value })}
-              className="input-modern"
+              className="input-modern disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -72,53 +73,76 @@ export const UserModal = ({
             <input
               type="email"
               required
+              disabled={isEditingOwner}
               value={formData.email}
               onChange={(e) => update({ email: e.target.value })}
-              className="input-modern"
+              className="input-modern disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-txt mb-1">
-              Contraseña {editingUser && '(dejar vacio para no cambiar)'}
-            </label>
-            <input
-              type="password"
-              required={!editingUser}
-              value={formData.password}
-              onChange={(e) => update({ password: e.target.value })}
-              className="input-modern"
-            />
-          </div>
+          {!isEditingOwner && (
+            <div>
+              <label className="block text-sm font-medium text-txt mb-1">
+                Password {editingUser && '(leave blank to keep unchanged)'}
+              </label>
+              <input
+                type="password"
+                required={!editingUser}
+                value={formData.password}
+                onChange={(e) => update({ password: e.target.value })}
+                className="input-modern"
+              />
+            </div>
+          )}
 
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Rol</label>
-            <select
-              value={formData.rol}
-              onChange={(e) => update({ rol: e.target.value as 'ADMIN' | 'STAFF' })}
-              className="input-modern"
-            >
-              <option value="STAFF">STAFF (Recepcionista)</option>
-              <option value="ADMIN">ADMIN (Administrador)</option>
-            </select>
+            <label className="block text-sm font-medium text-txt mb-1">Role</label>
+            {isEditingOwner ? (
+              <div className="flex items-center gap-2">
+                <span className="badge badge-warning">OWNER</span>
+                <span className="text-xs text-txt-muted">Cannot be changed</span>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={formData.rol}
+                  onChange={(e) => update({ rol: e.target.value as 'ADMIN' | 'STAFF' })}
+                  className="input-modern"
+                >
+                  <option value="STAFF">STAFF (Receptionist)</option>
+                  {canAssignAdmin && <option value="ADMIN">ADMIN (Administrator)</option>}
+                </select>
+                {isLastAdmin && (
+                  <p className="text-xs text-danger mt-1">
+                    Cannot demote: this is the only administrator.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
-              Cancelar
+              Cancel
             </button>
-            <button type="submit" disabled={isSaving} className="btn-primary flex-1">
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : editingUser ? (
-                'Actualizar'
-              ) : (
-                'Crear'
-              )}
-            </button>
+            {!isEditingOwner && (
+              <button
+                type="submit"
+                disabled={isSaving || isLastAdmin}
+                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : editingUser ? (
+                  'Update'
+                ) : (
+                  'Create'
+                )}
+              </button>
+            )}
           </div>
         </form>
       </div>
-    </div>
+    </ModalShell>
   );
 };

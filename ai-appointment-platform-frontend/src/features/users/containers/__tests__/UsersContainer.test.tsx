@@ -27,7 +27,7 @@ describe('UsersContainer', () => {
   it('renders empty state when no users', async () => {
     vi.mocked(usersApi.getUsers).mockResolvedValue([] as never);
     renderWithProviders(<UsersContainer />);
-    expect(await screen.findByText('No hay usuarios registrados')).toBeInTheDocument();
+    expect(await screen.findByText('No users registered')).toBeInTheDocument();
   });
 
   it('renders user list', async () => {

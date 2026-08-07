@@ -23,8 +23,16 @@ const users: User[] = [
 
 describe('UsersView', () => {
   it('renders user list', () => {
-    render(<UsersView users={users} onOpenModal={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.getByText('Gestion de Usuarios')).toBeInTheDocument();
+    render(
+      <UsersView
+        users={users}
+        viewerRole="OWNER"
+        onOpenModal={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('User Management')).toBeInTheDocument();
     expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Staff')[0]).toBeInTheDocument();
   });
@@ -33,9 +41,15 @@ describe('UsersView', () => {
     const onOpenModal = vi.fn();
     const userEvt = userEvent.setup();
     render(
-      <UsersView users={users} onOpenModal={onOpenModal} onEdit={vi.fn()} onDelete={vi.fn()} />,
+      <UsersView
+        users={users}
+        viewerRole="OWNER"
+        onOpenModal={onOpenModal}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
     );
-    await userEvt.click(screen.getByText('Nuevo Usuario'));
+    await userEvt.click(screen.getByText('New User'));
     expect(onOpenModal).toHaveBeenCalledTimes(1);
   });
 });
