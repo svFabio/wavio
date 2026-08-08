@@ -158,9 +158,12 @@ export function useCalendarHandlers({
       const { esRecurrente, recurrence, recurrenceEnd, ...baseData } = data;
 
       if (esRecurrente && recurrence && recurrenceEnd) {
+        // UI uses lowercase frequencies (weekly/biweekly/monthly); API contract is UPPERCASE.
+        const recurrenceApi = recurrence.toUpperCase() as
+          'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
         const result = await crearCitaRecurrente.mutateAsync({
           ...baseData,
-          recurrence,
+          recurrence: recurrenceApi,
           recurrenceEnd,
         });
         return { success: result.success, error: result.error };

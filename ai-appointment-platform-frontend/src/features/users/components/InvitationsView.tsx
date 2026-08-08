@@ -1,29 +1,42 @@
-import { Mail, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Mail, Clock, CheckCircle2, XCircle, Ban } from 'lucide-react';
 import { EmptyState } from './EmptyState';
-import type { Invitation } from '../types';
+import type { Invitation, InvitationEstado } from '../types';
 
 interface InvitationsViewProps {
   invitations: Invitation[];
-  onResend: (id: string) => void;
-  onCancel: (id: string) => void;
+  onResend: (id: number) => void;
+  onCancel: (id: number) => void;
 }
 
-const statusConfig = {
-  PENDING: {
+const estadoConfig: Record<
+  InvitationEstado,
+  { label: string; icon: typeof Clock; className: string }
+> = {
+  PENDIENTE: {
     label: 'Pending',
     icon: Clock,
     className: 'text-warning bg-warning/10 border-warning/20',
   },
-  ACCEPTED: {
+  ACEPTADA: {
     label: 'Accepted',
     icon: CheckCircle2,
     className: 'text-success bg-success/10 border-success/20',
   },
-  EXPIRED: {
+  CANCELADA: {
+    label: 'Canceled',
+    icon: Ban,
+    className: 'text-txt-muted bg-surface-elevated border-border-light',
+  },
+  EXPIRADA: {
     label: 'Expired',
     icon: XCircle,
     className: 'text-danger bg-danger/10 border-danger/20',
   },
+};
+
+const formatDate = (iso: string): string => {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
 };
 
 export const InvitationsView = ({
@@ -32,13 +45,20 @@ export const InvitationsView = ({
   onCancel,
 }: InvitationsViewProps): React.JSX.Element => {
   if (invitations.length === 0) {
-    return <EmptyState icon={Mail} title="No pending invitations" className="card-modern" />;
+    return (
+      <EmptyState
+        icon={Mail}
+        title="No invitations yet"
+        description="Invite team members to join your business."
+        className="card-modern mt-6"
+      />
+    );
   }
 
   return (
     <div className="card-modern overflow-hidden mt-6">
       <div className="p-5 border-b border-border">
-        <h3 className="text-base font-bold text-txt">Pending Invitations</h3>
+        <h3 className="text-base font-bold text-txt">Invitations</h3>
       </div>
       <table className="w-full">
         <thead className="bg-surface-elevated/50">
@@ -46,13 +66,14 @@ export const InvitationsView = ({
             <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Email</th>
             <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Role</th>
             <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Status</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Sent On</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Expires</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Sent</th>
             <th className="text-right py-3 px-4 text-sm font-semibold text-txt">Actions</th>
           </tr>
         </thead>
         <tbody>
           {invitations.map((inv) => {
-            const config = statusConfig[inv.status];
+            const config = estadoConfig[inv.estado];
             const StatusIcon = config.icon;
 
             return (
@@ -71,11 +92,10 @@ export const InvitationsView = ({
                     {config.label}
                   </span>
                 </td>
-                <td className="py-3 px-4 text-sm text-txt-secondary">
-                  {new Date(inv.creadoEn).toLocaleDateString()}
-                </td>
+                <td className="py-3 px-4 text-sm text-txt-secondary">{formatDate(inv.expiraEn)}</td>
+                <td className="py-3 px-4 text-sm text-txt-secondary">{formatDate(inv.creadoEn)}</td>
                 <td className="py-3 px-4 text-right">
-                  {inv.status === 'PENDING' && (
+                  {inv.estado === 'PENDIENTE' && (
                     <>
                       <button
                         onClick={() => onResend(inv.id)}

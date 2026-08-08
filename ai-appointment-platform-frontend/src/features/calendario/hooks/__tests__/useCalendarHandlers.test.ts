@@ -296,7 +296,7 @@ describe('useCalendarHandlers', () => {
         clienteTelefono: '59170000000',
         fecha: '2026-01-05',
         horario: '10:00',
-        recurrence: 'weekly',
+        recurrence: 'WEEKLY',
         recurrenceEnd: '2026-01-19',
       });
       expect(response.success).toBe(true);

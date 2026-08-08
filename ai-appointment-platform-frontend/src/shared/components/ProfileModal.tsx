@@ -49,7 +49,7 @@ const profileReducer = (
   }
 };
 
-export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps): React.JSX.Element => {
+export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps): React.JSX.Element | null => {
   const { usuario, setFotoPerfil, setNombre } = useAuth();
 
   const [state, dispatch] = useReducer(profileReducer, {

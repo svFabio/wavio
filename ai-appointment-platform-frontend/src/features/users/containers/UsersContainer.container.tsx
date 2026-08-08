@@ -3,14 +3,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UsersView } from '../components/UsersView';
 import { EmptyState } from '../components/EmptyState';
 import { UserModal } from '../components/UserModal';
+import { InvitationModal } from '../components/InvitationModal';
+import { InvitationsView } from '../components/InvitationsView';
+import { InviteSuccessCard } from '../components/InviteSuccessCard';
 import { UsersSkeleton } from '../../../shared/components/skeletons/UsersSkeleton';
+import { InvitationsSkeleton } from '../../../shared/components/skeletons/InvitationsSkeleton';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { ErrorAlert } from '../../../shared/components/ErrorAlert';
 import { useAuth } from '../../../context/AuthContext';
-import type { User, UserFormData } from '../types';
+import type { User, UserFormData, InvitationFormData } from '../types';
 import { usersApi } from '../api/users.api';
+import {
+  useInvitationsQuery,
+  useCreateInvitationMutation,
+  useResendInvitationMutation,
+  useCancelInvitationMutation,
+} from '../api/useInvitations';
 
 const EMPTY_FORM: UserFormData = { nombre: '', email: '', password: '', rol: 'STAFF' };
+const EMPTY_INVITE_FORM: InvitationFormData = { email: '', rol: 'STAFF' };
 
 export const UsersContainer = (): React.JSX.Element => {
   const queryClient = useQueryClient();
@@ -18,6 +29,9 @@ export const UsersContainer = (): React.JSX.Element => {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>(EMPTY_FORM);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteFormData, setInviteFormData] = useState<InvitationFormData>(EMPTY_INVITE_FORM);
+  const [inviteSuccessUrl, setInviteSuccessUrl] = useState<string | null>(null);
 
   const {
     data: users = [],
@@ -28,7 +42,14 @@ export const UsersContainer = (): React.JSX.Element => {
     queryFn: () => usersApi.getUsers(),
   });
 
+  const {
+    data: invitations = [],
+    isLoading: invitesLoading,
+    isError: invitesError,
+  } = useInvitationsQuery();
+
   const viewerRole = (usuario?.rol ?? 'STAFF') as 'OWNER' | 'ADMIN' | 'STAFF';
+  const canInvite = viewerRole !== 'STAFF';
 
   // Count ADMIN + OWNER entries for last-admin guard
   const adminCount = useMemo(
@@ -58,6 +79,18 @@ export const UsersContainer = (): React.JSX.Element => {
     },
   });
 
+  const createInviteMutation = useCreateInvitationMutation((data) => {
+    setInviteSuccessUrl(data.url);
+    setShowInviteModal(false);
+    setInviteFormData(EMPTY_INVITE_FORM);
+  });
+
+  const resendMutation = useResendInvitationMutation((data) => {
+    setInviteSuccessUrl(data.url);
+  });
+
+  const cancelMutation = useCancelInvitationMutation();
+
   const openModal = useCallback((user?: User) => {
     if (user) {
       setEditingUser(user);
@@ -65,7 +98,8 @@ export const UsersContainer = (): React.JSX.Element => {
         nombre: user.nombre,
         email: user.email,
         password: '',
-        rol: user.rol === 'OWNER' ? 'OWNER' : user.rol,
+        // OWNER cannot be modified via form (submit is hidden); use ADMIN as neutral placeholder.
+        rol: user.rol === 'OWNER' ? 'ADMIN' : user.rol,
       });
     } else {
       setEditingUser(null);
@@ -79,6 +113,25 @@ export const UsersContainer = (): React.JSX.Element => {
     setEditingUser(null);
     setFormData(EMPTY_FORM);
   }, []);
+
+  const openInviteModal = useCallback(() => {
+    setInviteSuccessUrl(null);
+    setInviteFormData(EMPTY_INVITE_FORM);
+    setShowInviteModal(true);
+  }, []);
+
+  const closeInviteModal = useCallback(() => {
+    setShowInviteModal(false);
+    setInviteFormData(EMPTY_INVITE_FORM);
+  }, []);
+
+  const handleInviteSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      createInviteMutation.mutate(inviteFormData);
+    },
+    [createInviteMutation, inviteFormData],
+  );
 
   const handleDelete = useCallback(
     (id: number) => {
@@ -118,9 +171,36 @@ export const UsersContainer = (): React.JSX.Element => {
             users={users}
             viewerRole={viewerRole}
             onOpenModal={() => openModal()}
+            onInvite={openInviteModal}
             onEdit={openModal}
             onDelete={handleDelete}
           />
+        )}
+
+        {canInvite && (
+          <>
+            {invitesLoading && <InvitationsSkeleton />}
+            {invitesError && (
+              <div className="mt-6">
+                <ErrorAlert message="Error loading invitations" />
+              </div>
+            )}
+            {!invitesLoading && !invitesError && (
+              <>
+                {inviteSuccessUrl && (
+                  <InviteSuccessCard
+                    url={inviteSuccessUrl}
+                    onDismiss={() => setInviteSuccessUrl(null)}
+                  />
+                )}
+                <InvitationsView
+                  invitations={invitations}
+                  onResend={resendMutation.mutate}
+                  onCancel={cancelMutation.mutate}
+                />
+              </>
+            )}
+          </>
         )}
 
         <UserModal
@@ -134,6 +214,17 @@ export const UsersContainer = (): React.JSX.Element => {
           onSubmit={handleSubmit}
           onClose={closeModal}
         />
+
+        {canInvite && (
+          <InvitationModal
+            isOpen={showInviteModal}
+            formData={inviteFormData}
+            isSending={createInviteMutation.isPending}
+            onFormDataChange={setInviteFormData}
+            onSubmit={handleInviteSubmit}
+            onClose={closeInviteModal}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

@@ -23,10 +23,11 @@ const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Portal = lazy(() => import('./pages/Portal'));
+const InvitacionAceptar = lazy(() => import('./pages/InvitacionAceptar'));
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-function App() {
+function App(): React.JSX.Element {
   const { notifications, dismissNotification } = useNuevaCitaNotification();
 
   return (
@@ -186,6 +187,15 @@ function App() {
                   element={
                     <ErrorBoundary>
                       <Portal />
+                    </ErrorBoundary>
+                  }
+                />
+
+                <Route
+                  path="/invitaciones/aceptar/:token"
+                  element={
+                    <ErrorBoundary>
+                      <InvitacionAceptar />
                     </ErrorBoundary>
                   }
                 />

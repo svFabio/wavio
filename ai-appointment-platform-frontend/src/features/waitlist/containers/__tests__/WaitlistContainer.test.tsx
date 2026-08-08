@@ -22,17 +22,23 @@ const MOCK_ENTRIES = [
     id: 1,
     clienteNombre: 'Ana López',
     clienteTelefono: '+59160000001',
-    servicio: 'Corte',
+    servicioId: 1,
+    fechaPreferida: '2026-01-15T10:00:00Z',
+    horarioPreferido: '10:00',
     estado: 'PENDIENTE' as const,
-    createdAt: '2026-01-01T10:00:00Z',
+    creadoEn: '2026-01-01T10:00:00Z',
+    notificadoEn: null,
   },
   {
     id: 2,
     clienteNombre: 'Carlos Ruiz',
     clienteTelefono: '+59160000002',
-    servicio: 'Color',
+    servicioId: 2,
+    fechaPreferida: '2026-01-16T11:00:00Z',
+    horarioPreferido: '11:00',
     estado: 'NOTIFICADA' as const,
-    createdAt: '2026-01-02T10:00:00Z',
+    creadoEn: '2026-01-02T10:00:00Z',
+    notificadoEn: '2026-01-02T12:00:00Z',
   },
 ];
 
@@ -65,8 +71,10 @@ describe('WaitlistContainer', () => {
 
   it('renders the waitlist view with entries', () => {
     renderWithProviders(<WaitlistContainer />);
-    expect(screen.getByText('Ana López')).toBeInTheDocument();
-    expect(screen.getByText('Carlos Ruiz')).toBeInTheDocument();
+    // Default filter is PENDIENTE, so the NOTIFICADA entry is only visible after switching to "Todos"
+    expect(screen.getAllByText('Ana López').length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Todos' }));
+    expect(screen.getAllByText('Carlos Ruiz').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows loading state when query is loading', () => {
@@ -119,11 +127,11 @@ describe('WaitlistContainer', () => {
   it('toggles the add form when the toggle button is clicked', () => {
     renderWithProviders(<WaitlistContainer />);
 
-    const toggleButton = screen.getByRole('button', { name: /agregar|añadir/i });
+    const toggleButton = screen.getByRole('button', { name: /nuevo registro/i });
     fireEvent.click(toggleButton);
 
     // Form should appear after toggle
-    expect(screen.getByRole('form', { hidden: true })).toBeInTheDocument();
+    expect(screen.getByText('Agregar a lista de espera')).toBeInTheDocument();
   });
 
   it('calls addMutation and closes form on successful add', async () => {
@@ -131,7 +139,7 @@ describe('WaitlistContainer', () => {
     renderWithProviders(<WaitlistContainer />);
 
     // Open the add form
-    const toggleButton = screen.getByRole('button', { name: /agregar|añadir/i });
+    const toggleButton = screen.getByRole('button', { name: /nuevo registro/i });
     fireEvent.click(toggleButton);
 
     await waitFor(() => {

@@ -21,18 +21,22 @@ const users: User[] = [
   },
 ];
 
+const renderView = (viewerRole: 'OWNER' | 'ADMIN' | 'STAFF' = 'OWNER') =>
+  render(
+    <UsersView
+      users={users}
+      viewerRole={viewerRole}
+      onOpenModal={vi.fn()}
+      onInvite={vi.fn()}
+      onEdit={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  );
+
 describe('UsersView', () => {
   it('renders user list', () => {
-    render(
-      <UsersView
-        users={users}
-        viewerRole="OWNER"
-        onOpenModal={vi.fn()}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
-    expect(screen.getByText('User Management')).toBeInTheDocument();
+    renderView();
+    expect(screen.getAllByText('User Management')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Staff')[0]).toBeInTheDocument();
   });
@@ -45,11 +49,39 @@ describe('UsersView', () => {
         users={users}
         viewerRole="OWNER"
         onOpenModal={onOpenModal}
+        onInvite={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
     );
-    await userEvt.click(screen.getByText('New User'));
+    await userEvt.click(screen.getAllByText('New User')[0]);
     expect(onOpenModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the Invite button for ADMIN and OWNER viewers', () => {
+    renderView('ADMIN');
+    expect(screen.getAllByText('Invite').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('hides the Invite button for STAFF viewers', () => {
+    renderView('STAFF');
+    expect(screen.queryByText('Invite')).not.toBeInTheDocument();
+  });
+
+  it('calls onInvite when the Invite button is clicked', async () => {
+    const onInvite = vi.fn();
+    const userEvt = userEvent.setup();
+    render(
+      <UsersView
+        users={users}
+        viewerRole="OWNER"
+        onOpenModal={vi.fn()}
+        onInvite={onInvite}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    await userEvt.click(screen.getAllByText('Invite')[0]);
+    expect(onInvite).toHaveBeenCalledTimes(1);
   });
 });

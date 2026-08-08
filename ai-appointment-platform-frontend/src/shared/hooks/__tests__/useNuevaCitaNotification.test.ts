@@ -20,11 +20,11 @@ vi.mock('../useSocketEvent', () => ({
   },
 }));
 
-vi.mock('../../utils/notificationSound', () => ({
+vi.mock('../../../utils/notificationSound', () => ({
   playNotificationSound: vi.fn(),
 }));
 
-import { playNotificationSound } from '../../utils/notificationSound';
+import { playNotificationSound } from '../../../utils/notificationSound';
 
 describe('useNuevaCitaNotification', () => {
   beforeEach(() => {

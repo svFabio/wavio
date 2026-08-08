@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { Views } from 'react-big-calendar';
-import { format, addWeeks, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 import type { View } from 'react-big-calendar';
 import type { Cita } from '../../../types';
 import type { EventoCalendario } from '../types';

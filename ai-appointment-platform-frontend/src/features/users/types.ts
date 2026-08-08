@@ -10,14 +10,17 @@ export interface UserFormData {
   nombre: string;
   email: string;
   password: string;
-  rol: 'OWNER' | 'ADMIN' | 'STAFF';
+  rol: 'ADMIN' | 'STAFF';
 }
 
+export type InvitationEstado = 'PENDIENTE' | 'ACEPTADA' | 'CANCELADA' | 'EXPIRADA';
+
 export interface Invitation {
-  id: string;
+  id: number;
   email: string;
   rol: 'ADMIN' | 'STAFF';
-  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED';
+  estado: InvitationEstado;
+  expiraEn: string;
   creadoEn: string;
 }
 

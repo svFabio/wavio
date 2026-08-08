@@ -32,8 +32,11 @@ export const InvitationModal = ({
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Email address</label>
+            <label htmlFor="invite-email" className="block text-sm font-medium text-txt mb-1">
+              Email address
+            </label>
             <input
+              id="invite-email"
               type="email"
               required
               value={formData.email}
@@ -44,8 +47,11 @@ export const InvitationModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Role</label>
+            <label htmlFor="invite-rol" className="block text-sm font-medium text-txt mb-1">
+              Role
+            </label>
             <select
+              id="invite-rol"
               value={formData.rol}
               onChange={(e) => update({ rol: e.target.value as 'ADMIN' | 'STAFF' })}
               className="input-modern"
