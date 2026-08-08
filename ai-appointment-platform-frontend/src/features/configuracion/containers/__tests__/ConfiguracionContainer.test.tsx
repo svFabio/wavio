@@ -76,7 +76,9 @@ describe('ConfiguracionContainer', () => {
       expect(screen.getByText('Masaje')).toBeInTheDocument();
     });
     await user.click(screen.getByText('Horarios Regulares'));
-    expect(screen.getByText('Guardar Horarios')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Guardar Horarios')).toBeInTheDocument();
+    });
   });
 
   it('shows horarios especiales tab when clicked', async () => {

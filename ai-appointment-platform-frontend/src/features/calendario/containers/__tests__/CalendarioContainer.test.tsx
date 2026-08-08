@@ -9,7 +9,6 @@ vi.mock('../../hooks/useCalendarEvents', () => ({
     scrollToTime: new Date(2026, 0, 1, 8, 0, 0),
     eventStyleGetter: vi.fn(() => ({ style: {} })),
   })),
-  calcularFechasRecurrentes: vi.fn(),
 }));
 
 vi.mock('../../hooks/useCalendarHandlers', () => ({
@@ -38,6 +37,10 @@ vi.mock('../../api/useActualizarDescripcionMutation', () => ({
 
 vi.mock('../../api/useCrearCitaMutation', () => ({
   useCrearCitaMutation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+}));
+
+vi.mock('../../api/useCrearCitaRecurrenteMutation', () => ({
+  useCrearCitaRecurrenteMutation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
 }));
 
 vi.mock('../../api/useReprogramarCitaMutation', () => ({

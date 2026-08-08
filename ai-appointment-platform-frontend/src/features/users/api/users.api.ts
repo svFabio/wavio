@@ -4,7 +4,7 @@ type UserRecord = {
   id: number;
   nombre: string;
   email: string;
-  rol: 'ADMIN' | 'STAFF';
+  rol: 'OWNER' | 'ADMIN' | 'STAFF';
   creadoEn: string;
 };
 

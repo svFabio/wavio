@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { googleLoginSchema, emailAuthSchema, avatarSchema, nombreSchema } from './auth.dto';
+import {
+  googleLoginSchema,
+  emailAuthSchema,
+  avatarSchema,
+  nombreSchema,
+  cambiarPasswordSchema,
+  resetPasswordSchema,
+} from './auth.dto';
 
 describe('auth.dto', () => {
   describe('googleLoginSchema', () => {
@@ -85,6 +92,49 @@ describe('auth.dto', () => {
 
     it('should reject missing nombre', () => {
       const result = nombreSchema.safeParse({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('cambiarPasswordSchema', () => {
+    it('should accept passwordNueva with passwordActual', () => {
+      const result = cambiarPasswordSchema.parse({
+        passwordActual: 'oldpass',
+        passwordNueva: 'newpass123',
+      });
+      expect(result.passwordActual).toBe('oldpass');
+      expect(result.passwordNueva).toBe('newpass123');
+    });
+
+    it('should accept passwordNueva without passwordActual (first login)', () => {
+      const result = cambiarPasswordSchema.parse({ passwordNueva: 'newpass123' });
+      expect(result.passwordActual).toBeUndefined();
+    });
+
+    it('should reject short passwordNueva', () => {
+      const result = cambiarPasswordSchema.safeParse({ passwordNueva: '123' });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing passwordNueva', () => {
+      const result = cambiarPasswordSchema.safeParse({ passwordActual: 'oldpass' });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('resetPasswordSchema', () => {
+    it('should accept a valid email', () => {
+      const result = resetPasswordSchema.parse({ email: 'user@test.com' });
+      expect(result.email).toBe('user@test.com');
+    });
+
+    it('should reject an invalid email', () => {
+      const result = resetPasswordSchema.safeParse({ email: 'nope' });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing email', () => {
+      const result = resetPasswordSchema.safeParse({});
       expect(result.success).toBe(false);
     });
   });

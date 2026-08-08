@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { waitlistApi } from './waitlist.api';
 
 export function useWaitlistQuery() {
   return useQuery({
     queryKey: ['waitlist'],
-    queryFn: api.getWaitlist,
+    queryFn: waitlistApi.getWaitlist,
     retry: 1,
   });
 }
@@ -12,7 +12,7 @@ export function useWaitlistQuery() {
 export function useAddToWaitlistMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: api.addToWaitlist,
+    mutationFn: waitlistApi.addToWaitlist,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['waitlist'] }),
   });
 }
@@ -20,7 +20,7 @@ export function useAddToWaitlistMutation() {
 export function useRemoveFromWaitlistMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.removeFromWaitlist(id),
+    mutationFn: (id: number) => waitlistApi.removeFromWaitlist(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['waitlist'] }),
   });
 }
@@ -28,7 +28,7 @@ export function useRemoveFromWaitlistMutation() {
 export function useNotifyWaitlistMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.notifyWaitlist(id),
+    mutationFn: (id: number) => waitlistApi.notifyWaitlist(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['waitlist'] }),
   });
 }

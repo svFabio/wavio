@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthService } from './auth.service';
 import type { AuthRepository } from './auth.repository';
 import { UnauthorizedError, ConflictError, NotFoundError } from '../domain/errors';
-
 vi.hoisted(() => {
   process.env.LOG_LEVEL = 'fatal';
 });
@@ -50,8 +49,12 @@ describe('AuthService', () => {
   beforeEach(() => {
     mockAuthRepository = {
       findNegocioByGoogleId: vi.fn(),
+      findNegocioByEmail: vi.fn(),
+      updateNegocioGoogleId: vi.fn(),
       createNegocioWithAdmin: vi.fn(),
       findUsuarioByNegocioAndGoogleId: vi.fn(),
+      findUsuarioByNegocioAndEmail: vi.fn(),
+      updateUsuarioGoogleId: vi.fn(),
       findFirstByGoogleId: vi.fn(),
       upsertMembership: vi.fn(),
       findUsuarioById: vi.fn(),
@@ -60,6 +63,8 @@ describe('AuthService', () => {
       findUsuarioByNegocioId: vi.fn(),
       updateUsuario: vi.fn(),
       findUsuarioNegocioMembership: vi.fn(),
+      findUsuarioByIdWithPassword: vi.fn(),
+      updatePassword: vi.fn(),
     };
 
     service = new AuthService(mockAuthRepository as unknown as AuthRepository);
@@ -81,6 +86,7 @@ describe('AuthService', () => {
         getPayload: () => makePayload(),
       });
       mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findNegocioByEmail.mockResolvedValue(null);
       mockAuthRepository.createNegocioWithAdmin.mockResolvedValue({
         id: 10,
         googleId: 'google_123',
@@ -98,7 +104,7 @@ describe('AuthService', () => {
         nombre: 'Test User',
         email: 'test@example.com',
         googleId: 'google_123',
-        rol: 'ADMIN',
+        rol: 'OWNER',
         creadoEn: new Date(),
         fotoPerfil: null,
       });
@@ -121,11 +127,290 @@ describe('AuthService', () => {
 
       expect(result.token).toBe('mock-jwt-token');
       expect(result.esNuevo).toBe(true);
+      expect(result.usuario.rol).toBe('OWNER');
       expect(mockAuthRepository.createNegocioWithAdmin).toHaveBeenCalledWith(
         'google_123',
         'test@example.com',
         'Test User',
       );
+    });
+
+    it('should sign JWT with the memberships of every negocio', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload(),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findNegocioByEmail.mockResolvedValue(null);
+      mockAuthRepository.createNegocioWithAdmin.mockResolvedValue({
+        id: 10,
+        googleId: 'google_123',
+        email: 'test@example.com',
+        nombre: 'Mi Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue({
+        id: 1,
+        nombre: 'Test User',
+        email: 'test@example.com',
+        googleId: 'google_123',
+        rol: 'OWNER',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 10,
+          googleId: 'google_123',
+          email: 'test@example.com',
+          nombre: 'Test Negocio',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'OWNER',
+        },
+        {
+          id: 20,
+          googleId: 'google_456',
+          email: 'other@example.com',
+          nombre: 'Otro Negocio',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'ADMIN',
+        },
+      ]);
+
+      await service.loginConGoogle(validGoogleToken);
+
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        {
+          id: 1,
+          email: 'test@example.com',
+          negocios: [
+            { negocioId: 10, rol: 'OWNER' },
+            { negocioId: 20, rol: 'ADMIN' },
+          ],
+        },
+        expect.any(String),
+        expect.objectContaining({ expiresIn: '7d' }),
+      );
+    });
+
+    it('should link negocio created with email registration and NOT duplicate it', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload({ sub: 'google_email', email: 'owner@example.com' }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findNegocioByEmail.mockResolvedValue({
+        id: 5,
+        googleId: 'email-owner@example.com',
+        email: 'owner@example.com',
+        nombre: 'Mi Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.updateNegocioGoogleId.mockResolvedValue({
+        id: 5,
+        googleId: 'google_email',
+        email: 'owner@example.com',
+        nombre: 'Mi Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue({
+        id: 1,
+        nombre: 'owner',
+        email: 'owner@example.com',
+        googleId: 'google_email',
+        rol: 'OWNER',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 5,
+          googleId: 'google_email',
+          email: 'owner@example.com',
+          nombre: 'Mi Negocio',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'OWNER',
+        },
+      ]);
+
+      const result = await service.loginConGoogle(validGoogleToken);
+
+      expect(mockAuthRepository.findNegocioByEmail).toHaveBeenCalledWith('owner@example.com');
+      expect(mockAuthRepository.updateNegocioGoogleId).toHaveBeenCalledWith(5, 'google_email');
+      expect(mockAuthRepository.createNegocioWithAdmin).not.toHaveBeenCalled();
+      expect(result.esNuevo).toBe(false);
+      expect(result.negocios).toHaveLength(1);
+    });
+
+    it('should link staff created by admin by email and keep STAFF role', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload({ sub: 'google_staff', email: 'staff@example.com' }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue({
+        id: 5,
+        googleId: 'google_owner',
+        email: 'owner@example.com',
+        nombre: 'Existing',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findUsuarioByNegocioAndEmail.mockResolvedValue({
+        id: 2,
+        nombre: 'Staff',
+        email: 'staff@example.com',
+        googleId: null,
+        rol: 'STAFF',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.updateUsuarioGoogleId.mockResolvedValue({
+        id: 2,
+        nombre: 'Staff',
+        email: 'staff@example.com',
+        googleId: 'google_staff',
+        rol: 'STAFF',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 5,
+          googleId: 'google_owner',
+          email: 'owner@example.com',
+          nombre: 'Existing',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'STAFF',
+        },
+      ]);
+
+      const result = await service.loginConGoogle(validGoogleToken);
+
+      expect(mockAuthRepository.findUsuarioByNegocioAndEmail).toHaveBeenCalledWith(
+        5,
+        'staff@example.com',
+      );
+      expect(mockAuthRepository.updateUsuarioGoogleId).toHaveBeenCalledWith(2, 'google_staff');
+      expect(mockAuthRepository.upsertMembership).not.toHaveBeenCalled();
+      expect(result.usuario.rol).toBe('STAFF');
+    });
+
+    it('should throw NotFoundError when existing user has no membership in the negocio', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload({ sub: 'google_123', email: 'test@example.com' }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue({
+        id: 5,
+        googleId: 'google_123',
+        email: 'test@example.com',
+        nombre: 'Existing',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findUsuarioByNegocioAndEmail.mockResolvedValue(null);
+      mockAuthRepository.findFirstByGoogleId.mockResolvedValue({ id: 2 });
+      mockAuthRepository.findUsuarioNegocioMembership.mockResolvedValue(null);
+
+      await expect(service.loginConGoogle(validGoogleToken)).rejects.toThrow(NotFoundError);
+      expect(mockAuthRepository.upsertMembership).not.toHaveBeenCalled();
+    });
+
+    it('should keep existing membership rol without promoting to OWNER', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload({ sub: 'google_admin', email: 'admin@example.com' }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue({
+        id: 5,
+        googleId: 'google_owner',
+        email: 'owner@example.com',
+        nombre: 'Existing',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findUsuarioByNegocioAndEmail.mockResolvedValue(null);
+      mockAuthRepository.findFirstByGoogleId.mockResolvedValue({ id: 2 });
+      mockAuthRepository.findUsuarioNegocioMembership.mockResolvedValue({
+        usuarioId: 2,
+        negocioId: 5,
+        rol: 'ADMIN',
+      });
+      mockAuthRepository.findUsuarioById.mockResolvedValue({
+        id: 2,
+        nombre: 'Admin',
+        email: 'admin@example.com',
+        googleId: 'google_admin',
+        rol: 'ADMIN',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 5,
+          googleId: 'google_owner',
+          email: 'owner@example.com',
+          nombre: 'Existing',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'ADMIN',
+        },
+      ]);
+
+      const result = await service.loginConGoogle(validGoogleToken);
+
+      expect(mockAuthRepository.findUsuarioNegocioMembership).toHaveBeenCalledWith(2, 5);
+      expect(mockAuthRepository.upsertMembership).not.toHaveBeenCalled();
+      expect(result.usuario.rol).toBe('ADMIN');
     });
 
     it('should return existing negocio for returning user', async () => {
@@ -165,6 +450,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'OWNER',
         },
       ]);
 
@@ -210,7 +496,7 @@ describe('AuthService', () => {
         nombre: 'test',
         email: 'test@example.com',
         googleId: null,
-        rol: 'ADMIN',
+        rol: 'OWNER',
         creadoEn: new Date(),
         fotoPerfil: null,
       });
@@ -226,6 +512,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'OWNER',
         },
       ]);
 
@@ -233,6 +520,7 @@ describe('AuthService', () => {
 
       expect(result.token).toBe('mock-jwt-token');
       expect(result.esNuevo).toBe(true);
+      expect(result.usuario.rol).toBe('OWNER');
       expect(mockBcryptHash).toHaveBeenCalledWith('securepass', 10);
     });
 
@@ -281,6 +569,7 @@ describe('AuthService', () => {
           waAppId: null,
           isWaConnected: false,
           creadoEn: new Date(),
+          rol: 'ADMIN',
         },
       ]);
 
@@ -337,35 +626,82 @@ describe('AuthService', () => {
   /* ─── obtenerUsuarioActual ───────────────────────────────────────── */
 
   describe('obtenerUsuarioActual', () => {
-    it('should return usuario and negocios', async () => {
-      mockAuthRepository.findUsuarioById.mockResolvedValue({
+    const usuarioMock = {
+      id: 1,
+      nombre: 'User',
+      email: 'u@t.com',
+      googleId: null,
+      rol: 'OWNER',
+      creadoEn: new Date(),
+      fotoPerfil: null,
+    };
+
+    const negociosMock = [
+      {
         id: 1,
-        nombre: 'User',
-        email: 'u@t.com',
-        googleId: null,
-        rol: 'ADMIN',
+        googleId: 'g1',
+        email: 'n1@n.com',
+        nombre: 'N1',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
         creadoEn: new Date(),
-        fotoPerfil: null,
-      });
-      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
-        {
-          id: 1,
-          googleId: 'g1',
-          email: 'n@n.com',
-          nombre: 'N',
-          plan: 'FREE',
-          waPhoneNumberId: null,
-          waWabaId: null,
-          waAppId: null,
-          isWaConnected: false,
-          creadoEn: new Date(),
-        },
-      ]);
+        rol: 'ADMIN',
+      },
+      {
+        id: 2,
+        googleId: 'g2',
+        email: 'n2@n.com',
+        nombre: 'N2',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+        rol: 'STAFF',
+      },
+    ];
+
+    it('should return usuario and negocios', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
 
       const result = await service.obtenerUsuarioActual(1);
 
       expect(result.usuario.email).toBe('u@t.com');
-      expect(result.negocios).toHaveLength(1);
+      expect(result.negocios).toHaveLength(2);
+      expect(result.negocios[0].rol).toBe('ADMIN');
+      expect(result.negocios[1].rol).toBe('STAFF');
+    });
+
+    it('should set usuario.rol to the membership rol of the active negocio when header matches', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
+
+      const result = await service.obtenerUsuarioActual(1, '2');
+
+      expect(result.usuario.rol).toBe('STAFF');
+    });
+
+    it('should use the first membership when no header is provided', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
+
+      const result = await service.obtenerUsuarioActual(1);
+
+      expect(result.usuario.rol).toBe('ADMIN');
+    });
+
+    it('should use the first membership when the header negocio is not in the list', async () => {
+      mockAuthRepository.findUsuarioById.mockResolvedValue(usuarioMock);
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue(negociosMock);
+
+      const result = await service.obtenerUsuarioActual(1, '999');
+
+      expect(result.usuario.rol).toBe('ADMIN');
     });
 
     it('should throw NotFoundError when usuario not found', async () => {
@@ -444,6 +780,73 @@ describe('AuthService', () => {
 
       expect(result.nombre).toBe('New Name');
       expect(mockAuthRepository.updateUsuario).toHaveBeenCalledWith(1, { nombre: 'New Name' });
+    });
+  });
+
+  /* ─── cambiarPassword ────────────────────────────────────────────── */
+
+  describe('cambiarPassword', () => {
+    it('should change the password when the current password is valid', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue({
+        id: 1,
+        email: 'u@t.com',
+        password: 'hashed',
+      });
+      mockBcryptCompare.mockResolvedValue(true);
+      mockBcryptHash.mockResolvedValue('new_hashed');
+
+      const result = await service.cambiarPassword(1, 'oldpass', 'newpass123');
+
+      expect(mockBcryptCompare).toHaveBeenCalledWith('oldpass', 'hashed');
+      expect(mockBcryptHash).toHaveBeenCalledWith('newpass123', 10);
+      expect(mockAuthRepository.updatePassword).toHaveBeenCalledWith(1, 'new_hashed');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should throw UnauthorizedError when the current password is wrong', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue({
+        id: 1,
+        email: 'u@t.com',
+        password: 'hashed',
+      });
+      mockBcryptCompare.mockResolvedValue(false);
+
+      await expect(service.cambiarPassword(1, 'wrong', 'newpass123')).rejects.toThrow(
+        UnauthorizedError,
+      );
+      expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
+    });
+
+    it('should allow setting a password directly when the user has none (first login)', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue({
+        id: 1,
+        email: 'u@t.com',
+        password: '',
+      });
+      mockBcryptHash.mockResolvedValue('new_hashed');
+
+      const result = await service.cambiarPassword(1, undefined, 'newpass123');
+
+      expect(mockBcryptCompare).not.toHaveBeenCalled();
+      expect(mockAuthRepository.updatePassword).toHaveBeenCalledWith(1, 'new_hashed');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should throw NotFoundError when the usuario does not exist', async () => {
+      mockAuthRepository.findUsuarioByIdWithPassword.mockResolvedValue(null);
+
+      await expect(service.cambiarPassword(999, 'x', 'newpass123')).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  /* ─── resetPassword ──────────────────────────────────────────────── */
+
+  describe('resetPassword', () => {
+    it('should always return ok without generating anything (no email channel yet)', async () => {
+      const result = await service.resetPassword('anyone@test.com');
+
+      expect(result).toEqual({ ok: true });
+      expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
     });
   });
 });

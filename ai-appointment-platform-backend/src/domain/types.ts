@@ -1,4 +1,4 @@
-export type Rol = 'ADMIN' | 'STAFF';
+export type Rol = 'OWNER' | 'ADMIN' | 'STAFF';
 
 export interface Negocio {
   id: number;

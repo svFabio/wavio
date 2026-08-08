@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UsuariosRepository } from './usuarios.repository';
-import { ValidationError, ConflictError, NotFoundError } from '../domain/errors';
+import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '../domain/errors';
 import { Rol } from '../domain/types';
 import { BCRYPT_SALT_ROUNDS } from '../config';
 import bcrypt from 'bcryptjs';
@@ -39,6 +39,7 @@ export class UsuariosService {
   async createUser(
     negocioId: number,
     data: { nombre?: string; email?: string; password?: string; rol?: string },
+    requestingRol: string,
   ): Promise<{
     id: number;
     nombre: string;
@@ -55,6 +56,14 @@ export class UsuariosService {
 
     if (rol && !['ADMIN', 'STAFF'].includes(rol)) {
       throw new ValidationError('Rol inválido. Debe ser ADMIN o STAFF');
+    }
+
+    if (requestingRol === 'STAFF') {
+      throw new ForbiddenError('No tienes permisos para crear usuarios');
+    }
+
+    if (requestingRol === 'ADMIN' && rol === 'ADMIN') {
+      throw new ForbiddenError('Solo el propietario puede crear administradores');
     }
 
     const existente = await this.usuariosRepository.findByEmail(email);
@@ -76,6 +85,7 @@ export class UsuariosService {
     negocioId: number,
     userId: number,
     data: { nombre?: string; email?: string; password?: string; rol?: string },
+    requestingRol: string,
   ): Promise<
     | { id: number; nombre: string; email: string; rol: string; creadoEn: Date }
     | {
@@ -89,8 +99,8 @@ export class UsuariosService {
   > {
     const { nombre, email, password, rol } = data;
 
-    const usuario = await this.usuariosRepository.findByIdAndNegocioId(userId, negocioId);
-    if (!usuario) {
+    const target = await this.usuariosRepository.findByIdAndNegocioId(userId, negocioId);
+    if (!target) {
       throw new NotFoundError('Usuario');
     }
 
@@ -108,24 +118,56 @@ export class UsuariosService {
       if (!['ADMIN', 'STAFF'].includes(rol)) {
         throw new ValidationError('Rol inválido');
       }
+      if (target.rol === 'OWNER') {
+        throw new ForbiddenError('El propietario no puede ser modificado');
+      }
+      if (requestingRol === 'ADMIN' && (target.rol === 'ADMIN' || rol === 'ADMIN')) {
+        throw new ForbiddenError('Solo el propietario puede gestionar administradores');
+      }
+      if ((target.rol === 'ADMIN' || target.rol === 'OWNER') && rol !== target.rol) {
+        const admins = await this.usuariosRepository.countAdminsByNegocio(negocioId);
+        if (admins <= 1) {
+          throw new ForbiddenError('No puedes degradar al último administrador');
+        }
+      }
       updateData.rol = rol as Rol;
     }
 
     if (Object.keys(updateData).length === 0) {
-      return usuario;
+      return target;
     }
 
     return this.usuariosRepository.update(userId, updateData);
   }
 
-  async deleteUser(negocioId: number, userId: number, requestingUserId: number): Promise<void> {
+  async deleteUser(
+    negocioId: number,
+    userId: number,
+    requestingUserId: number,
+    requestingRol: string,
+  ): Promise<void> {
     if (requestingUserId === userId) {
       throw new ValidationError('No puedes eliminar tu propio usuario');
     }
 
-    const usuario = await this.usuariosRepository.findByIdAndNegocioId(userId, negocioId);
-    if (!usuario) {
+    const target = await this.usuariosRepository.findByIdAndNegocioId(userId, negocioId);
+    if (!target) {
       throw new NotFoundError('Usuario');
+    }
+
+    if (target.rol === 'OWNER') {
+      throw new ForbiddenError('El propietario no puede ser eliminado');
+    }
+
+    if (requestingRol === 'ADMIN' && target.rol === 'ADMIN') {
+      throw new ForbiddenError('Solo el propietario puede eliminar administradores');
+    }
+
+    if (target.rol === 'ADMIN') {
+      const admins = await this.usuariosRepository.countAdminsByNegocio(negocioId);
+      if (admins <= 1) {
+        throw new ForbiddenError('No puedes eliminar al último administrador');
+      }
     }
 
     await this.usuariosRepository.delete(userId);

@@ -7,11 +7,13 @@ import {
 } from '@nestjs/common';
 import type { JwtPayload } from '../utils/jwt';
 
+export type TenantUser = JwtPayload & { rol: string; negocioId: number };
+
 @Injectable()
 export class TenantGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const user = request.usuario as JwtPayload | undefined;
+    const user = request.usuario as TenantUser | undefined;
 
     if (!user) {
       return false;
@@ -27,11 +29,15 @@ export class TenantGuard implements CanActivate {
       throw new BadRequestException('x-negocio-id must be a number');
     }
 
-    if (negocioId !== user.negocioId) {
+    const negocios = user.negocios ?? [];
+    const membership = negocios.find((n) => n.negocioId === negocioId);
+    if (!membership) {
       throw new ForbiddenException('You do not have access to this business');
     }
 
     request.negocioId = negocioId;
+    request.usuario.rol = membership.rol;
+    request.usuario.negocioId = negocioId;
 
     return true;
   }

@@ -98,7 +98,10 @@ export class CitasService {
         }
       }
     } catch (msgError) {
-      this.logger.error({ err: msgError }, '[Validar] Error enviando notificación WhatsApp');
+      this.logger.error(
+        { message: msgError instanceof Error ? msgError.message : String(msgError) },
+        '[Validar] Error enviando notificación WhatsApp',
+      );
     }
 
     return citaActualizada;
@@ -119,8 +122,8 @@ export class CitasService {
     let hastaStr = queryHasta;
 
     if (queryFecha && !desdeStr && !hastaStr) {
-      desdeStr = `${queryFecha}T00:00:00.000Z`;
-      hastaStr = `${queryFecha}T23:59:59.999Z`;
+      desdeStr = `${queryFecha}T00:00:00.000`;
+      hastaStr = `${queryFecha}T23:59:59.999`;
     }
 
     const fechaDesde = desdeStr
@@ -372,7 +375,7 @@ export class CitasService {
     return this.citasRepository.update(id, { descripcion: descripcion || null });
   }
 
-  async crearCitaRecurente(
+  async crearCitaRecurrente(
     negocioId: number,
     data: {
       clienteNombre: string;
@@ -414,9 +417,15 @@ export class CitasService {
         case 'biweekly':
           cursor.setDate(cursor.getDate() + 14);
           break;
-        case 'monthly':
-          cursor.setMonth(cursor.getMonth() + 1);
+        case 'monthly': {
+          // Clamp to last day of month to avoid overflow (e.g. Jan 31 → Feb 28)
+          const year = cursor.getFullYear();
+          const month = cursor.getMonth() + 1;
+          const day = cursor.getDate();
+          const lastDayOfNextMonth = new Date(year, month + 1, 0).getDate();
+          cursor.setFullYear(year, month, Math.min(day, lastDayOfNextMonth));
           break;
+        }
       }
       if (cursor > recurrenceEndDate) break;
       candidateDates.push(new Date(cursor));
@@ -632,14 +641,20 @@ export class CitasService {
     return { base: baseCita, instancesCreated };
   }
 
-  async cancelarSerieRecurente(recurrenceId: string, negocioId: number): Promise<number> {
-    const count = await this.citasRepository.cancelRecurringSeries(recurrenceId);
+  async cancelarSerieRecurrente(recurrenceId: string, negocioId: number): Promise<number> {
+    if (!recurrenceId) {
+      throw new ValidationError('serieId es requerido');
+    }
+    const count = await this.citasRepository.cancelRecurringSeries(recurrenceId, negocioId);
     this.eventsService.emitCambioCitas(negocioId);
     return count;
   }
 
-  async getSeriesRecurente(recurrenceId: string): Promise<Cita[]> {
-    return this.citasRepository.findRecurringSeries(recurrenceId);
+  async getSeriesRecurrente(recurrenceId: string, negocioId: number): Promise<Cita[]> {
+    if (!recurrenceId) {
+      throw new ValidationError('serieId es requerido');
+    }
+    return this.citasRepository.findRecurringSeries(recurrenceId, negocioId);
   }
 
   async getByIdAndNegocio(id: number, negocioId: number): Promise<Cita | null> {

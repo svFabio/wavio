@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { citasApi } from './citas.api';
 
 export function useActualizarDescripcionMutation(): UseMutationResult<
   { success: boolean; error?: string },
@@ -11,7 +11,7 @@ export function useActualizarDescripcionMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ citaId, descripcion }: { citaId: string; descripcion: string }) =>
-      api.actualizarDescripcion(citaId, descripcion),
+      citasApi.actualizarDescripcion(citaId, descripcion),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },

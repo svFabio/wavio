@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ChatRepository, ConversacionRaw } from './chat.repository';
-import { SesionChatRepository } from './sesion-chat.repository';
+import { SesionChatRepository } from '../repositories/sesionChat.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
 import { enviarMensaje, resolverTelefonoReal } from '../lib/whatsapp';

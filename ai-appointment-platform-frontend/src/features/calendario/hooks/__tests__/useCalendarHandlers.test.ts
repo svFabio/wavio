@@ -23,6 +23,7 @@ function setup(opts: {
   markNoShow?: any;
   markAsistio?: any;
   crearCita?: any;
+  crearCitaRecurrente?: any;
   reprogramarCita?: any;
   actualizarDesc?: any;
 }) {
@@ -43,6 +44,7 @@ function setup(opts: {
       setCitaSeleccionada,
       queryClient,
       crearCita: opts.crearCita ?? createMockMutation(),
+      crearCitaRecurrente: opts.crearCitaRecurrente ?? createMockMutation(),
       reprogramarCita: opts.reprogramarCita ?? createMockMutation(),
       actualizarDesc: opts.actualizarDesc ?? createMockMutation(),
       setModalNuevaCita,
@@ -274,15 +276,11 @@ describe('useCalendarHandlers', () => {
       expect(response).toEqual({ success: true });
     });
 
-    it('creates recurrent citas and returns error count', async () => {
-      const crearCita = createMockMutation({
-        mutateAsync: vi
-          .fn()
-          .mockResolvedValueOnce({ success: true })
-          .mockResolvedValueOnce({ success: true })
-          .mockResolvedValueOnce({ success: false }),
+    it('creates recurrent citas using crearCitaRecurrente mutation', async () => {
+      const crearCitaRecurrente = createMockMutation({
+        mutateAsync: vi.fn().mockResolvedValue({ success: true, instancesCreated: 3 }),
       });
-      const { result } = setup({ crearCita });
+      const { result } = setup({ crearCitaRecurrente });
       const response = await result.current.handleCrearCita({
         clienteNombre: 'Ana',
         clienteTelefono: '59170000000',
@@ -292,9 +290,16 @@ describe('useCalendarHandlers', () => {
         recurrence: 'weekly',
         recurrenceEnd: '2026-01-19',
       });
-      expect(crearCita.mutateAsync).toHaveBeenCalledTimes(3);
-      expect(response.success).toBe(false);
-      expect(response.error).toContain('1');
+      expect(crearCitaRecurrente.mutateAsync).toHaveBeenCalledTimes(1);
+      expect(crearCitaRecurrente.mutateAsync).toHaveBeenCalledWith({
+        clienteNombre: 'Ana',
+        clienteTelefono: '59170000000',
+        fecha: '2026-01-05',
+        horario: '10:00',
+        recurrence: 'WEEKLY',
+        recurrenceEnd: '2026-01-19',
+      });
+      expect(response.success).toBe(true);
     });
   });
 

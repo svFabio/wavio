@@ -58,13 +58,17 @@ The backend uses **NestJS module architecture** with strict layer separation. Ea
 
 ```typescript
 // Example: citas.controller.ts
-@Controller('citas')
+@Controller("citas")
 @UseGuards(JwtAuthGuard, TenantGuard)
 export class CitasController {
   constructor(private readonly citasService: CitasService) {}
 
   @Post()
-  async create(@CurrentUser() user: JwtPayload, @TenantId() negocioId: number, @Body() dto: CreateCitaDto) {
+  async create(
+    @CurrentUser() user: JwtPayload,
+    @TenantId() negocioId: number,
+    @Body() dto: CreateCitaDto,
+  ) {
     return this.citasService.create(dto, negocioId);
   }
 }
@@ -138,34 +142,32 @@ export class ExternalServiceError extends AppError { ... }
 
 All modules are registered in `app.module.ts`. Here is the complete list:
 
-| Module | Controllers | Services | Repositories | Purpose |
-|--------|-------------|----------|--------------|---------|
-| `AuthModule` | `AuthController` | `AuthService` | `AuthRepository` | JWT auth, login, Google OAuth, registration |
-| `UsuariosModule` | `UsuariosController`, `UsersAliasController` | `UsuariosService` | `UsuariosRepository` | User/staff CRUD, role management |
-| `ServiciosModule` | `ServiciosController`, `HorariosController` | `ServiciosService`, `HorariosService` | `ServiciosRepository`, `HorariosNegocioRepository`, `HorariosEspecialesRepository`, `HorariosStaffRepository` | Services and schedule/hours management |
-| `ClientesModule` | `ClientesController` | `ClientesService` | `ClientesRepository` | Client management |
-| `NegocioModule` | `NegocioController`, `ConfiguracionController` | `NegocioService`, `ConfiguracionService` | `NegocioRepository`, `ConfiguracionRepository` | Business settings, WhatsApp config, chat flow |
-| `CitasModule` | `CitasController` | `CitasService` | `CitasRepository`, `AvailabilityRepository` | Appointments CRUD, availability checks |
-| `ChatModule` | `ChatController` | `ChatService` | `ChatRepository`, `SesionChatRepository` | WhatsApp chat messages, AI engine integration |
-| `EventsModule` | — | `EventsService` | — | WebSocket gateway, real-time broadcasts |
-| `WebhookModule` | `WhatsAppController`, `WhatsAppStatusController`, `StripeController` | `WebhookService` | — | External webhooks (WhatsApp, Stripe) |
-| `StatisticsModule` | `StatisticsController` | `StatisticsService` | `StatisticsRepository` | Dashboard stats, analytics |
-| `SchedulingModule` | — | `CleanupService`, `ReminderService`, `SurveyService` | `CleanupRepository`, `AppointmentRepository` | Cron jobs: cleanup, reminders, surveys |
-| `WaitlistModule` | `WaitlistController` | `WaitlistService` | `WaitlistRepository` | Waitlist management |
-| `NoShowModule` | — | `NoShowService` | `NoShowRepository` | No-show tracking |
-| `ReportesModule` | — | `ReportesService` | `ReportesRepository` | Report generation |
-| `CalendarModule` | `CalendarController` | `GoogleCalendarService` | `CalendarRepository` | Google Calendar integration |
-| `PortalModule` | `PortalController` | `PortalService` | `PortalRepository` | Public booking portal |
-| `PushModule` | `PushController` | `PushService` | `PushRepository` | Web push notifications |
-| `HealthModule` | `HealthController` | `HealthService` | — | Health check endpoint |
+| Module             | Controllers                                                          | Services                                             | Repositories                                                                                                  | Purpose                                       |
+| ------------------ | -------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `AuthModule`       | `AuthController`                                                     | `AuthService`                                        | `AuthRepository`                                                                                              | JWT auth, login, Google OAuth, registration   |
+| `UsuariosModule`   | `UsuariosController`, `UsersAliasController`                         | `UsuariosService`                                    | `UsuariosRepository`                                                                                          | User/staff CRUD, role management              |
+| `ServiciosModule`  | `ServiciosController`, `HorariosController`                          | `ServiciosService`, `HorariosService`                | `ServiciosRepository`, `HorariosNegocioRepository`, `HorariosEspecialesRepository`, `HorariosStaffRepository` | Services and schedule/hours management        |
+| `ClientesModule`   | `ClientesController`                                                 | `ClientesService`                                    | `ClientesRepository`                                                                                          | Client management                             |
+| `NegocioModule`    | `NegocioController`, `ConfiguracionController`                       | `NegocioService`, `ConfiguracionService`             | `NegocioRepository`, `ConfiguracionRepository`                                                                | Business settings, WhatsApp config, chat flow |
+| `CitasModule`      | `CitasController`                                                    | `CitasService`                                       | `CitasRepository`, `AvailabilityRepository`                                                                   | Appointments CRUD, availability checks        |
+| `ChatModule`       | `ChatController`                                                     | `ChatService`                                        | `ChatRepository`, `SesionChatRepository`                                                                      | WhatsApp chat messages, AI engine integration |
+| `EventsModule`     | —                                                                    | `EventsService`                                      | —                                                                                                             | WebSocket gateway, real-time broadcasts       |
+| `WebhookModule`    | `WhatsAppController`, `WhatsAppStatusController`, `StripeController` | `WebhookService`                                     | —                                                                                                             | External webhooks (WhatsApp, Stripe)          |
+| `StatisticsModule` | `StatisticsController`                                               | `StatisticsService`                                  | `StatisticsRepository`                                                                                        | Dashboard stats, analytics                    |
+| `SchedulingModule` | —                                                                    | `CleanupService`, `ReminderService`, `SurveyService` | `CleanupRepository`, `AppointmentRepository`                                                                  | Cron jobs: cleanup, reminders, surveys        |
+| `WaitlistModule`   | `WaitlistController`                                                 | `WaitlistService`                                    | `WaitlistRepository`                                                                                          | Waitlist management                           |
+| `CalendarModule`   | `CalendarController`                                                 | `GoogleCalendarService`                              | `CalendarRepository`                                                                                          | Google Calendar integration                   |
+| `PortalModule`     | `PortalController`                                                   | `PortalService`                                      | `PortalRepository`                                                                                            | Public booking portal                         |
+| `PushModule`       | `PushController`                                                     | `PushService`                                        | `PushRepository`                                                                                              | Web push notifications                        |
+| `HealthModule`     | `HealthController`                                                   | `HealthService`                                      | —                                                                                                             | Health check endpoint                         |
 
 ### Infrastructure Modules
 
-| Module | Purpose |
-|--------|---------|
-| `PrismaModule` | **Global** module providing `PrismaService` to all repositories. Registered once, available everywhere. |
-| `AppConfigModule` | Provides validated `env` config via dependency injection token `ENV_CONFIG`. |
-| `LibModule` | External service wrappers: `WhatsAppService`, Cloudinary, logger. |
+| Module            | Purpose                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `PrismaModule`    | **Global** module providing `PrismaService` to all repositories. Registered once, available everywhere. |
+| `AppConfigModule` | Provides validated `env` config via dependency injection token `ENV_CONFIG`.                            |
+| `LibModule`       | External service wrappers: `WhatsAppService`, Cloudinary, logger.                                       |
 
 ---
 
@@ -175,71 +177,73 @@ Cross-cutting concerns that apply across all modules:
 
 ### Guards
 
-| Guard | Purpose |
-|-------|---------|
-| `JwtAuthGuard` | Extends Passport `AuthGuard('jwt')`. Verifies JWT on protected routes. Attaches decoded user to `request.usuario`. |
-| `TenantGuard` | Validates `x-negocio-id` header matches the JWT's `negocioId`. Prevents cross-tenant access. Attaches parsed ID to `request.negocioId`. |
-| `RolesGuard` | Checks `@Roles()` decorator metadata against user's `rol` field. Supports `ADMIN` / `STAFF`. |
+| Guard          | Purpose                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `JwtAuthGuard` | Extends Passport `AuthGuard('jwt')`. Verifies JWT on protected routes. Attaches decoded user to `request.usuario`.                      |
+| `TenantGuard`  | Validates `x-negocio-id` header matches the JWT's `negocioId`. Prevents cross-tenant access. Attaches parsed ID to `request.negocioId`. |
+| `RolesGuard`   | Checks `@Roles()` decorator metadata against user's `rol` field. Supports `ADMIN` / `STAFF`.                                            |
 
 ### Decorators
 
-| Decorator | Purpose |
-|-----------|---------|
+| Decorator        | Purpose                                                               |
+| ---------------- | --------------------------------------------------------------------- |
 | `@CurrentUser()` | Extracts `JwtPayload` from `request.usuario` (set by `JwtAuthGuard`). |
-| `@TenantId()` | Extracts `number` from `request.negocioId` (set by `TenantGuard`). |
-| `@Roles(...)` | Sets required roles metadata for `RolesGuard`. |
-| `@Pagination()` | Extracts `page`, `limit`, `skip` from query params. |
+| `@TenantId()`    | Extracts `number` from `request.negocioId` (set by `TenantGuard`).    |
+| `@Roles(...)`    | Sets required roles metadata for `RolesGuard`.                        |
+| `@Pagination()`  | Extracts `page`, `limit`, `skip` from query params.                   |
 
 ### Pipes
 
-| Pipe | Purpose |
-|------|---------|
+| Pipe                | Purpose                                                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------- |
 | `ZodValidationPipe` | Validates request body/query against a Zod schema. Throws `400` with field-level errors on failure. |
 
 ### Interceptors
 
-| Interceptor | Purpose |
-|-------------|---------|
+| Interceptor             | Purpose                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
 | `PaginationInterceptor` | Wraps response in `{ data: T[], pagination: { page, limit, total, totalPages } }` shape. |
 
 ### Filters
 
-| Filter | Purpose |
-|--------|---------|
+| Filter                | Purpose                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AllExceptionsFilter` | Global exception handler. Maps `AppError` → structured error response, `HttpException` → NestJS default, unknown → `500`. Registered globally in `app.module.ts` and `main.ts`. |
 
 ### Errors
 
-| Error Class | HTTP Status | Code |
-|-------------|-------------|------|
-| `AppError` | (base class) | — |
-| `NotFoundError` | 404 | `{RESOURCE}_NOT_FOUND` |
-| `ValidationError` | 400 | `VALIDATION_ERROR` |
-| `UnauthorizedError` | 401 | `UNAUTHORIZED` |
-| `ForbiddenError` | 403 | `FORBIDDEN` |
-| `ConflictError` | 409 | `CONFLICT` |
-| `WhatsAppError` | 502 | `WHATSAPP_ERROR` |
-| `ExternalServiceError` | 502 | `EXTERNAL_SERVICE_ERROR` |
+| Error Class            | HTTP Status  | Code                     |
+| ---------------------- | ------------ | ------------------------ |
+| `AppError`             | (base class) | —                        |
+| `NotFoundError`        | 404          | `{RESOURCE}_NOT_FOUND`   |
+| `ValidationError`      | 400          | `VALIDATION_ERROR`       |
+| `UnauthorizedError`    | 401          | `UNAUTHORIZED`           |
+| `ForbiddenError`       | 403          | `FORBIDDEN`              |
+| `ConflictError`        | 409          | `CONFLICT`               |
+| `WhatsAppError`        | 502          | `WHATSAPP_ERROR`         |
+| `ExternalServiceError` | 502          | `EXTERNAL_SERVICE_ERROR` |
 
 ---
 
 ## Config Layer (`config/`)
 
-| File | Purpose |
-|------|---------|
-| `env.ts` | Parses and validates all environment variables with Zod. Exits with error on startup if required vars are missing. Single source of truth for config. |
-| `config.module.ts` | `AppConfigModule` provides the validated `env` object via DI token `ENV_CONFIG`. |
-| `index.ts` | Re-exports for convenience. |
+| File               | Purpose                                                                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `env.ts`           | Parses and validates all environment variables with Zod. Exits with error on startup if required vars are missing. Single source of truth for config. |
+| `config.module.ts` | `AppConfigModule` provides the validated `env` object via DI token `ENV_CONFIG`.                                                                      |
+| `index.ts`         | Re-exports for convenience.                                                                                                                           |
 
 **Usage**: Services inject `ENV_CONFIG` token or import `env` directly from `config/env.ts` (preferred for non-DI contexts).
 
 ```typescript
 // env.ts validates required vars at startup
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
-  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
   // ... more vars
 });
 ```
@@ -248,10 +252,10 @@ const envSchema = z.object({
 
 ## Prisma Layer (`prisma/`)
 
-| File | Purpose |
-|------|---------|
-| `prisma.module.ts` | **`@Global()` module** — provides `PrismaService` to every module without explicit imports. |
-| `prisma.service.ts` | Extends `PrismaClient` with lifecycle hooks (`$on`, `$connect`, `$disconnect`). |
+| File                | Purpose                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `prisma.module.ts`  | **`@Global()` module** — provides `PrismaService` to every module without explicit imports. |
+| `prisma.service.ts` | Extends `PrismaClient` with lifecycle hooks (`$on`, `$connect`, `$disconnect`).             |
 
 **Key point**: Because `PrismaModule` is `@Global()`, repositories can inject `PrismaService` without importing `PrismaModule` in their own module. This is the ONLY way Prisma should be accessed.
 
@@ -261,22 +265,22 @@ const envSchema = z.object({
 
 External service wrappers and shared utilities:
 
-| File | Purpose |
-|------|---------|
+| File                  | Purpose                                                                           |
+| --------------------- | --------------------------------------------------------------------------------- |
 | `whatsapp.service.ts` | `WhatsAppService` — Meta Cloud API client for sending messages, templates, media. |
-| `whatsapp.ts` | Lower-level WhatsApp API helper functions. |
-| `cloudinary.ts` | Cloudinary client wrapper for image/file uploads. |
-| `logger.ts` | `createLogger(name)` factory — Pino-based structured logging. |
-| `lib.module.ts` | `LibModule` provides `WhatsAppService` for injection. |
+| `whatsapp.ts`         | Lower-level WhatsApp API helper functions.                                        |
+| `cloudinary.ts`       | Cloudinary client wrapper for image/file uploads.                                 |
+| `logger.ts`           | `createLogger(name)` factory — Pino-based structured logging.                     |
+| `lib.module.ts`       | `LibModule` provides `WhatsAppService` for injection.                             |
 
 ---
 
 ## WebSocket Layer (`events/`)
 
-| File | Purpose |
-|------|---------|
+| File                | Purpose                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `events.gateway.ts` | `EventsGateway` — NestJS WebSocket gateway using Socket.IO. Authenticates connections via JWT, joins clients to `negocio:{id}` rooms. |
-| `events.service.ts` | `EventsService` — typed methods for emitting events to negocio rooms (e.g., `citaCreada`, `chatMensaje`). |
+| `events.service.ts` | `EventsService` — typed methods for emitting events to negocio rooms (e.g., `citaCreada`, `chatMensaje`).                             |
 
 **Connection flow**: Client connects with `{ token, negocioId }` → Gateway verifies JWT → joins `negocio:{id}` room → broadcasts go to all connected clients of that business.
 
@@ -339,19 +343,19 @@ Page (route-level)
 
 ### Frontend Features
 
-| Feature | Purpose |
-|---------|---------|
-| `auth` | Login, Google OAuth, registration |
-| `calendario` | Appointment calendar, create/reprogram/detail modals |
-| `chat` | WhatsApp conversation view, message history |
+| Feature         | Purpose                                                                   |
+| --------------- | ------------------------------------------------------------------------- |
+| `auth`          | Login, Google OAuth, registration                                         |
+| `calendario`    | Appointment calendar, create/reprogram/detail modals                      |
+| `chat`          | WhatsApp conversation view, message history                               |
 | `configuracion` | Business settings, services, schedules, chat flow editor, WhatsApp config |
-| `home` | Dashboard overview, stats, agenda summary |
-| `onboarding` | New business setup flow |
-| `pagos` | Payment validation, pending payments |
-| `portal` | Public booking portal link generation |
-| `statistics` | Analytics charts, client stats, origin tracking |
-| `users` | Staff/user management |
-| `waitlist` | Waitlist management |
+| `home`          | Dashboard overview, stats, agenda summary                                 |
+| `onboarding`    | New business setup flow                                                   |
+| `pagos`         | Payment validation, pending payments                                      |
+| `portal`        | Public booking portal link generation                                     |
+| `statistics`    | Analytics charts, client stats, origin tracking                           |
+| `users`         | Staff/user management                                                     |
+| `waitlist`      | Waitlist management                                                       |
 
 ### Shared vs Feature
 
@@ -413,42 +417,42 @@ Login form → POST /api/auth/login → JWT issued
 
 See [`decisions.md`](./decisions.md) for the full ADR log.
 
-| Decision | Choice | Reason |
-|----------|--------|--------|
-| Backend framework | NestJS | Modular architecture, DI, decorators, WebSocket support, Swagger integration |
-| ORM | Prisma | Type-safe queries, good migration tooling, global module pattern |
-| Frontend state | React Query | Server cache + local UI state is sufficient |
-| Validation | Zod | End-to-end type inference, consistent on both layers |
-| Auth | JWT via Passport strategy | NestJS-native integration, guard-based authentication |
-| Multi-tenancy | `TenantGuard` + `x-negocio-id` header | Prevents cross-tenant access at the guard level |
-| Real-time | Socket.IO via NestJS WebSockets | Already integrated; WhatsApp events need push |
-| AI | Google Gemini | Already integrated for appointment parsing |
-| Styling | TailwindCSS | Already established; consistent utility-first |
-| Testing | Vitest | Fast, modern, good TypeScript support |
+| Decision          | Choice                                | Reason                                                                       |
+| ----------------- | ------------------------------------- | ---------------------------------------------------------------------------- |
+| Backend framework | NestJS                                | Modular architecture, DI, decorators, WebSocket support, Swagger integration |
+| ORM               | Prisma                                | Type-safe queries, good migration tooling, global module pattern             |
+| Frontend state    | React Query                           | Server cache + local UI state is sufficient                                  |
+| Validation        | Zod                                   | End-to-end type inference, consistent on both layers                         |
+| Auth              | JWT via Passport strategy             | NestJS-native integration, guard-based authentication                        |
+| Multi-tenancy     | `TenantGuard` + `x-negocio-id` header | Prevents cross-tenant access at the guard level                              |
+| Real-time         | Socket.IO via NestJS WebSockets       | Already integrated; WhatsApp events need push                                |
+| AI                | Google Gemini                         | Already integrated for appointment parsing                                   |
+| Styling           | TailwindCSS                           | Already established; consistent utility-first                                |
+| Testing           | Vitest                                | Fast, modern, good TypeScript support                                        |
 
 ---
 
 ## Key Files Reference
 
-| File | Purpose |
-|------|---------|
-| `src/main.ts` | NestJS entry point, Swagger setup, CORS, Helmet, Morgan |
-| `src/app.module.ts` | Root module with all imports, global filter + throttle guard |
-| `src/config/env.ts` | Env variable parsing and Zod validation |
-| `src/domain/errors.ts` | Typed domain error classes |
-| `src/domain/types.ts` | Core domain entity interfaces |
-| `src/common/guards/jwt-auth.guard.ts` | JWT authentication guard (Passport) |
-| `src/common/guards/tenant.guard.ts` | Multi-tenant guard |
-| `src/common/guards/roles.guard.ts` | Role-based access control guard |
-| `src/common/filters/all-exceptions.filter.ts` | Global exception handler |
-| `src/common/pipes/zod-validation.pipe.ts` | Zod validation pipe |
-| `src/common/interceptors/pagination.interceptor.ts` | Pagination response wrapper |
-| `src/prisma/prisma.module.ts` | Global Prisma module |
-| `src/events/events.gateway.ts` | WebSocket gateway with JWT auth |
-| `src/scheduling/scheduling.module.ts` | Cron jobs (cleanup, reminders, surveys) |
-| `frontend/src/lib/auth.ts` | Token read/write — single source of truth |
-| `frontend/src/lib/apiClient.ts` | Centralized fetch wrapper |
-| `frontend/src/lib/socket.ts` | Socket.IO client instance |
+| File                                                | Purpose                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------ |
+| `src/main.ts`                                       | NestJS entry point, Swagger setup, CORS, Helmet, Morgan      |
+| `src/app.module.ts`                                 | Root module with all imports, global filter + throttle guard |
+| `src/config/env.ts`                                 | Env variable parsing and Zod validation                      |
+| `src/domain/errors.ts`                              | Typed domain error classes                                   |
+| `src/domain/types.ts`                               | Core domain entity interfaces                                |
+| `src/common/guards/jwt-auth.guard.ts`               | JWT authentication guard (Passport)                          |
+| `src/common/guards/tenant.guard.ts`                 | Multi-tenant guard                                           |
+| `src/common/guards/roles.guard.ts`                  | Role-based access control guard                              |
+| `src/common/filters/all-exceptions.filter.ts`       | Global exception handler                                     |
+| `src/common/pipes/zod-validation.pipe.ts`           | Zod validation pipe                                          |
+| `src/common/interceptors/pagination.interceptor.ts` | Pagination response wrapper                                  |
+| `src/prisma/prisma.module.ts`                       | Global Prisma module                                         |
+| `src/events/events.gateway.ts`                      | WebSocket gateway with JWT auth                              |
+| `src/scheduling/scheduling.module.ts`               | Cron jobs (cleanup, reminders, surveys)                      |
+| `frontend/src/lib/auth.ts`                          | Token read/write — single source of truth                    |
+| `frontend/src/lib/apiClient.ts`                     | Centralized fetch wrapper                                    |
+| `frontend/src/lib/socket.ts`                        | Socket.IO client instance                                    |
 
 ---
 

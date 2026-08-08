@@ -6,10 +6,15 @@ allowBuilds:
   prisma: false
   protobufjs: false
 
+minimumReleaseAgeExclude:
+  - nanoid@3.3.18
+
 overrides:
   brace-expansion@>=4.0.0: '5.0.9'
   minimatch: '>=10.0.0'
+  js-yaml@>=4.0.0: '4.3.1'
   js-yaml@>=5.0.0: '5.2.2'
   fast-uri: '4.1.2'
   gaxios: '>=7.3.0'
+  nanoid: '3.3.18'
   postcss: '8.5.23'

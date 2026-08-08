@@ -3,6 +3,9 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
+import { isWithinReminderWindow } from '../domain/cita-time';
+
+const HORA_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class ReminderService {
@@ -24,7 +27,15 @@ export class ReminderService {
     try {
       const negocios = await this.negocioService.getActiveBusinessIds();
       for (const negocioId of negocios) {
-        const citas = await this.appointmentRepository.findUpcomingForReminder(negocioId, 23, 25);
+        const ahora = new Date();
+        const desde = new Date(ahora.getTime() + 23 * HORA_MS);
+        const hasta = new Date(ahora.getTime() + 25 * HORA_MS);
+        const candidatas = await this.appointmentRepository.findUpcomingForReminder(
+          negocioId,
+          desde,
+          hasta,
+        );
+        const citas = candidatas.filter((cita) => isWithinReminderWindow(cita, desde, hasta));
 
         for (const cita of citas) {
           if (cita.recordatorio24h) continue;
@@ -72,11 +83,15 @@ export class ReminderService {
     try {
       const negocios = await this.negocioService.getActiveBusinessIds();
       for (const negocioId of negocios) {
-        const citas = await this.appointmentRepository.findUpcomingForReminder(
+        const ahora = new Date();
+        const desde = new Date(ahora.getTime() + 0.75 * HORA_MS);
+        const hasta = new Date(ahora.getTime() + 1.25 * HORA_MS);
+        const candidatas = await this.appointmentRepository.findUpcomingForReminder(
           negocioId,
-          0.75,
-          1.25,
+          desde,
+          hasta,
         );
+        const citas = candidatas.filter((cita) => isWithinReminderWindow(cita, desde, hasta));
 
         for (const cita of citas) {
           if (cita.recordatorio1h) continue;

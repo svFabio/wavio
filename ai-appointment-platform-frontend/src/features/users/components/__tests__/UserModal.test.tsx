@@ -14,6 +14,8 @@ describe('UserModal', () => {
         editingUser={null}
         formData={formData}
         isSaving={false}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={vi.fn()}
         onSubmit={vi.fn()}
         onClose={vi.fn()}
@@ -29,13 +31,15 @@ describe('UserModal', () => {
         editingUser={null}
         formData={formData}
         isSaving={false}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={vi.fn()}
         onSubmit={vi.fn()}
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('Nuevo Usuario')).toBeInTheDocument();
-    expect(screen.getByText('Crear')).toBeInTheDocument();
+    expect(screen.getByText('New User')).toBeInTheDocument();
+    expect(screen.getByText('Create')).toBeInTheDocument();
   });
 
   it('renders edit form when editing user', () => {
@@ -52,13 +56,15 @@ describe('UserModal', () => {
         editingUser={editingUser}
         formData={{ nombre: 'Admin', email: 'admin@test.com', password: '', rol: 'ADMIN' }}
         isSaving={false}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={vi.fn()}
         onSubmit={vi.fn()}
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('Editar Usuario')).toBeInTheDocument();
-    expect(screen.getByText('Actualizar')).toBeInTheDocument();
+    expect(screen.getByText('Edit User')).toBeInTheDocument();
+    expect(screen.getByText('Update')).toBeInTheDocument();
   });
 
   it('calls onFormDataChange when typing', async () => {
@@ -70,6 +76,8 @@ describe('UserModal', () => {
         editingUser={null}
         formData={formData}
         isSaving={false}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={onFormDataChange}
         onSubmit={vi.fn()}
         onClose={vi.fn()}
@@ -89,12 +97,14 @@ describe('UserModal', () => {
         editingUser={null}
         formData={{ nombre: 'Test', email: 'test@test.com', password: '123', rol: 'STAFF' }}
         isSaving={false}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={vi.fn()}
         onSubmit={onSubmit}
         onClose={vi.fn()}
       />,
     );
-    await userEvt.click(screen.getByText('Crear'));
+    await userEvt.click(screen.getByText('Create'));
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
@@ -107,6 +117,8 @@ describe('UserModal', () => {
         editingUser={null}
         formData={formData}
         isSaving={false}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={vi.fn()}
         onSubmit={vi.fn()}
         onClose={onClose}
@@ -123,12 +135,13 @@ describe('UserModal', () => {
         editingUser={null}
         formData={formData}
         isSaving={true}
+        viewerRole="OWNER"
+        adminCount={2}
         onFormDataChange={vi.fn()}
         onSubmit={vi.fn()}
         onClose={vi.fn()}
       />,
     );
-    // Button shows Loader2 spinner when saving — no "Crear" text, so query by type
     const submitBtn = container.querySelector('button[type="submit"]');
     expect(submitBtn).toBeDisabled();
   });

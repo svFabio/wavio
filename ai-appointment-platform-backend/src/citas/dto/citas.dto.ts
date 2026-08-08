@@ -17,9 +17,20 @@ export const crearCitaAdminSchema = z.object({
   duracionMinutos: z.number().int().min(15).max(480).optional(),
 });
 
+export const crearCitaRecurrenteSchema = crearCitaAdminSchema.extend({
+  recurrence: z.enum(['weekly', 'biweekly', 'monthly'], {
+    error: 'Recurrencia inválida. Valores permitidos: weekly, biweekly, monthly',
+  }),
+  recurrenceEnd: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido. Use YYYY-MM-DD'),
+});
+
 export const reprogramarCitaSchema = z.object({
-  fecha: z.string({ message: 'La fecha es requerida' }),
-  horario: z.string({ message: 'El horario es requerido' }),
+  fecha: z
+    .string({ error: 'La fecha es requerida' })
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido. Use YYYY-MM-DD'),
+  horario: z.string({ error: 'El horario es requerido' }),
 });
 
 export const actualizarDescripcionSchema = z.object({
@@ -41,8 +52,13 @@ export const horariosQuerySchema = z.object({
   staffId: z.coerce.number().int().optional(),
 });
 
+export const serieIdQuerySchema = z.object({
+  serieId: z.string().min(1, 'serieId es requerido'),
+});
+
 export type ValidarCitaDto = z.infer<typeof validarCitaSchema>;
 export type CrearCitaAdminDto = z.infer<typeof crearCitaAdminSchema>;
+export type CrearCitaRecurrenteDto = z.infer<typeof crearCitaRecurrenteSchema>;
 export type ReprogramarCitaDto = z.infer<typeof reprogramarCitaSchema>;
 export type ActualizarDescripcionDto = z.infer<typeof actualizarDescripcionSchema>;
 export type AgendaQueryDto = z.infer<typeof agendaQuerySchema>;

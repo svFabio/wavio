@@ -1,31 +1,68 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { UsersView } from '../components/UsersView';
 import { EmptyState } from '../components/EmptyState';
 import { UserModal } from '../components/UserModal';
+import { InvitationModal } from '../components/InvitationModal';
+import { InvitationsView } from '../components/InvitationsView';
+import { InviteSuccessCard } from '../components/InviteSuccessCard';
 import { UsersSkeleton } from '../../../shared/components/skeletons/UsersSkeleton';
-import type { User, UserFormData } from '../types';
+import { InvitationsSkeleton } from '../../../shared/components/skeletons/InvitationsSkeleton';
+import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
+import { ErrorAlert } from '../../../shared/components/ErrorAlert';
+import { useAuth } from '../../../context/AuthContext';
+import type { User, UserFormData, InvitationFormData } from '../types';
+import { usersApi } from '../api/users.api';
+import {
+  useInvitationsQuery,
+  useCreateInvitationMutation,
+  useResendInvitationMutation,
+  useCancelInvitationMutation,
+} from '../api/useInvitations';
 
 const EMPTY_FORM: UserFormData = { nombre: '', email: '', password: '', rol: 'STAFF' };
+const EMPTY_INVITE_FORM: InvitationFormData = { email: '', rol: 'STAFF' };
 
-export const UsersContainer = () => {
+export const UsersContainer = (): React.JSX.Element => {
   const queryClient = useQueryClient();
+  const { usuario } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>(EMPTY_FORM);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteFormData, setInviteFormData] = useState<InvitationFormData>(EMPTY_INVITE_FORM);
+  const [inviteSuccessUrl, setInviteSuccessUrl] = useState<string | null>(null);
 
-  const { data: users = [], isLoading: loading } = useQuery<User[]>({
+  const {
+    data: users = [],
+    isLoading: loading,
+    isError,
+  } = useQuery<User[]>({
     queryKey: ['users'],
-    queryFn: () => api.getUsers(),
+    queryFn: () => usersApi.getUsers(),
   });
+
+  const {
+    data: invitations = [],
+    isLoading: invitesLoading,
+    isError: invitesError,
+  } = useInvitationsQuery();
+
+  const viewerRole = (usuario?.rol ?? 'STAFF') as 'OWNER' | 'ADMIN' | 'STAFF';
+  const canInvite = viewerRole !== 'STAFF';
+
+  // Count ADMIN + OWNER entries for last-admin guard
+  const adminCount = useMemo(
+    () => users.filter((u) => u.rol === 'ADMIN' || u.rol === 'OWNER').length,
+    [users],
+  );
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (editingUser) {
-        return api.updateUser(editingUser.id, formData);
+        return usersApi.updateUser(editingUser.id, formData);
       }
-      return api.createUser(formData);
+      return usersApi.createUser(formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -36,16 +73,34 @@ export const UsersContainer = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.deleteUser(id),
+    mutationFn: (id: number) => usersApi.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 
+  const createInviteMutation = useCreateInvitationMutation((data) => {
+    setInviteSuccessUrl(data.url);
+    setShowInviteModal(false);
+    setInviteFormData(EMPTY_INVITE_FORM);
+  });
+
+  const resendMutation = useResendInvitationMutation((data) => {
+    setInviteSuccessUrl(data.url);
+  });
+
+  const cancelMutation = useCancelInvitationMutation();
+
   const openModal = useCallback((user?: User) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ nombre: user.nombre, email: user.email, password: '', rol: user.rol });
+      setFormData({
+        nombre: user.nombre,
+        email: user.email,
+        password: '',
+        // OWNER cannot be modified via form (submit is hidden); use ADMIN as neutral placeholder.
+        rol: user.rol === 'OWNER' ? 'ADMIN' : user.rol,
+      });
     } else {
       setEditingUser(null);
       setFormData(EMPTY_FORM);
@@ -59,9 +114,28 @@ export const UsersContainer = () => {
     setFormData(EMPTY_FORM);
   }, []);
 
+  const openInviteModal = useCallback(() => {
+    setInviteSuccessUrl(null);
+    setInviteFormData(EMPTY_INVITE_FORM);
+    setShowInviteModal(true);
+  }, []);
+
+  const closeInviteModal = useCallback(() => {
+    setShowInviteModal(false);
+    setInviteFormData(EMPTY_INVITE_FORM);
+  }, []);
+
+  const handleInviteSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      createInviteMutation.mutate(inviteFormData);
+    },
+    [createInviteMutation, inviteFormData],
+  );
+
   const handleDelete = useCallback(
     (id: number) => {
-      if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+      if (!confirm('Are you sure you want to delete this user?')) return;
       deleteMutation.mutate(id);
     },
     [deleteMutation],
@@ -79,28 +153,79 @@ export const UsersContainer = () => {
     return <UsersSkeleton />;
   }
 
-  return (
-    <div>
-      {users.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <UsersView
-          users={users}
-          onOpenModal={() => openModal()}
-          onEdit={openModal}
-          onDelete={handleDelete}
-        />
-      )}
+  if (isError) {
+    return (
+      <div className="mt-8">
+        <ErrorAlert message="Error loading users" />
+      </div>
+    );
+  }
 
-      <UserModal
-        isOpen={showModal}
-        editingUser={editingUser}
-        formData={formData}
-        isSaving={saveMutation.isPending}
-        onFormDataChange={setFormData}
-        onSubmit={handleSubmit}
-        onClose={closeModal}
-      />
-    </div>
+  return (
+    <ErrorBoundary>
+      <div>
+        {users.length === 0 ? (
+          <EmptyState description="Add a new member to the team to get started." />
+        ) : (
+          <UsersView
+            users={users}
+            viewerRole={viewerRole}
+            onOpenModal={() => openModal()}
+            onInvite={openInviteModal}
+            onEdit={openModal}
+            onDelete={handleDelete}
+          />
+        )}
+
+        {canInvite && (
+          <>
+            {invitesLoading && <InvitationsSkeleton />}
+            {invitesError && (
+              <div className="mt-6">
+                <ErrorAlert message="Error loading invitations" />
+              </div>
+            )}
+            {!invitesLoading && !invitesError && (
+              <>
+                {inviteSuccessUrl && (
+                  <InviteSuccessCard
+                    url={inviteSuccessUrl}
+                    onDismiss={() => setInviteSuccessUrl(null)}
+                  />
+                )}
+                <InvitationsView
+                  invitations={invitations}
+                  onResend={resendMutation.mutate}
+                  onCancel={cancelMutation.mutate}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        <UserModal
+          isOpen={showModal}
+          editingUser={editingUser}
+          formData={formData}
+          isSaving={saveMutation.isPending}
+          viewerRole={viewerRole}
+          adminCount={adminCount}
+          onFormDataChange={setFormData}
+          onSubmit={handleSubmit}
+          onClose={closeModal}
+        />
+
+        {canInvite && (
+          <InvitationModal
+            isOpen={showInviteModal}
+            formData={inviteFormData}
+            isSending={createInviteMutation.isPending}
+            onFormDataChange={setInviteFormData}
+            onSubmit={handleInviteSubmit}
+            onClose={closeInviteModal}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 };

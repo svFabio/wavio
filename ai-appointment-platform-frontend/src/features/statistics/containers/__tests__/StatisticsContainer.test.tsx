@@ -2,21 +2,26 @@ import { screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
 import { StatisticsContainer } from '../StatisticsContainer.container';
+import { statisticsApi } from '../../api/statistics.api';
+import { clientesApi } from '../../api/clientes.api';
 
-vi.mock('../../../../lib/api', () => ({
-  api: {
+vi.mock('../../api/statistics.api', () => ({
+  statisticsApi: {
     getStatisticsOverview: vi.fn(),
     getStatisticsRevenue: vi.fn(),
+  },
+}));
+
+vi.mock('../../api/clientes.api', () => ({
+  clientesApi: {
     getClientes: vi.fn(),
   },
 }));
 
-import { api } from '../../../../lib/api';
-
 describe('StatisticsContainer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.getStatisticsOverview).mockResolvedValue({
+    vi.mocked(statisticsApi.getStatisticsOverview).mockResolvedValue({
       citasMes: 10,
       ingresosMes: 5000,
       citasVirtuales: 6,
@@ -24,8 +29,8 @@ describe('StatisticsContainer', () => {
       topClientes: [],
       horariosPopulares: [],
     });
-    vi.mocked(api.getStatisticsRevenue).mockResolvedValue({ revenue: [] });
-    vi.mocked(api.getClientes).mockResolvedValue([]);
+    vi.mocked(statisticsApi.getStatisticsRevenue).mockResolvedValue({ revenue: [] });
+    vi.mocked(clientesApi.getClientes).mockResolvedValue([]);
   });
 
   it('renders statistics view', async () => {

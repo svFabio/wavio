@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { citasApi } from './citas.api';
 
 export function useMarkNoShowMutation(): UseMutationResult<
   { success: boolean; error?: string },
@@ -10,7 +10,7 @@ export function useMarkNoShowMutation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (citaId: string) => api.marcarNoAsistio(citaId),
+    mutationFn: (citaId: string) => citasApi.marcarNoAsistio(citaId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },
@@ -25,7 +25,7 @@ export function useMarkAsistioMutation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (citaId: string) => api.marcarAsistio(citaId),
+    mutationFn: (citaId: string) => citasApi.marcarAsistio(citaId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },

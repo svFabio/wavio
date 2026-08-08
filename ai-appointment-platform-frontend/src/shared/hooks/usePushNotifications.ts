@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { pushApi } from '../api/push.api';
 import {
   isPushSupported,
   requestPushPermission,
@@ -49,7 +49,7 @@ export function usePushNotifications() {
 
   const { data: vapidData } = useQuery({
     queryKey: ['vapidPublicKey'],
-    queryFn: api.getVapidPublicKey,
+    queryFn: pushApi.getVapidPublicKey,
     enabled: supported,
     staleTime: Infinity,
   });

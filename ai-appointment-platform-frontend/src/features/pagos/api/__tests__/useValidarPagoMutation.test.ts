@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHookWithProviders } from '../../../../test-utils';
 import { useValidarPagoMutation } from '../useValidarPagoMutation';
+import { citasApi } from '../../../calendario/api/citas.api';
 
-vi.mock('../../../../lib/api', () => ({
-  api: {
+vi.mock('../../../calendario/api/citas.api', () => ({
+  citasApi: {
     validarPago: vi.fn(),
   },
 }));
@@ -14,28 +15,26 @@ vi.mock('../../../../shared/hooks/useNotifications', () => ({
   }),
 }));
 
-import { api } from '../../../../lib/api';
-
 describe('useValidarPagoMutation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('calls validarPago with correct params', async () => {
-    vi.mocked(api.validarPago).mockResolvedValue(true);
+    vi.mocked(citasApi.validarPago).mockResolvedValue(true);
     const { result } = renderHookWithProviders(() => useValidarPagoMutation());
     result.current.mutate({ id: 'abc-123', accion: 'APROBAR' });
     await vi.waitFor(() => {
-      expect(api.validarPago).toHaveBeenCalledWith('abc-123', 'APROBAR');
+      expect(citasApi.validarPago).toHaveBeenCalledWith('abc-123', 'APROBAR');
     });
   });
 
   it('throws if validarPago returns false', async () => {
-    vi.mocked(api.validarPago).mockResolvedValue(false);
+    vi.mocked(citasApi.validarPago).mockResolvedValue(false);
     const { result } = renderHookWithProviders(() => useValidarPagoMutation());
     result.current.mutate({ id: 'abc-123', accion: 'APROBAR' });
     await vi.waitFor(() => {
-      expect(api.validarPago).toHaveBeenCalled();
+      expect(citasApi.validarPago).toHaveBeenCalled();
     });
   });
 });

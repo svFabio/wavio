@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
 import { ConfiguracionView } from '../components/ConfiguracionView';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import type { Servicio, HorarioNegocio, HorarioEspecial } from '../types';
+import { configuracionApi } from '../api/configuracion.api';
 
-export const ConfiguracionContainer = () => {
+export const ConfiguracionContainer = (): React.JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -15,7 +15,7 @@ export const ConfiguracionContainer = () => {
     isError: isErrorServicios,
   } = useQuery<Servicio[]>({
     queryKey: ['servicios'],
-    queryFn: api.getServicios,
+    queryFn: configuracionApi.getServicios,
   });
 
   const {
@@ -24,7 +24,7 @@ export const ConfiguracionContainer = () => {
     isError: isErrorHorarios,
   } = useQuery<HorarioNegocio[]>({
     queryKey: ['horarios'],
-    queryFn: api.getHorariosNegocio,
+    queryFn: configuracionApi.getHorariosNegocio,
   });
 
   const {
@@ -33,7 +33,7 @@ export const ConfiguracionContainer = () => {
     isError: isErrorHorariosEspeciales,
   } = useQuery<HorarioEspecial[]>({
     queryKey: ['horariosEspeciales'],
-    queryFn: api.getHorariosEspeciales,
+    queryFn: configuracionApi.getHorariosEspeciales,
   });
 
   const isLoading = loadingServicios || loadingHorarios || loadingHorariosEspeciales;
@@ -49,27 +49,27 @@ export const ConfiguracionContainer = () => {
       duracionMinutos: number;
       bufferMinutos: number;
       precio: number;
-    }) => api.createServicio(data),
+    }) => configuracionApi.createServicio(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servicios'] }),
     onError: (e: Error) => setError(e.message || 'Error agregando servicio'),
   });
 
   const updateServicioMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Servicio> }) =>
-      api.updateServicio(id, data),
+      configuracionApi.updateServicio(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servicios'] }),
     onError: (e: Error) => setError(e.message || 'Error actualizando servicio'),
   });
 
   const deleteServicioMutation = useMutation({
-    mutationFn: (id: number) => api.deleteServicio(id),
+    mutationFn: (id: number) => configuracionApi.deleteServicio(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['servicios'] }),
     onError: (e: Error) => setError(e.message || 'Error eliminando servicio'),
   });
 
   const saveHorariosMutation = useMutation({
     mutationFn: (horarios: Array<{ diaSemana: number; horaInicio: string; horaFin: string }>) =>
-      api.updateHorariosNegocio(horarios),
+      configuracionApi.updateHorariosNegocio(horarios),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horarios'] }),
     onError: (e: Error) => setError(e.message || 'Error guardando horarios'),
   });
@@ -80,13 +80,13 @@ export const ConfiguracionContainer = () => {
       cerrado: boolean;
       horaInicio: string | null;
       horaFin: string | null;
-    }) => api.createHorarioEspecial(data),
+    }) => configuracionApi.createHorarioEspecial(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horariosEspeciales'] }),
     onError: (e: Error) => setError(e.message || 'Error creando horario especial'),
   });
 
   const deleteHorarioEspecialMutation = useMutation({
-    mutationFn: (id: number) => api.deleteHorarioEspecial(id),
+    mutationFn: (id: number) => configuracionApi.deleteHorarioEspecial(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['horariosEspeciales'] }),
     onError: (e: Error) => setError(e.message || 'Error eliminando horario especial'),
   });

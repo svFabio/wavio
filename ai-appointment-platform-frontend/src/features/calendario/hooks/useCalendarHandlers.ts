@@ -5,7 +5,6 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
 import { useSocketEvent } from '../../../shared/hooks/useSocketEvent';
 import type { EventoCalendario, DatosNuevaCita } from '../types';
-import { calcularFechasRecurrentes } from './useCalendarEvents';
 
 export function useCalendarHandlers({
   vista,
@@ -17,6 +16,7 @@ export function useCalendarHandlers({
   setCitaSeleccionada,
   queryClient,
   crearCita,
+  crearCitaRecurrente,
   reprogramarCita,
   actualizarDesc,
   setModalNuevaCita,
@@ -34,6 +34,21 @@ export function useCalendarHandlers({
     { success: boolean; error?: string },
     Error,
     DatosNuevaCita,
+    unknown
+  >;
+  crearCitaRecurrente: UseMutationResult<
+    { success: boolean; instancesCreated?: number; error?: string },
+    Error,
+    {
+      clienteNombre: string;
+      clienteTelefono: string;
+      fecha: string;
+      horario: string;
+      servicioId?: number;
+      staffId?: number;
+      recurrence: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+      recurrenceEnd: string;
+    },
     unknown
   >;
   reprogramarCita: UseMutationResult<
@@ -143,24 +158,21 @@ export function useCalendarHandlers({
       const { esRecurrente, recurrence, recurrenceEnd, ...baseData } = data;
 
       if (esRecurrente && recurrence && recurrenceEnd) {
-        const fechas = calcularFechasRecurrentes(data.fecha, recurrence, recurrenceEnd);
-        let errors = 0;
-
-        for (const fecha of fechas) {
-          const result = await crearCita.mutateAsync({ ...baseData, fecha });
-          if (!result.success) errors++;
-        }
-
-        if (errors > 0) {
-          return { success: false, error: `Error al crear ${errors} cita(s) recurrente(s)` };
-        }
-        return { success: true };
+        // UI uses lowercase frequencies (weekly/biweekly/monthly); API contract is UPPERCASE.
+        const recurrenceApi = recurrence.toUpperCase() as
+          'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+        const result = await crearCitaRecurrente.mutateAsync({
+          ...baseData,
+          recurrence: recurrenceApi,
+          recurrenceEnd,
+        });
+        return { success: result.success, error: result.error };
       }
 
       const result = await crearCita.mutateAsync(baseData);
       return { success: result.success, error: result.error };
     },
-    [crearCita],
+    [crearCita, crearCitaRecurrente],
   );
 
   const handleCerrarReprogramar = useCallback(

@@ -77,6 +77,21 @@ describe('usuarios.dto', () => {
       expect(result.success).toBe(false);
     });
 
+    it('should accept password in update', () => {
+      const result = updateUserSchema.parse({ password: 'nuevaclave123' });
+      expect(result.password).toBe('nuevaclave123');
+    });
+
+    it('should accept empty password (no change)', () => {
+      const result = updateUserSchema.parse({ password: '' });
+      expect(result.password).toBe('');
+    });
+
+    it('should reject short password in update', () => {
+      const result = updateUserSchema.safeParse({ password: '12345' });
+      expect(result.success).toBe(false);
+    });
+
     it('should reject invalid rol', () => {
       const result = updateUserSchema.safeParse({ rol: 'INVALID' });
       expect(result.success).toBe(false);

@@ -40,10 +40,49 @@ describe('AuthRepository', () => {
     });
   });
 
+  describe('findNegocioByEmail', () => {
+    it('should return negocio when found', async () => {
+      const negocio = buildNegocio({ email: 'owner@test.com' });
+      prisma.negocio.findUnique.mockResolvedValue(negocio);
+
+      const result = await repo.findNegocioByEmail('owner@test.com');
+
+      expect(prisma.negocio.findUnique).toHaveBeenCalledWith({
+        where: { email: 'owner@test.com' },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(negocio);
+    });
+
+    it('should return null when not found', async () => {
+      prisma.negocio.findUnique.mockResolvedValue(null);
+
+      const result = await repo.findNegocioByEmail('nonexistent@test.com');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateNegocioGoogleId', () => {
+    it('should update negocio googleId and return negocio', async () => {
+      const negocio = buildNegocio({ googleId: 'google_abc' });
+      prisma.negocio.update.mockResolvedValue(negocio);
+
+      const result = await repo.updateNegocioGoogleId(1, 'google_abc');
+
+      expect(prisma.negocio.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { googleId: 'google_abc' },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(negocio);
+    });
+  });
+
   describe('createNegocioWithAdmin', () => {
-    it('should create negocio, usuario, and membership', async () => {
+    it('should create negocio, usuario, and membership with OWNER role', async () => {
       const negocio = buildNegocio({ googleId: 'g-123' });
-      const usuario = buildUsuario({ email: 'test@test.com', rol: 'ADMIN' });
+      const usuario = buildUsuario({ email: 'test@test.com', rol: 'OWNER' });
 
       prisma.negocio.create.mockResolvedValue(negocio);
       prisma.usuario.create.mockResolvedValue(usuario);
@@ -55,8 +94,16 @@ describe('AuthRepository', () => {
         data: { googleId: 'g-123', email: 'test@test.com', nombre: 'Test' },
         select: expect.any(Object),
       });
-      expect(prisma.usuario.create).toHaveBeenCalled();
-      expect(prisma.usuarioNegocio.create).toHaveBeenCalled();
+      expect(prisma.usuario.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ rol: 'OWNER' }),
+        }),
+      );
+      expect(prisma.usuarioNegocio.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ rol: 'OWNER' }),
+        }),
+      );
       expect(result).toEqual(negocio);
     });
   });
@@ -81,6 +128,45 @@ describe('AuthRepository', () => {
       const result = await repo.findUsuarioByNegocioAndGoogleId(1, 'nonexistent');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findUsuarioByNegocioAndEmail', () => {
+    it('should return usuario when found', async () => {
+      const usuario = buildUsuario({ email: 'staff@test.com' });
+      prisma.usuario.findFirst.mockResolvedValue(usuario);
+
+      const result = await repo.findUsuarioByNegocioAndEmail(1, 'staff@test.com');
+
+      expect(prisma.usuario.findFirst).toHaveBeenCalledWith({
+        where: { email: 'staff@test.com', usuarioNegocios: { some: { negocioId: 1 } } },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(usuario);
+    });
+
+    it('should return null when not found', async () => {
+      prisma.usuario.findFirst.mockResolvedValue(null);
+
+      const result = await repo.findUsuarioByNegocioAndEmail(1, 'nonexistent@test.com');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('updateUsuarioGoogleId', () => {
+    it('should update usuario googleId and return usuario', async () => {
+      const usuario = buildUsuario({ googleId: 'google_abc' });
+      prisma.usuario.update.mockResolvedValue(usuario);
+
+      const result = await repo.updateUsuarioGoogleId(1, 'google_abc');
+
+      expect(prisma.usuario.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { googleId: 'google_abc' },
+        select: expect.any(Object),
+      });
+      expect(result).toEqual(usuario);
     });
   });
 
@@ -145,10 +231,13 @@ describe('AuthRepository', () => {
   });
 
   describe('findNegociosByUsuarioId', () => {
-    it('should return negocios for usuario', async () => {
+    it('should return negocios with membership rol for usuario', async () => {
       const negocio1 = buildNegocio();
       const negocio2 = buildNegocio();
-      const memberships = [{ negocio: negocio1 }, { negocio: negocio2 }];
+      const memberships = [
+        { rol: 'ADMIN', negocio: negocio1 },
+        { rol: 'STAFF', negocio: negocio2 },
+      ];
 
       prisma.usuarioNegocio.findMany.mockResolvedValue(memberships);
 
@@ -156,9 +245,12 @@ describe('AuthRepository', () => {
 
       expect(prisma.usuarioNegocio.findMany).toHaveBeenCalledWith({
         where: { usuarioId: 1 },
-        select: { negocio: { select: expect.any(Object) } },
+        select: { rol: true, negocio: { select: expect.any(Object) } },
       });
-      expect(result).toEqual([negocio1, negocio2]);
+      expect(result).toEqual([
+        { ...negocio1, rol: 'ADMIN' },
+        { ...negocio2, rol: 'STAFF' },
+      ]);
     });
 
     it('should return empty array when no memberships', async () => {
@@ -203,6 +295,20 @@ describe('AuthRepository', () => {
         where: { usuarioId_negocioId: { usuarioId: 1, negocioId: 1 } },
         update: {},
         create: { usuarioId: 1, negocioId: 1, rol: 'STAFF' },
+      });
+      expect(result).toEqual(membership);
+    });
+
+    it('should pass OWNER role through to create', async () => {
+      const membership = { usuarioId: 1, negocioId: 1, rol: 'OWNER' };
+      prisma.usuarioNegocio.upsert.mockResolvedValue(membership);
+
+      const result = await repo.upsertMembership(1, 1, 'OWNER');
+
+      expect(prisma.usuarioNegocio.upsert).toHaveBeenCalledWith({
+        where: { usuarioId_negocioId: { usuarioId: 1, negocioId: 1 } },
+        update: {},
+        create: { usuarioId: 1, negocioId: 1, rol: 'OWNER' },
       });
       expect(result).toEqual(membership);
     });

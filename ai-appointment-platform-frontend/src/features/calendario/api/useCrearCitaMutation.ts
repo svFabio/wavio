@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { citasApi } from './citas.api';
 
 interface CrearCitaParams {
   clienteNombre: string;
@@ -19,7 +19,7 @@ export function useCrearCitaMutation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CrearCitaParams) => api.crearCitaAdmin(data),
+    mutationFn: (data: CrearCitaParams) => citasApi.crearCitaAdmin(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },

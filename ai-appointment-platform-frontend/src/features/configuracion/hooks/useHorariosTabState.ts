@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { DIAS_SEMANA } from '../types';
 import type { HorarioNegocio } from '../types';
 
@@ -20,31 +20,39 @@ interface UseHorariosTabStateResult {
   buildPayload: () => HorariosPayloadItem[];
 }
 
-export const useHorariosTabState = (horarios: HorarioNegocio[]): UseHorariosTabStateResult => {
-  const [localHorarios, setLocalHorarios] = useState<Record<number, RangoHorario[]>>({});
+const computeInitial = (horarios: HorarioNegocio[]) => {
+  const map: Record<number, RangoHorario[]> = {};
 
-  useEffect(() => {
-    const map: Record<number, RangoHorario[]> = {};
+  DIAS_SEMANA.forEach((dia) => {
+    map[dia.value] = [];
+  });
 
-    DIAS_SEMANA.forEach((dia) => {
-      map[dia.value] = [];
+  if (horarios && horarios.length > 0) {
+    horarios.forEach((h) => {
+      if (!map[h.diaSemana]) map[h.diaSemana] = [];
+      map[h.diaSemana].push({ activo: h.activo, horaInicio: h.horaInicio, horaFin: h.horaFin });
     });
+  }
 
-    if (horarios && horarios.length > 0) {
-      horarios.forEach((h) => {
-        if (!map[h.diaSemana]) map[h.diaSemana] = [];
-        map[h.diaSemana].push({ activo: h.activo, horaInicio: h.horaInicio, horaFin: h.horaFin });
-      });
+  DIAS_SEMANA.forEach((dia) => {
+    if (map[dia.value].length === 0) {
+      map[dia.value].push({ activo: false, horaInicio: '09:00', horaFin: '13:00' });
     }
+  });
 
-    DIAS_SEMANA.forEach((dia) => {
-      if (map[dia.value].length === 0) {
-        map[dia.value].push({ activo: false, horaInicio: '09:00', horaFin: '13:00' });
-      }
-    });
+  return map;
+};
 
-    setLocalHorarios(map);
-  }, [horarios]);
+export const useHorariosTabState = (horarios: HorarioNegocio[]): UseHorariosTabStateResult => {
+  const [prevHorarios, setPrevHorarios] = useState<HorarioNegocio[]>(horarios);
+  const [localHorarios, setLocalHorarios] = useState<Record<number, RangoHorario[]>>(() =>
+    computeInitial(horarios),
+  );
+
+  if (horarios !== prevHorarios) {
+    setPrevHorarios(horarios);
+    setLocalHorarios(computeInitial(horarios));
+  }
 
   const handleToggle = (dia: number): void => {
     setLocalHorarios((prev) => {

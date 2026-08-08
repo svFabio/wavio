@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   validarCitaSchema,
   crearCitaAdminSchema,
+  crearCitaRecurrenteSchema,
   reprogramarCitaSchema,
   actualizarDescripcionSchema,
   agendaQuerySchema,
   horariosQuerySchema,
+  serieIdQuerySchema,
 } from './citas.dto';
 
 describe('citas.dto', () => {
@@ -110,6 +112,57 @@ describe('citas.dto', () => {
     });
   });
 
+  describe('crearCitaRecurrenteSchema', () => {
+    it('should accept valid recurring cita data', () => {
+      const result = crearCitaRecurrenteSchema.parse({
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '12345678',
+        fecha: '2025-06-15',
+        horario: '10:00',
+        recurrence: 'weekly',
+        recurrenceEnd: '2025-09-15',
+      });
+      expect(result.clienteNombre).toBe('Juan Pérez');
+      expect(result.recurrence).toBe('weekly');
+      expect(result.recurrenceEnd).toBe('2025-09-15');
+    });
+
+    it('should reject invalid recurrence', () => {
+      const result = crearCitaRecurrenteSchema.safeParse({
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '12345678',
+        fecha: '2025-06-15',
+        horario: '10:00',
+        recurrence: 'daily',
+        recurrenceEnd: '2025-09-15',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject invalid recurrenceEnd format', () => {
+      const result = crearCitaRecurrenteSchema.safeParse({
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '12345678',
+        fecha: '2025-06-15',
+        horario: '10:00',
+        recurrence: 'biweekly',
+        recurrenceEnd: '15-09-2025',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing recurrence', () => {
+      const result = crearCitaRecurrenteSchema.safeParse({
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '12345678',
+        fecha: '2025-06-15',
+        horario: '10:00',
+        recurrenceEnd: '2025-09-15',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('reprogramarCitaSchema', () => {
     it('should accept valid reprogram data', () => {
       const result = reprogramarCitaSchema.parse({
@@ -195,6 +248,23 @@ describe('citas.dto', () => {
 
     it('should reject missing fecha', () => {
       const result = horariosQuerySchema.safeParse({});
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('serieIdQuerySchema', () => {
+    it('should accept valid serieId', () => {
+      const result = serieIdQuerySchema.parse({ serieId: 'rec-123' });
+      expect(result.serieId).toBe('rec-123');
+    });
+
+    it('should reject missing serieId', () => {
+      const result = serieIdQuerySchema.safeParse({});
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty serieId', () => {
+      const result = serieIdQuerySchema.safeParse({ serieId: '' });
       expect(result.success).toBe(false);
     });
   });

@@ -317,8 +317,8 @@ describe('CitasService', () => {
 
       expect(mockCitasRepository.getAgenda).toHaveBeenCalledWith(
         negocioId,
-        new Date('2026-07-28T00:00:00.000Z'),
-        new Date('2026-07-28T23:59:59.999Z'),
+        new Date('2026-07-28T00:00:00.000'),
+        new Date('2026-07-28T23:59:59.999'),
         1,
         20,
       );
@@ -856,8 +856,8 @@ describe('CitasService', () => {
     });
   });
 
-  /* ─── crearCitaRecurente ──────────────────────────────────────────────── */
-  describe('crearCitaRecurente', () => {
+  /* ─── crearCitaRecurrente ──────────────────────────────────────────────── */
+  describe('crearCitaRecurrente', () => {
     const recurrenteData = {
       clienteNombre: 'Juan Pérez',
       clienteTelefono: '+521234567890',
@@ -908,7 +908,7 @@ describe('CitasService', () => {
       mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(3);
 
-      const result = await service.crearCitaRecurente(negocioId, recurrenteData);
+      const result = await service.crearCitaRecurrente(negocioId, recurrenteData);
 
       expect(result.base).toEqual(baseCita);
       expect(result.instancesCreated).toBe(3);
@@ -925,7 +925,7 @@ describe('CitasService', () => {
       mockGetSlotsDisponibles.mockResolvedValue([{ inicio: '10:00', fin: '11:00', staffId: null }]);
       mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         recurrenceEnd: '2026-07-29',
       });
@@ -943,7 +943,7 @@ describe('CitasService', () => {
       mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
       mockAvailabilityRepository.findServicio.mockResolvedValue(null);
 
-      await expect(service.crearCitaRecurente(negocioId, recurrenteData)).rejects.toThrow(
+      await expect(service.crearCitaRecurrente(negocioId, recurrenteData)).rejects.toThrow(
         ValidationError,
       );
     });
@@ -959,7 +959,7 @@ describe('CitasService', () => {
       mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(2);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         recurrence: 'biweekly',
         recurrenceEnd: '2026-08-26',
@@ -979,7 +979,7 @@ describe('CitasService', () => {
       mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(2);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         recurrence: 'monthly',
         recurrenceEnd: '2026-09-30',
@@ -1002,7 +1002,7 @@ describe('CitasService', () => {
       ]);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(2);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         recurrenceEnd: '2026-08-19',
       });
@@ -1032,7 +1032,7 @@ describe('CitasService', () => {
       ]);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(2);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         recurrenceEnd: '2026-08-19',
       });
@@ -1061,7 +1061,7 @@ describe('CitasService', () => {
       ]);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(3);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         staffId: 5,
         recurrenceEnd: '2026-08-19',
@@ -1080,7 +1080,7 @@ describe('CitasService', () => {
       mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
       mockCitasRepository.createRecurringInstances.mockResolvedValue(2);
 
-      const result = await service.crearCitaRecurente(negocioId, {
+      const result = await service.crearCitaRecurrente(negocioId, {
         ...recurrenteData,
         servicioId: null,
         recurrenceEnd: '2026-08-12',
@@ -1091,14 +1091,14 @@ describe('CitasService', () => {
     });
   });
 
-  /* ─── cancelarSerieRecurente ─────────────────────────────────────────── */
-  describe('cancelarSerieRecurente', () => {
+  /* ─── cancelarSerieRecurrente ─────────────────────────────────────────── */
+  describe('cancelarSerieRecurrente', () => {
     it('should cancel recurring series and return count', async () => {
       mockCitasRepository.cancelRecurringSeries.mockResolvedValue(3);
 
-      const result = await service.cancelarSerieRecurente('rec-123', negocioId);
+      const result = await service.cancelarSerieRecurrente('rec-123', negocioId);
 
-      expect(mockCitasRepository.cancelRecurringSeries).toHaveBeenCalledWith('rec-123');
+      expect(mockCitasRepository.cancelRecurringSeries).toHaveBeenCalledWith('rec-123', negocioId);
       expect(mockEventsService.emitCambioCitas).toHaveBeenCalledWith(negocioId);
       expect(result).toBe(3);
     });
@@ -1106,14 +1106,20 @@ describe('CitasService', () => {
     it('should return 0 when no citas to cancel', async () => {
       mockCitasRepository.cancelRecurringSeries.mockResolvedValue(0);
 
-      const result = await service.cancelarSerieRecurente('rec-999', negocioId);
+      const result = await service.cancelarSerieRecurrente('rec-999', negocioId);
 
       expect(result).toBe(0);
     });
+
+    it('should reject empty serieId', async () => {
+      await expect(service.cancelarSerieRecurrente('', negocioId)).rejects.toThrow(
+        'serieId es requerido',
+      );
+    });
   });
 
-  /* ─── getSeriesRecurente ─────────────────────────────────────────────── */
-  describe('getSeriesRecurente', () => {
+  /* ─── getSeriesRecurrente ─────────────────────────────────────────────── */
+  describe('getSeriesRecurrente', () => {
     it('should return citas in series', async () => {
       const series = [
         buildCita(negocioId, { recurrenceId: 'rec-123' }),
@@ -1121,18 +1127,24 @@ describe('CitasService', () => {
       ];
       mockCitasRepository.findRecurringSeries.mockResolvedValue(series);
 
-      const result = await service.getSeriesRecurente('rec-123');
+      const result = await service.getSeriesRecurrente('rec-123', negocioId);
 
-      expect(mockCitasRepository.findRecurringSeries).toHaveBeenCalledWith('rec-123');
+      expect(mockCitasRepository.findRecurringSeries).toHaveBeenCalledWith('rec-123', negocioId);
       expect(result).toEqual(series);
     });
 
     it('should return empty array when series not found', async () => {
       mockCitasRepository.findRecurringSeries.mockResolvedValue([]);
 
-      const result = await service.getSeriesRecurente('nonexistent');
+      const result = await service.getSeriesRecurrente('nonexistent', negocioId);
 
       expect(result).toHaveLength(0);
+    });
+
+    it('should reject empty serieId', async () => {
+      await expect(service.getSeriesRecurrente('', negocioId)).rejects.toThrow(
+        'serieId es requerido',
+      );
     });
   });
 

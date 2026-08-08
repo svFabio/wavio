@@ -10,6 +10,13 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   nombre: z.string().min(1).optional(),
   email: z.string().email('Email inválido').optional(),
+  password: z
+    .string()
+    .refine(
+      (value) => value.length === 0 || value.length >= 6,
+      'La contraseña debe tener al menos 6 caracteres',
+    )
+    .optional(),
   rol: z.enum(['ADMIN', 'STAFF']).optional(),
 });
 

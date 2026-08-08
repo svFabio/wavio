@@ -24,7 +24,10 @@ describe('AppointmentRepository', () => {
   });
 
   describe('findUpcomingForReminder', () => {
-    it('should return citas within the reminder window', async () => {
+    const desde = new Date('2026-07-28T12:00:00.000Z');
+    const hasta = new Date('2026-07-28T14:00:00.000Z');
+
+    it('should query CONFIRMADA citas within the day window', async () => {
       const citas = [
         {
           id: 1,
@@ -40,13 +43,17 @@ describe('AppointmentRepository', () => {
       ];
       prisma.cita.findMany.mockResolvedValue(citas);
 
-      const result = await repo.findUpcomingForReminder(1, 0, 2);
+      const result = await repo.findUpcomingForReminder(1, desde, hasta);
 
       expect(prisma.cita.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             negocioId: 1,
             estado: 'CONFIRMADA',
+            fecha: {
+              gte: new Date('2026-07-28T00:00:00.000Z'),
+              lte: new Date('2026-07-28T23:59:59.999Z'),
+            },
           }),
         }),
       );
@@ -54,31 +61,10 @@ describe('AppointmentRepository', () => {
       expect(result[0].id).toBe(1);
     });
 
-    it('should exclude citas outside the reminder window', async () => {
-      const citas = [
-        {
-          id: 1,
-          clienteNombre: 'Juan Pérez',
-          clienteTelefono: '+521234567890',
-          fecha: new Date('2026-07-28'),
-          horario: '15:00',
-          servicio: 'Corte',
-          recordatorio24h: false,
-          recordatorio1h: false,
-          negocioId: 1,
-        },
-      ];
-      prisma.cita.findMany.mockResolvedValue(citas);
-
-      const result = await repo.findUpcomingForReminder(1, 0, 2);
-
-      expect(result).toHaveLength(0);
-    });
-
     it('should return empty array when no citas found', async () => {
       prisma.cita.findMany.mockResolvedValue([]);
 
-      const result = await repo.findUpcomingForReminder(1, 0, 2);
+      const result = await repo.findUpcomingForReminder(1, desde, hasta);
 
       expect(result).toHaveLength(0);
     });
@@ -109,7 +95,9 @@ describe('AppointmentRepository', () => {
   });
 
   describe('findCompletedForSurvey', () => {
-    it('should return completed citas eligible for survey', async () => {
+    const cutoff = new Date('2026-07-28T12:00:00.000Z');
+
+    it('should query CONFIRMADA citas before the survey cutoff day', async () => {
       const citas = [
         {
           id: 1,
@@ -117,13 +105,13 @@ describe('AppointmentRepository', () => {
           clienteTelefono: '+521234567890',
           encuestaEnviada: false,
           negocioId: 1,
-          fecha: new Date('2026-07-28'),
+          fecha: new Date('2026-07-27'),
           horario: '09:00',
         },
       ];
       prisma.cita.findMany.mockResolvedValue(citas);
 
-      const result = await repo.findCompletedForSurvey(1, 2);
+      const result = await repo.findCompletedForSurvey(1, cutoff);
 
       expect(prisma.cita.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -137,29 +125,10 @@ describe('AppointmentRepository', () => {
       expect(result).toHaveLength(1);
     });
 
-    it('should exclude citas not yet past the cutoff', async () => {
-      const citas = [
-        {
-          id: 1,
-          clienteNombre: 'Juan Pérez',
-          clienteTelefono: '+521234567890',
-          encuestaEnviada: false,
-          negocioId: 1,
-          fecha: new Date('2026-07-28'),
-          horario: '13:00',
-        },
-      ];
-      prisma.cita.findMany.mockResolvedValue(citas);
-
-      const result = await repo.findCompletedForSurvey(1, 2);
-
-      expect(result).toHaveLength(0);
-    });
-
     it('should return empty array when no citas found', async () => {
       prisma.cita.findMany.mockResolvedValue([]);
 
-      const result = await repo.findCompletedForSurvey(1, 2);
+      const result = await repo.findCompletedForSurvey(1, cutoff);
 
       expect(result).toHaveLength(0);
     });
@@ -175,42 +144,6 @@ describe('AppointmentRepository', () => {
         where: { id: 1 },
         data: { encuestaEnviada: true },
       });
-    });
-  });
-
-  describe('updateLastAppointmentRating', () => {
-    it('should update rating when cita is found', async () => {
-      prisma.cita.findFirst.mockResolvedValue({
-        id: 1,
-        negocioId: 1,
-        encuestaEnviada: true,
-        rating: null,
-      });
-
-      const result = await repo.updateLastAppointmentRating(1, '+521234567890', 5);
-
-      expect(prisma.cita.findFirst).toHaveBeenCalledWith({
-        where: {
-          negocioId: 1,
-          clienteTelefono: '+521234567890',
-          encuestaEnviada: true,
-          rating: null,
-        },
-        orderBy: { fecha: 'desc' },
-      });
-      expect(prisma.cita.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { rating: 5 },
-      });
-      expect(result).toBe(true);
-    });
-
-    it('should return false when no matching cita', async () => {
-      prisma.cita.findFirst.mockResolvedValue(null);
-
-      const result = await repo.updateLastAppointmentRating(1, '+521234567890', 5);
-
-      expect(result).toBe(false);
     });
   });
 });

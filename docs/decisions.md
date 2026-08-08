@@ -127,7 +127,7 @@ Once recorded, an ADR is immutable. If a decision changes, a new ADR supersedes 
 3. **Phase 3** — Convert EventsModule (WebSocket/Socket.IO gateway), ChatModule, WebhookModule.
 4. **Phase 4** — Convert StatisticsModule, SchedulingModule, add ThrottlerModule, Swagger. Remove all Express legacy code.
 
-**Module structure** (20 modules registered in `app.module.ts`):
+**Module structure** (19 modules registered in `app.module.ts`):
 
 ```
 PrismaModule (@Global)      — database access, injected everywhere
@@ -144,8 +144,6 @@ WebhookModule               — WhatsApp Cloud API webhooks
 StatisticsModule            — analytics and reporting
 SchedulingModule            — automated scheduling logic
 WaitlistModule              — waitlist management
-NoShowModule                — no-show tracking
-ReportesModule              — PDF/structured reports
 CalendarModule              — calendar integration
 PortalModule                — client-facing portal
 PushModule                  — push notifications
@@ -181,7 +179,7 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 
 ### Risks
 
-- **Over-engineering**: for small modules like WaitlistModule or NoShowModule, the NestJS structure adds files without proportional benefit. Acceptable tradeoff for consistency.
+- **Over-engineering**: for small modules like WaitlistModule, the NestJS structure adds files without proportional benefit. Acceptable tradeoff for consistency.
 - **Express under the hood**: NestJS uses Express (or Fastify) as the HTTP adapter. Debugging may require understanding both frameworks.
 
 ---
@@ -207,3 +205,77 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 - Mock Prisma service is defined once, not per module.
 - The `src/__tests__/` directory is NOT part of the module architecture — it only exists at test time and is excluded from production builds.
 - Future: if the project grows significantly, consider extracting test utilities to a separate `packages/test-utils/` workspace.
+
+---
+
+## ADR-008 — `UsuarioNegocio.rol` is the source of truth for per-business roles
+
+**Date**: 2026-08-07
+**Status**: Accepted
+
+**Context**: The JWT was signed with a flat `negocioId` and `rol` taken from the global `Usuario.rol` and the first membership's business. A user with different roles in different businesses could only ever carry one role in the token, and the active business was always the first membership — never the one the user actually selected. Role checks were therefore business-independent and wrong for multi-business users.
+
+**Options considered**:
+
+- Keep flat claims and sync `Usuario.rol` on business switch: requires a write on every switch and keeps the global column authoritative, leaking one business's role into another.
+- Put the full memberships list in the JWT and resolve the active role from the `x-negocio-id` header at request time: no writes on switch, role is always derived from the membership of the requested business.
+
+**Decision**: `UsuarioNegocio.rol` is the single source of truth for a user's role per business. The JWT payload now carries the list of active memberships (`negocios: Array<{ negocioId, rol }>`) and no flat `rol`/`negocioId` claims. `TenantGuard` resolves the active business from the `x-negocio-id` header, rejects businesses not in the memberships (403), and sets the effective role on the request user. `Usuario.rol` remains in the model for compatibility and stays synchronized with the primary membership, but it no longer authorizes and is not signed into the JWT.
+
+**Consequences**:
+
+- Roles are enforced per business: the same user can be OWNER in one business and STAFF in another, and each request is authorized against the role of the requested business.
+- The frontend must always send `x-negocio-id`; the backend derives the effective role from that header. Socket connections verify the negocio against `negocios[]` instead of a flat claim.
+- `GET /auth/me` now returns `usuario.rol` = role of the active membership and `negocios[].rol` per membership.
+- All consumers of `request.usuario` inside a guarded handler see `rol`/`negocioId` already resolved by `TenantGuard` (typed as `TenantUser`).
+
+---
+
+## ADR-009 — Google login no duplica negocio ni promueve roles
+
+**Date**: 2026-08-07
+**Status**: Accepted
+
+**Context**: `loginConGoogle` buscaba el negocio solo por `sub` de Google. Si el usuario se había registrado antes con `registrarConEmail` (que crea el negocio con `googleId = 'email-<email>'`), el login con Google no encontraba el negocio y `createNegocioWithAdmin` intentaba crear uno nuevo con el mismo email único → error P2002 (500). Además, el staff creado por un admin tiene `googleId = null` y no podía entrar con Google (buscaba por googleId y fallaba con 404). Y un usuario con `googleId` existente que entraba a un negocio que ya existía recibía un `upsertMembership(..., 'OWNER')`, promoviéndolo a OWNER de un negocio ajeno.
+
+**Options considered**:
+
+- Mantener el flujo actual y exigir migración de datos: no es viable, el schema no cambia y los datos ya existen en producción.
+- Resolver negocio y usuario por `sub` o por email y vincular el `googleId` al primer login: sin escrituras extras en el happy path y sin duplicar datos.
+
+**Decision**: Google login no duplica negocio ni promueve roles. El negocio creado por email se vincula al `sub` de Google al primer login (`updateNegocioGoogleId`); el staff sin `googleId` se vincula por email (`updateUsuarioGoogleId`). El login con Google NUNCA crea membresías ni promueve a OWNER; la membresía la crea solo `createNegocioWithAdmin` (dueño) o `usuarios.service` (staff por invitación/admin).
+
+**Consequences**:
+
+- Un usuario registrado por email que luego entra con Google conserva UN solo negocio: `findNegocioByEmail` lo encuentra, se le escribe el `googleId` y no se llama `createNegocioWithAdmin`.
+- El staff sin `googleId` entra con Google por su email: `findUsuarioByNegocioAndEmail` lo encuentra, se le escribe el `googleId` y conserva su rol de membresía (nunca OWNER).
+- Un usuario con `googleId` que no tiene membresía en el negocio recibe `NotFoundError`; su membresía existente, si la tiene, se usa tal cual.
+- `upsertMembership` se mantiene en el repository (otros flujos lo usan) pero `loginConGoogle` ya no lo invoca.
+
+---
+
+## ADR-010 — Flujo de invitación de staff/admin con token hasheado
+
+**Date**: 2026-08-07
+**Status**: Accepted
+
+**Context**: El OWNER/ADMIN necesitaba crear usuarios de staff con email y rol, pero el flujo existente (`POST /usuarios`) exige contraseña y crea al usuario al instante. Eso impide: (a) invitar a alguien que aún no tiene cuenta, (b) setear la contraseña en el primer login, y (c) que el staff elija su propia contraseña. Además, un token de invitación crudo en la base es un riesgo si la DB se filtra.
+
+**Options considered**:
+
+- Crear el `Usuario` al momento de invitar con contraseña vacía: deja filas huérfanas si la invitación nunca se acepta y mezcla el ciclo de vida del usuario con el de la invitación.
+- Reutilizar `magicToken` de `Cliente` (token crudo en DB): el código actual de portal guarda el token crudo; copiar ese patrón propaga la debilidad.
+- Modelo `Invitacion` propio con token SHA-256 hasheado: ciclo de vida explícito (PENDIENTE → ACEPTADA/CANCELADA/EXPIRADA), el usuario se crea solo al aceptar, y el token crudo nunca se persiste.
+
+**Decision**: Nuevo modelo `Invitacion` (`prisma/schema.prisma`). Solo el OWNER/ADMIN crea invitaciones con `email` + `rol` (nunca contraseña). El token crudo (`crypto.randomBytes(32).toString('hex')`, 64 chars) se devuelve UNA sola vez en la respuesta de creación; en la base se guarda `tokenHash = sha256(token)` (único). Vigencia: `INVITE_EXPIRES_IN_HOURS = 72` (3 días). El `Usuario` y la membresía `UsuarioNegocio` se crean al aceptar la invitación, en una sola transacción.
+
+**Consequences**:
+
+- Endpoints del módulo `invitaciones`: `POST /api/v1/invitaciones` (crear, ADMIN/OWNER), `POST /api/v1/invitaciones/aceptar` (público, body `{ token, nombre, password }`), `GET /api/v1/invitaciones` (listar, opcional `?estado=`), `POST /api/v1/invitaciones/:id/reenviar` y `POST /api/v1/invitaciones/:id/cancelar`.
+- Jerarquía igual que `usuarios.service.createUser`: un ADMIN no puede invitar a otro ADMIN (solo OWNER); OWNER pasa el guard `@Roles('ADMIN')`.
+- Conflictos: email con membresía activa en el negocio → 409; invitación PENDIENTE aún vigente del mismo email+negocio → 409. Antes de crear una nueva invitación se barre el email+negocio: las invitaciones PENDIENTE vencidas se marcan `EXPIRADA` (estado que el DTO `?estado=EXPIRADA` y el listado exponen) para que un invite vencido no bloquee el re-invite. El listado además expone como `EXPIRADA` cualquier fila PENDIENTE con `expiraEn` en el pasado.
+- Aceptación con usuario existente (p.ej. staff que entró por Google): si el email ya tiene membresía en el negocio → 409. Si el usuario ya tiene contraseña (cuenta activa con credenciales) → 409 con "El email ya tiene una cuenta con acceso; contacta a tu administrador": NUNCA se sobrescriben credenciales existentes. Solo un usuario con contraseña vacía (`''`) puede fijarla al aceptar; la membresía se crea con el rol de la invitación SIN promover rol (patrón ADR-009).
+- Sin dependencia de email: la API devuelve la URL de aceptación completa (`env.BACKEND_URL` + `/api/v1/invitaciones/aceptar/<token>`, fallback `http://localhost:3000`). La entrega real por email/WhatsApp queda como TODO documentado.
+- `POST /auth/cambiar-password` (JWT, sin tenant) verifica `passwordActual` con bcrypt; si el usuario no tiene contraseña (`''`), permite fijar `passwordNueva` directamente (cubre el set-password-on-first-login del staff invitado).
+- `POST /auth/reset-password` (público) responde `{ ok: true }` SIEMPRE y no genera nada: sin canal de email/WhatsApp no se puede entregar un token de reset, y responder siempre evita enumeración de usuarios.
+- Los emails se normalizan a minúsculas al crear la invitación para evitar invitaciones duplicadas que difieran solo en mayúsculas.

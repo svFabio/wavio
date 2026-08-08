@@ -1,28 +1,11 @@
 import React, { useMemo, useCallback } from 'react';
 import { Views } from 'react-big-calendar';
-import { format, addWeeks, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 import type { View } from 'react-big-calendar';
 import type { Cita } from '../../../types';
 import type { EventoCalendario } from '../types';
 
-function calcularFechasRecurrentes(
-  fechaInicio: string,
-  frecuencia: 'weekly' | 'biweekly' | 'monthly',
-  fechaFin: string,
-): string[] {
-  const fechas: string[] = [];
-  let current = new Date(`${fechaInicio}T00:00:00`);
-  const end = new Date(`${fechaFin}T23:59:59`);
-
-  while (current <= end) {
-    fechas.push(format(current, 'yyyy-MM-dd'));
-    if (frecuencia === 'weekly') current = addWeeks(current, 1);
-    else if (frecuencia === 'biweekly') current = addWeeks(current, 2);
-    else current = addMonths(current, 1);
-  }
-  return fechas;
-}
-
+// Removed calcularFechasRecurrentes as recurrence logic is now handled by the backend transactional API.
 export function useCalendarEvents({
   dataRaw,
   vista,
@@ -152,5 +135,3 @@ export function useCalendarEvents({
 
   return { eventos, scrollToTime, eventStyleGetter };
 }
-
-export { calcularFechasRecurrentes };

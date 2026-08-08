@@ -186,4 +186,28 @@ describe('UsuariosRepository', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('countAdminsByNegocio', () => {
+    it('should count ADMIN and OWNER users of the negocio', async () => {
+      prisma.usuario.count.mockResolvedValue(2);
+
+      const result = await repo.countAdminsByNegocio(1);
+
+      expect(prisma.usuario.count).toHaveBeenCalledWith({
+        where: {
+          rol: { in: ['ADMIN', 'OWNER'] },
+          usuarioNegocios: { some: { negocioId: 1 } },
+        },
+      });
+      expect(result).toBe(2);
+    });
+
+    it('should return 0 when no admins', async () => {
+      prisma.usuario.count.mockResolvedValue(0);
+
+      const result = await repo.countAdminsByNegocio(1);
+
+      expect(result).toBe(0);
+    });
+  });
 });

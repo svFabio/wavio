@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChatService } from './chat.service';
 import type { ChatRepository } from './chat.repository';
-import type { SesionChatRepository } from './sesion-chat.repository';
+import type { SesionChatRepository } from '../repositories/sesionChat.repository';
 import type { NegocioService } from '../negocio/negocio.service';
 import type { EventsService } from '../events/events.service';
 import { ValidationError, AppError } from '../domain/errors';

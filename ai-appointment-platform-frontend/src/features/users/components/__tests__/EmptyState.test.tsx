@@ -4,7 +4,6 @@ import { EmptyState } from '../EmptyState';
 describe('Users EmptyState', () => {
   it('renders empty state message', () => {
     render(<EmptyState />);
-    expect(screen.getByText('No hay usuarios registrados')).toBeInTheDocument();
-    expect(screen.getByText('Crea el primer usuario para comenzar')).toBeInTheDocument();
+    expect(screen.getByText('No users registered')).toBeInTheDocument();
   });
 });

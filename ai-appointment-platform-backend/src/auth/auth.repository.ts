@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NEGOCIO_SAFE_SELECT } from '../negocio/negocio-select';
 
-type NegocioSafe = {
+type NegocioBase = {
   id: number;
   googleId: string;
   email: string;
@@ -14,6 +14,8 @@ type NegocioSafe = {
   isWaConnected: boolean;
   creadoEn: Date;
 };
+
+type NegocioSafe = NegocioBase & { rol: string };
 
 type UsuarioSafe = {
   id: number;
@@ -39,7 +41,7 @@ const USUARIO_SAFE_SELECT = {
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findNegocioByGoogleId(googleId: string): Promise<NegocioSafe | null> {
+  async findNegocioByGoogleId(googleId: string): Promise<NegocioBase | null> {
     return this.prisma.negocio.findUnique({
       where: { googleId },
       select: NEGOCIO_SAFE_SELECT,
@@ -51,7 +53,7 @@ export class AuthRepository {
     email: string,
     nombre: string,
     hashedPassword?: string,
-  ): Promise<NegocioSafe> {
+  ): Promise<NegocioBase> {
     const [negocio, usuario] = await this.prisma.$transaction([
       this.prisma.negocio.create({
         data: { googleId, email, nombre },
@@ -63,7 +65,7 @@ export class AuthRepository {
           email,
           googleId: hashedPassword ? null : googleId,
           password: hashedPassword || '',
-          rol: 'ADMIN',
+          rol: 'OWNER',
         },
       }),
     ]);
@@ -72,11 +74,26 @@ export class AuthRepository {
       data: {
         usuarioId: usuario.id,
         negocioId: negocio.id,
-        rol: 'ADMIN',
+        rol: 'OWNER',
       },
     });
 
     return negocio;
+  }
+
+  async findNegocioByEmail(email: string): Promise<NegocioBase | null> {
+    return this.prisma.negocio.findUnique({
+      where: { email },
+      select: NEGOCIO_SAFE_SELECT,
+    });
+  }
+
+  async updateNegocioGoogleId(id: number, googleId: string): Promise<NegocioBase> {
+    return this.prisma.negocio.update({
+      where: { id },
+      data: { googleId },
+      select: NEGOCIO_SAFE_SELECT,
+    });
   }
 
   async findUsuarioByNegocioAndGoogleId(
@@ -88,6 +105,27 @@ export class AuthRepository {
         googleId,
         usuarioNegocios: { some: { negocioId } },
       },
+      select: USUARIO_SAFE_SELECT,
+    });
+  }
+
+  async findUsuarioByNegocioAndEmail(
+    negocioId: number,
+    email: string,
+  ): Promise<UsuarioSafe | null> {
+    return this.prisma.usuario.findFirst({
+      where: {
+        email,
+        usuarioNegocios: { some: { negocioId } },
+      },
+      select: USUARIO_SAFE_SELECT,
+    });
+  }
+
+  async updateUsuarioGoogleId(id: number, googleId: string): Promise<UsuarioSafe> {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { googleId },
       select: USUARIO_SAFE_SELECT,
     });
   }
@@ -115,9 +153,9 @@ export class AuthRepository {
   async findNegociosByUsuarioId(usuarioId: number): Promise<NegocioSafe[]> {
     const memberships = await this.prisma.usuarioNegocio.findMany({
       where: { usuarioId },
-      select: { negocio: { select: NEGOCIO_SAFE_SELECT } },
+      select: { rol: true, negocio: { select: NEGOCIO_SAFE_SELECT } },
     });
-    return memberships.map((m) => m.negocio);
+    return memberships.map((m) => ({ ...m.negocio, rol: m.rol }));
   }
 
   async findFirstByGoogleId(googleId: string): Promise<{ id: number } | null> {
@@ -137,7 +175,7 @@ export class AuthRepository {
         usuarioId_negocioId: { usuarioId, negocioId },
       },
       update: {},
-      create: { usuarioId, negocioId, rol: rol as 'ADMIN' | 'STAFF' },
+      create: { usuarioId, negocioId, rol: rol as 'OWNER' | 'ADMIN' | 'STAFF' },
     });
   }
 
@@ -158,6 +196,22 @@ export class AuthRepository {
       where: { id },
       data,
       select: { id: true, nombre: true, email: true, rol: true, creadoEn: true },
+    });
+  }
+
+  async findUsuarioByIdWithPassword(
+    id: number,
+  ): Promise<{ id: number; email: string; password: string | null } | null> {
+    return this.prisma.usuario.findUnique({
+      where: { id },
+      select: { id: true, email: true, password: true },
+    });
+  }
+
+  async updatePassword(id: number, password: string): Promise<void> {
+    await this.prisma.usuario.update({
+      where: { id },
+      data: { password },
     });
   }
 }

@@ -4,8 +4,7 @@ import { env } from '../../config/env';
 export interface JwtPayload {
   id: number;
   email: string;
-  negocioId: number;
-  rol: string;
+  negocios: Array<{ negocioId: number; rol: string }>;
 }
 
 const JWT_SECRET = env.JWT_SECRET;

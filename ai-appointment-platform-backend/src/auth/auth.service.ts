@@ -19,6 +19,7 @@ type NegocioSafe = {
   waAppId: string | null;
   isWaConnected: boolean;
   creadoEn: Date;
+  rol: string;
 };
 
 type UsuarioSafe = {
@@ -38,12 +39,13 @@ export class AuthService {
     this.googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
   }
 
-  private signToken(user: { id: number; email: string; negocioId: number; rol: string }): string {
-    return jwt.sign(
-      { id: user.id, email: user.email, negocioId: user.negocioId, rol: user.rol },
-      env.JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN },
-    );
+  private signToken(
+    user: { id: number; email: string },
+    negocios: Array<{ negocioId: number; rol: string }>,
+  ): string {
+    return jwt.sign({ id: user.id, email: user.email, negocios }, env.JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
   }
 
   async loginConGoogle(googleToken: string): Promise<{
@@ -81,32 +83,44 @@ export class AuthService {
     nombre = payload.name || email.split('@')[0];
 
     let negocio = await this.authRepository.findNegocioByGoogleId(googleId);
-    const esNuevo = !negocio;
+    let esNuevo = false;
 
     if (!negocio) {
-      negocio = await this.authRepository.createNegocioWithAdmin(googleId, email, nombre);
+      negocio = await this.authRepository.findNegocioByEmail(email);
+      if (negocio) {
+        await this.authRepository.updateNegocioGoogleId(negocio.id, googleId);
+      } else {
+        negocio = await this.authRepository.createNegocioWithAdmin(googleId, email, nombre);
+        esNuevo = true;
+      }
     }
 
     let usuario = await this.authRepository.findUsuarioByNegocioAndGoogleId(negocio.id, googleId);
     if (!usuario) {
-      const existingUser = await this.authRepository.findFirstByGoogleId(googleId);
-      if (existingUser) {
-        await this.authRepository.upsertMembership(existingUser.id, negocio.id, 'ADMIN');
-        usuario = await this.authRepository.findUsuarioById(existingUser.id);
-      }
-      if (!usuario) {
-        throw new NotFoundError('Usuario del negocio');
+      usuario = await this.authRepository.findUsuarioByNegocioAndEmail(negocio.id, email);
+      if (usuario) {
+        await this.authRepository.updateUsuarioGoogleId(usuario.id, googleId);
+      } else {
+        const existingUser = await this.authRepository.findFirstByGoogleId(googleId);
+        if (existingUser) {
+          const membership = await this.authRepository.findUsuarioNegocioMembership(
+            existingUser.id,
+            negocio.id,
+          );
+          if (membership) {
+            usuario = await this.authRepository.findUsuarioById(existingUser.id);
+          }
+        }
+        if (!usuario) {
+          throw new NotFoundError('Usuario del negocio');
+        }
       }
     }
 
     const negocios = await this.authRepository.findNegociosByUsuarioId(usuario.id);
 
-    const token = this.signToken({
-      id: usuario.id,
-      email: usuario.email,
-      negocioId: negocios[0]?.id ?? negocio.id,
-      rol: usuario.rol,
-    });
+    const memberships = negocios.map((n) => ({ negocioId: n.id, rol: n.rol }));
+    const token = this.signToken({ id: usuario.id, email: usuario.email }, memberships);
 
     return { token, usuario, negocios, esNuevo };
   }
@@ -140,14 +154,10 @@ export class AuthService {
       throw new NotFoundError('Usuario recién creado');
     }
 
-    const token = this.signToken({
-      id: usuario.id,
-      email: usuario.email,
-      negocioId: negocio.id,
-      rol: usuario.rol,
-    });
-
     const negocios = await this.authRepository.findNegociosByUsuarioId(usuario.id);
+
+    const memberships = negocios.map((n) => ({ negocioId: n.id, rol: n.rol }));
+    const token = this.signToken({ id: usuario.id, email: usuario.email }, memberships);
 
     return { token, usuario, negocios, esNuevo: true };
   }
@@ -176,12 +186,8 @@ export class AuthService {
       throw new NotFoundError('Negocio');
     }
 
-    const token = this.signToken({
-      id: usuario.id,
-      email: usuario.email,
-      negocioId: negocios[0].id,
-      rol: usuario.rol,
-    });
+    const memberships = negocios.map((n) => ({ negocioId: n.id, rol: n.rol }));
+    const token = this.signToken({ id: usuario.id, email: usuario.email }, memberships);
 
     return {
       token,
@@ -199,6 +205,7 @@ export class AuthService {
 
   async obtenerUsuarioActual(
     userId: number,
+    negocioIdHeader?: string,
   ): Promise<{ usuario: UsuarioSafe; negocios: NegocioSafe[] }> {
     const usuario = await this.authRepository.findUsuarioById(userId);
     if (!usuario) {
@@ -210,7 +217,16 @@ export class AuthService {
       throw new NotFoundError('Negocio');
     }
 
+    const activo = this.resolveActiveNegocio(negocios, negocioIdHeader);
+    usuario.rol = activo.rol;
+
     return { usuario, negocios };
+  }
+
+  private resolveActiveNegocio(negocios: NegocioSafe[], negocioIdHeader?: string): NegocioSafe {
+    const parsed = negocioIdHeader ? Number(negocioIdHeader) : NaN;
+    const match = negocios.find((n) => n.id === parsed);
+    return match ?? negocios[0];
   }
 
   async updateAvatar(
@@ -268,5 +284,43 @@ export class AuthService {
       nombre: nombre.trim(),
     });
     return { nombre: updated.nombre };
+  }
+
+  /**
+   * Cambia la contraseña del usuario autenticado.
+   * Si el usuario aún no tiene contraseña ('' — p.ej. staff invitado que aún no
+   * la estableció), permite fijar la nueva directamente sin `passwordActual`.
+   */
+  async cambiarPassword(
+    userId: number,
+    passwordActual: string | undefined,
+    passwordNueva: string,
+  ): Promise<{ ok: boolean }> {
+    const usuario = await this.authRepository.findUsuarioByIdWithPassword(userId);
+    if (!usuario) {
+      throw new NotFoundError('Usuario');
+    }
+
+    if (usuario.password) {
+      const valida = await bcrypt.compare(passwordActual ?? '', usuario.password);
+      if (!valida) {
+        throw new UnauthorizedError('La contraseña actual es incorrecta');
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(passwordNueva, BCRYPT_SALT_ROUNDS);
+    await this.authRepository.updatePassword(userId, hashedPassword);
+
+    return { ok: true };
+  }
+
+  /**
+   * Reset de contraseña por email (superficie de contrato).
+   * TODO: sin un canal de email/WhatsApp no podemos entregar un token de reset,
+   * así que NO se genera nada y se responde { ok: true } SIEMPRE para evitar
+   * enumeración de usuarios. Implementar el delivery real cuando exista el canal.
+   */
+  async resetPassword(_email: string): Promise<{ ok: boolean }> {
+    return { ok: true };
   }
 }
