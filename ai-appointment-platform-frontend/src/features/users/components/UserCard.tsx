@@ -32,7 +32,7 @@ export const UserCard = ({
         {canModify ? (
           <UserRowActions user={user} onEdit={onEdit} onDelete={onDelete} className="justify-end" />
         ) : (
-          <span className="text-xs text-txt-muted italic">Protected</span>
+          <span className="text-xs text-txt-muted italic">Protegido</span>
         )}
       </td>
     </tr>

@@ -79,7 +79,7 @@ describe('UsersContainer', () => {
   it('renders empty state when no users', async () => {
     vi.mocked(usersApi.getUsers).mockResolvedValue([] as never);
     renderWithProviders(<UsersContainer />);
-    expect(await screen.findByText('No users registered')).toBeInTheDocument();
+    expect(await screen.findByText('Sin usuarios registrados')).toBeInTheDocument();
   });
 
   it('renders user list', async () => {
@@ -90,47 +90,47 @@ describe('UsersContainer', () => {
 
   it('renders the Invite button and invitations section for ADMIN/OWNER viewers', async () => {
     renderWithProviders(<UsersContainer />, { auth: ownerAuth });
-    expect(await screen.findByText('No invitations yet')).toBeInTheDocument();
-    expect(screen.getAllByText('Invite').length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText('Sin invitaciones pendientes')).toBeInTheDocument();
+    expect(screen.getAllByText('Invitar').length).toBeGreaterThanOrEqual(1);
   });
 
   it('hides the invite UI for STAFF viewers', async () => {
     renderWithProviders(<UsersContainer />, { auth: staffAuth });
     expect((await screen.findAllByText('Admin')).length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText('Invite')).not.toBeInTheDocument();
-    expect(screen.queryByText('No invitations yet')).not.toBeInTheDocument();
+    expect(screen.queryByText('Invitar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sin invitaciones pendientes')).not.toBeInTheDocument();
   });
 
   it('opens the invite modal when Invite is clicked', async () => {
     const userEvt = userEvent.setup();
     renderWithProviders(<UsersContainer />, { auth: ownerAuth });
     expect((await screen.findAllByText('Admin')).length).toBeGreaterThanOrEqual(1);
-    await userEvt.click(screen.getAllByText('Invite')[0]);
-    expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
+    await userEvt.click(screen.getAllByText('Invitar')[0]);
+    expect(screen.getByText('Invitar miembro')).toBeInTheDocument();
   });
 
   it('submits the invite form, calls createInvitation and shows the success link', async () => {
     const userEvt = userEvent.setup();
     renderWithProviders(<UsersContainer />, { auth: ownerAuth });
     expect((await screen.findAllByText('Admin')).length).toBeGreaterThanOrEqual(1);
-    await userEvt.click(screen.getAllByText('Invite')[0]);
-    await userEvt.type(screen.getByLabelText('Email address'), 'nuevo@test.com');
-    await userEvt.click(screen.getByText('Send Invitation'));
+    await userEvt.click(screen.getAllByText('Invitar')[0]);
+    await userEvt.type(screen.getByLabelText('Correo electrónico'), 'nuevo@test.com');
+    await userEvt.click(screen.getByText('Enviar invitación'));
 
     expect(invitationsApi.createInvitation).toHaveBeenCalledWith({
       email: 'nuevo@test.com',
       rol: 'STAFF',
     });
-    expect(await screen.findByText('Invitation sent')).toBeInTheDocument();
+    expect(await screen.findByText('Invitación enviada')).toBeInTheDocument();
     expect(screen.getByText(/tok123/)).toBeInTheDocument();
-    expect(screen.queryByText('Invite Team Member')).not.toBeInTheDocument();
+    expect(screen.queryByText('Invitar miembro')).not.toBeInTheDocument();
   });
 
   it('renders invitation rows', async () => {
     vi.mocked(invitationsApi.getInvitations).mockResolvedValue([pendingInvitation]);
     renderWithProviders(<UsersContainer />, { auth: ownerAuth });
     expect(await screen.findByText('pendiente@test.com')).toBeInTheDocument();
-    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Pendiente')).toBeInTheDocument();
   });
 
   it('calls resendInvitation when Resend is clicked', async () => {
@@ -138,7 +138,7 @@ describe('UsersContainer', () => {
     const userEvt = userEvent.setup();
     renderWithProviders(<UsersContainer />, { auth: ownerAuth });
     await screen.findByText('pendiente@test.com');
-    await userEvt.click(screen.getByText('Resend'));
+    await userEvt.click(screen.getByText('Reenviar'));
     expect(invitationsApi.resendInvitation).toHaveBeenCalledWith(1);
   });
 
@@ -147,7 +147,7 @@ describe('UsersContainer', () => {
     const userEvt = userEvent.setup();
     renderWithProviders(<UsersContainer />, { auth: ownerAuth });
     await screen.findByText('pendiente@test.com');
-    await userEvt.click(screen.getByText('Cancel'));
+    await userEvt.click(screen.getByText('Cancelar'));
     expect(invitationsApi.cancelInvitation).toHaveBeenCalledWith(1);
   });
 });

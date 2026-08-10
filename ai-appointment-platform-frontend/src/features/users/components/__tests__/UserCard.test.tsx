@@ -51,7 +51,7 @@ describe('UserCard', () => {
       </table>,
     );
     expect(screen.getByText('OWNER')).toBeInTheDocument();
-    expect(screen.getByText('Protected')).toBeInTheDocument();
+    expect(screen.getByText('Protegido')).toBeInTheDocument();
   });
 
   it('hides edit/delete for OWNER row', () => {
@@ -62,8 +62,8 @@ describe('UserCard', () => {
         </tbody>
       </table>,
     );
-    expect(screen.queryByLabelText(/Edit/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Delete/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Editar/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Eliminar/)).not.toBeInTheDocument();
   });
 
   it('calls onEdit when edit button clicked (OWNER viewer, STAFF row)', async () => {
@@ -76,7 +76,7 @@ describe('UserCard', () => {
         </tbody>
       </table>,
     );
-    await userEvt.click(screen.getByLabelText('Edit Staff Test'));
+    await userEvt.click(screen.getByLabelText('Editar Staff Test'));
     expect(onEdit).toHaveBeenCalledWith(staffUser);
   });
 
@@ -90,7 +90,7 @@ describe('UserCard', () => {
         </tbody>
       </table>,
     );
-    await userEvt.click(screen.getByLabelText('Delete Staff Test'));
+    await userEvt.click(screen.getByLabelText('Eliminar Staff Test'));
     expect(onDelete).toHaveBeenCalledWith(2);
   });
 
@@ -103,6 +103,6 @@ describe('UserCard', () => {
       </table>,
     );
     // ADMIN cannot touch another ADMIN - Protected is shown
-    expect(screen.getByText('Protected')).toBeInTheDocument();
+    expect(screen.getByText('Protegido')).toBeInTheDocument();
   });
 });

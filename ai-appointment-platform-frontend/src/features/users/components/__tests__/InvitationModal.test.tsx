@@ -32,8 +32,8 @@ describe('InvitationModal', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
-    expect(screen.getByText('Send Invitation')).toBeInTheDocument();
+    expect(screen.getByText('Invitar miembro')).toBeInTheDocument();
+    expect(screen.getByText('Enviar invitación')).toBeInTheDocument();
   });
 
   it('calls onFormDataChange when typing the email', async () => {
@@ -48,7 +48,7 @@ describe('InvitationModal', () => {
         onClose={vi.fn()}
       />,
     );
-    const emailInput = screen.getByLabelText('Email address');
+    const emailInput = screen.getByLabelText('Correo electrónico');
     fireEvent.change(emailInput, { target: { value: 'a@b.com' } });
     expect(onFormDataChange).toHaveBeenCalledWith(expect.objectContaining({ email: 'a@b.com' }));
   });
@@ -66,7 +66,7 @@ describe('InvitationModal', () => {
         onClose={vi.fn()}
       />,
     );
-    await userEvt.selectOptions(screen.getByLabelText('Role'), 'ADMIN');
+    await userEvt.selectOptions(screen.getByLabelText('Rol'), 'ADMIN');
     expect(onFormDataChange).toHaveBeenCalledWith(expect.objectContaining({ rol: 'ADMIN' }));
   });
 
@@ -83,7 +83,7 @@ describe('InvitationModal', () => {
         onClose={vi.fn()}
       />,
     );
-    await userEvt.click(screen.getByText('Send Invitation'));
+    await userEvt.click(screen.getByText('Enviar invitación'));
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 

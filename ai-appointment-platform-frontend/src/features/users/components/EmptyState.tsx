@@ -10,7 +10,7 @@ interface EmptyStateProps {
 
 export const EmptyState = ({
   icon: Icon = Users,
-  title = 'No users registered',
+  title = 'Sin usuarios registrados',
   description,
   className = '',
 }: EmptyStateProps): React.JSX.Element => (

@@ -13,22 +13,22 @@ const estadoConfig: Record<
   { label: string; icon: typeof Clock; className: string }
 > = {
   PENDIENTE: {
-    label: 'Pending',
+    label: 'Pendiente',
     icon: Clock,
     className: 'text-warning bg-warning/10 border-warning/20',
   },
   ACEPTADA: {
-    label: 'Accepted',
+    label: 'Aceptada',
     icon: CheckCircle2,
     className: 'text-success bg-success/10 border-success/20',
   },
   CANCELADA: {
-    label: 'Canceled',
+    label: 'Cancelada',
     icon: Ban,
     className: 'text-txt-muted bg-surface-elevated border-border-light',
   },
   EXPIRADA: {
-    label: 'Expired',
+    label: 'Expirada',
     icon: XCircle,
     className: 'text-danger bg-danger/10 border-danger/20',
   },
@@ -48,8 +48,8 @@ export const InvitationsView = ({
     return (
       <EmptyState
         icon={Mail}
-        title="No invitations yet"
-        description="Invite team members to join your business."
+        title="Sin invitaciones pendientes"
+        description="Invita miembros del equipo a tu negocio."
         className="card-modern mt-6"
       />
     );
@@ -58,17 +58,17 @@ export const InvitationsView = ({
   return (
     <div className="card-modern overflow-hidden mt-6">
       <div className="p-5 border-b border-border">
-        <h3 className="text-base font-bold text-txt">Invitations</h3>
+        <h3 className="text-base font-bold text-txt">Invitaciones pendientes</h3>
       </div>
       <table className="w-full">
         <thead className="bg-surface-elevated/50">
           <tr>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Email</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Role</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Status</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Expires</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Sent</th>
-            <th className="text-right py-3 px-4 text-sm font-semibold text-txt">Actions</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Correo</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Rol</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Estado</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Expira</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-txt">Enviado</th>
+            <th className="text-right py-3 px-4 text-sm font-semibold text-txt">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -101,13 +101,13 @@ export const InvitationsView = ({
                         onClick={() => onResend(inv.id)}
                         className="text-xs font-medium text-primary hover:text-primary-dark mr-3"
                       >
-                        Resend
+                        Reenviar
                       </button>
                       <button
                         onClick={() => onCancel(inv.id)}
                         className="text-xs font-medium text-danger hover:text-danger/80"
                       >
-                        Cancel
+                        Cancelar
                       </button>
                     </>
                   )}

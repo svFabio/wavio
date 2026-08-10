@@ -43,29 +43,29 @@ describe('InvitationsView', () => {
   it('renders a row per invitation with its estado label', () => {
     render(<InvitationsView invitations={invitations} onResend={vi.fn()} onCancel={vi.fn()} />);
     expect(screen.getByText('pendiente@test.com')).toBeInTheDocument();
-    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Pendiente')).toBeInTheDocument();
     expect(screen.getByText('aceptada@test.com')).toBeInTheDocument();
-    expect(screen.getByText('Accepted')).toBeInTheDocument();
+    expect(screen.getByText('Aceptada')).toBeInTheDocument();
     expect(screen.getByText('cancelada@test.com')).toBeInTheDocument();
-    expect(screen.getByText('Canceled')).toBeInTheDocument();
+    expect(screen.getByText('Cancelada')).toBeInTheDocument();
     expect(screen.getByText('expirada@test.com')).toBeInTheDocument();
-    expect(screen.getByText('Expired')).toBeInTheDocument();
+    expect(screen.getByText('Expirada')).toBeInTheDocument();
   });
 
   it('shows Resend and Cancel actions only for PENDIENTE invitations', () => {
     render(<InvitationsView invitations={invitations} onResend={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByText('Resend')).toBeInTheDocument();
-    expect(screen.getByText('Cancel')).toBeInTheDocument();
+    expect(screen.getByText('Reenviar')).toBeInTheDocument();
+    expect(screen.getByText('Cancelar')).toBeInTheDocument();
     // Only one row is PENDIENTE, so the actions must appear exactly once
-    expect(screen.getAllByText('Resend')).toHaveLength(1);
-    expect(screen.getAllByText('Cancel')).toHaveLength(1);
+    expect(screen.getAllByText('Reenviar')).toHaveLength(1);
+    expect(screen.getAllByText('Cancelar')).toHaveLength(1);
   });
 
   it('calls onResend with the invitation id', async () => {
     const onResend = vi.fn();
     const userEvt = userEvent.setup();
     render(<InvitationsView invitations={invitations} onResend={onResend} onCancel={vi.fn()} />);
-    await userEvt.click(screen.getByText('Resend'));
+    await userEvt.click(screen.getByText('Reenviar'));
     expect(onResend).toHaveBeenCalledWith(1);
   });
 
@@ -73,12 +73,12 @@ describe('InvitationsView', () => {
     const onCancel = vi.fn();
     const userEvt = userEvent.setup();
     render(<InvitationsView invitations={invitations} onResend={vi.fn()} onCancel={onCancel} />);
-    await userEvt.click(screen.getByText('Cancel'));
+    await userEvt.click(screen.getByText('Cancelar'));
     expect(onCancel).toHaveBeenCalledWith(1);
   });
 
   it('shows the empty state when there are no invitations', () => {
     render(<InvitationsView invitations={[]} onResend={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByText('No invitations yet')).toBeInTheDocument();
+    expect(screen.getByText('Sin invitaciones pendientes')).toBeInTheDocument();
   });
 });
