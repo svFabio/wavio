@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders } from '../../../../test-utils';
@@ -117,9 +117,11 @@ describe('UsersContainer', () => {
     await userEvt.type(screen.getByLabelText('Correo electrónico'), 'nuevo@test.com');
     await userEvt.click(screen.getByText('Enviar invitación'));
 
-    expect(invitationsApi.createInvitation).toHaveBeenCalledWith({
-      email: 'nuevo@test.com',
-      rol: 'STAFF',
+    await waitFor(() => {
+      expect(invitationsApi.createInvitation).toHaveBeenCalledWith({
+        email: 'nuevo@test.com',
+        rol: 'STAFF',
+      });
     });
     expect(await screen.findByText('Invitación enviada')).toBeInTheDocument();
     expect(screen.getByText(/tok123/)).toBeInTheDocument();
