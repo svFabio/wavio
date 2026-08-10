@@ -1,14 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import type { Invitation, InvitationEstado, InvitationFormData } from '../types';
 import { invitationsApi } from './invitations.api';
 
 export function useInvitationsQuery(
   estado?: InvitationEstado,
-): ReturnType<typeof useQuery<Invitation[]>> {
+  options?: Omit<
+    UseQueryOptions<Invitation[], Error, Invitation[], readonly unknown[]>,
+    'queryKey' | 'queryFn'
+  >,
+): ReturnType<typeof useQuery<Invitation[], Error, Invitation[], readonly unknown[]>> {
   return useQuery({
     queryKey: ['invitations', estado],
     queryFn: () => invitationsApi.getInvitations(estado),
     retry: 1,
+    ...options,
   });
 }
 

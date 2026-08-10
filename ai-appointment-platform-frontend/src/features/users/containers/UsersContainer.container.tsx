@@ -42,14 +42,14 @@ export const UsersContainer = (): React.JSX.Element => {
     queryFn: () => usersApi.getUsers(),
   });
 
+  const viewerRole = (usuario?.rol ?? 'STAFF') as 'OWNER' | 'ADMIN' | 'STAFF';
+  const canInvite = viewerRole !== 'STAFF';
+
   const {
     data: invitations = [],
     isLoading: invitesLoading,
     isError: invitesError,
-  } = useInvitationsQuery();
-
-  const viewerRole = (usuario?.rol ?? 'STAFF') as 'OWNER' | 'ADMIN' | 'STAFF';
-  const canInvite = viewerRole !== 'STAFF';
+  } = useInvitationsQuery(undefined, { enabled: canInvite });
 
   // Count ADMIN + OWNER entries for last-admin guard
   const adminCount = useMemo(
