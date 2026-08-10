@@ -35,7 +35,7 @@ describe('UserCardMobile', () => {
       <UserCardMobile user={ownerUser} viewerRole="OWNER" onEdit={vi.fn()} onDelete={vi.fn()} />,
     );
     expect(screen.getByText('OWNER')).toBeInTheDocument();
-    expect(screen.getByText('Protected')).toBeInTheDocument();
+    expect(screen.getByText('Protegido')).toBeInTheDocument();
   });
 
   it('calls onEdit when edit button clicked', async () => {
@@ -44,7 +44,7 @@ describe('UserCardMobile', () => {
     render(
       <UserCardMobile user={staffUser} viewerRole="OWNER" onEdit={onEdit} onDelete={vi.fn()} />,
     );
-    await userEvt.click(screen.getByLabelText('Edit Staff User'));
+    await userEvt.click(screen.getByLabelText('Editar Staff User'));
     expect(onEdit).toHaveBeenCalledWith(staffUser);
   });
 
@@ -54,7 +54,7 @@ describe('UserCardMobile', () => {
     render(
       <UserCardMobile user={staffUser} viewerRole="OWNER" onEdit={vi.fn()} onDelete={onDelete} />,
     );
-    await userEvt.click(screen.getByLabelText('Delete Staff User'));
+    await userEvt.click(screen.getByLabelText('Eliminar Staff User'));
     expect(onDelete).toHaveBeenCalledWith(1);
   });
 });

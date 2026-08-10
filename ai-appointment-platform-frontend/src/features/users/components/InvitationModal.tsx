@@ -23,17 +23,17 @@ export const InvitationModal = ({
     onFormDataChange({ ...formData, ...patch });
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Invite Team Member" size="md">
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Invitar miembro" size="md">
       <div className="p-6">
         <p className="text-sm text-txt-secondary mb-4 flex items-center gap-2">
           <Mail className="w-5 h-5 text-primary" />
-          Send an email invitation. They will set their own password when they accept it.
+          Envía una invitación por correo. El invitado establecerá su contraseña al aceptar.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="invite-email" className="block text-sm font-medium text-txt mb-1">
-              Email address
+              Correo electrónico
             </label>
             <input
               id="invite-email"
@@ -42,13 +42,13 @@ export const InvitationModal = ({
               value={formData.email}
               onChange={(e) => update({ email: e.target.value })}
               className="input-modern"
-              placeholder="colleague@example.com"
+              placeholder="colega@ejemplo.com"
             />
           </div>
 
           <div>
             <label htmlFor="invite-rol" className="block text-sm font-medium text-txt mb-1">
-              Role
+              Rol
             </label>
             <select
               id="invite-rol"
@@ -56,17 +56,17 @@ export const InvitationModal = ({
               onChange={(e) => update({ rol: e.target.value as 'ADMIN' | 'STAFF' })}
               className="input-modern"
             >
-              <option value="STAFF">STAFF (Receptionist)</option>
-              <option value="ADMIN">ADMIN (Administrator)</option>
+              <option value="STAFF">STAFF (Recepcionista)</option>
+              <option value="ADMIN">ADMIN (Administrador)</option>
             </select>
             <p className="text-xs text-txt-muted mt-1">
-              Admins can manage configuration and other staff.
+              Los administradores pueden gestionar la configuración y al personal.
             </p>
           </div>
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
@@ -76,10 +76,10 @@ export const InvitationModal = ({
               {isSending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2 inline" />
-                  Sending...
+                  Enviando...
                 </>
               ) : (
-                'Send Invitation'
+                'Enviar invitación'
               )}
             </button>
           </div>

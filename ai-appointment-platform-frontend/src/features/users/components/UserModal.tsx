@@ -42,7 +42,7 @@ export const UserModal = ({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title={editingUser ? 'Edit User' : 'New User'}
+      title={editingUser ? 'Editar usuario' : 'Nuevo usuario'}
       size="md"
     >
       <div className="p-6">
@@ -50,14 +50,14 @@ export const UserModal = ({
           <div className="flex items-center gap-2 mb-4 p-3 rounded-md bg-warning/10 border border-warning/30">
             <ShieldAlert className="w-4 h-4 text-warning flex-shrink-0" />
             <p className="text-sm text-txt-secondary">
-              The <strong>Owner</strong> account cannot be modified.
+              La cuenta del <strong>propietario</strong> no se puede modificar.
             </p>
           </div>
         )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Name</label>
+            <label className="block text-sm font-medium text-txt mb-1">Nombre</label>
             <input
               type="text"
               required
@@ -69,7 +69,7 @@ export const UserModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Email</label>
+            <label className="block text-sm font-medium text-txt mb-1">Correo electrónico</label>
             <input
               type="email"
               required
@@ -83,7 +83,7 @@ export const UserModal = ({
           {!isEditingOwner && (
             <div>
               <label className="block text-sm font-medium text-txt mb-1">
-                Password {editingUser && '(leave blank to keep unchanged)'}
+                Contraseña {editingUser && '(dejar en blanco para no cambiar)'}
               </label>
               <input
                 type="password"
@@ -96,11 +96,11 @@ export const UserModal = ({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-txt mb-1">Role</label>
+            <label className="block text-sm font-medium text-txt mb-1">Rol</label>
             {isEditingOwner ? (
               <div className="flex items-center gap-2">
                 <span className="badge badge-warning">OWNER</span>
-                <span className="text-xs text-txt-muted">Cannot be changed</span>
+                <span className="text-xs text-txt-muted">No se puede cambiar</span>
               </div>
             ) : (
               <>
@@ -109,12 +109,12 @@ export const UserModal = ({
                   onChange={(e) => update({ rol: e.target.value as 'ADMIN' | 'STAFF' })}
                   className="input-modern"
                 >
-                  <option value="STAFF">STAFF (Receptionist)</option>
-                  {canAssignAdmin && <option value="ADMIN">ADMIN (Administrator)</option>}
+                  <option value="STAFF">STAFF (Recepcionista)</option>
+                  {canAssignAdmin && <option value="ADMIN">ADMIN (Administrador)</option>}
                 </select>
                 {isLastAdmin && (
                   <p className="text-xs text-danger mt-1">
-                    Cannot demote: this is the only administrator.
+                    No se puede degradar: es el único administrador.
                   </p>
                 )}
               </>
@@ -123,7 +123,7 @@ export const UserModal = ({
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">
-              Cancel
+              Cancelar
             </button>
             {!isEditingOwner && (
               <button
@@ -134,9 +134,9 @@ export const UserModal = ({
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : editingUser ? (
-                  'Update'
+                  'Actualizar'
                 ) : (
-                  'Create'
+                  'Crear'
                 )}
               </button>
             )}

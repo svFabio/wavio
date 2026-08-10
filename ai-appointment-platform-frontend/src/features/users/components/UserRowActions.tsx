@@ -17,14 +17,14 @@ export const UserRowActions = ({
   <div className={`flex items-center ${className}`}>
     <button
       onClick={() => onEdit(user)}
-      aria-label={`Edit ${user.nombre}`}
+      aria-label={`Editar ${user.nombre}`}
       className="text-primary hover:text-primary-dark mr-3"
     >
       <Pencil className="w-4 h-4" />
     </button>
     <button
       onClick={() => onDelete(user.id)}
-      aria-label={`Delete ${user.nombre}`}
+      aria-label={`Eliminar ${user.nombre}`}
       className="text-danger hover:text-danger/80"
     >
       <Trash2 className="w-4 h-4" />

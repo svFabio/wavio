@@ -42,14 +42,14 @@ export const UsersContainer = (): React.JSX.Element => {
     queryFn: () => usersApi.getUsers(),
   });
 
+  const viewerRole = (usuario?.rol ?? 'STAFF') as 'OWNER' | 'ADMIN' | 'STAFF';
+  const canInvite = viewerRole !== 'STAFF';
+
   const {
     data: invitations = [],
     isLoading: invitesLoading,
     isError: invitesError,
-  } = useInvitationsQuery();
-
-  const viewerRole = (usuario?.rol ?? 'STAFF') as 'OWNER' | 'ADMIN' | 'STAFF';
-  const canInvite = viewerRole !== 'STAFF';
+  } = useInvitationsQuery(undefined, { enabled: canInvite });
 
   // Count ADMIN + OWNER entries for last-admin guard
   const adminCount = useMemo(
@@ -135,7 +135,7 @@ export const UsersContainer = (): React.JSX.Element => {
 
   const handleDelete = useCallback(
     (id: number) => {
-      if (!confirm('Are you sure you want to delete this user?')) return;
+      if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) return;
       deleteMutation.mutate(id);
     },
     [deleteMutation],
@@ -156,7 +156,7 @@ export const UsersContainer = (): React.JSX.Element => {
   if (isError) {
     return (
       <div className="mt-8">
-        <ErrorAlert message="Error loading users" />
+        <ErrorAlert message="Error al cargar usuarios" />
       </div>
     );
   }
@@ -165,7 +165,7 @@ export const UsersContainer = (): React.JSX.Element => {
     <ErrorBoundary>
       <div>
         {users.length === 0 ? (
-          <EmptyState description="Add a new member to the team to get started." />
+          <EmptyState description="Agrega un miembro al equipo para comenzar." />
         ) : (
           <UsersView
             users={users}
@@ -177,15 +177,10 @@ export const UsersContainer = (): React.JSX.Element => {
           />
         )}
 
-        {canInvite && (
+        {canInvite && !invitesError && (
           <>
             {invitesLoading && <InvitationsSkeleton />}
-            {invitesError && (
-              <div className="mt-6">
-                <ErrorAlert message="Error loading invitations" />
-              </div>
-            )}
-            {!invitesLoading && !invitesError && (
+            {!invitesLoading && (
               <>
                 {inviteSuccessUrl && (
                   <InviteSuccessCard

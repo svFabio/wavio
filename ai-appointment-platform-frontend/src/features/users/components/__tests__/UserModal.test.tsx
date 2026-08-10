@@ -38,8 +38,8 @@ describe('UserModal', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('New User')).toBeInTheDocument();
-    expect(screen.getByText('Create')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo usuario')).toBeInTheDocument();
+    expect(screen.getByText('Crear')).toBeInTheDocument();
   });
 
   it('renders edit form when editing user', () => {
@@ -63,8 +63,8 @@ describe('UserModal', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('Edit User')).toBeInTheDocument();
-    expect(screen.getByText('Update')).toBeInTheDocument();
+    expect(screen.getByText('Editar usuario')).toBeInTheDocument();
+    expect(screen.getByText('Actualizar')).toBeInTheDocument();
   });
 
   it('calls onFormDataChange when typing', async () => {
@@ -104,7 +104,7 @@ describe('UserModal', () => {
         onClose={vi.fn()}
       />,
     );
-    await userEvt.click(screen.getByText('Create'));
+    await userEvt.click(screen.getByText('Crear'));
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 

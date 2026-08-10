@@ -36,7 +36,7 @@ const renderView = (viewerRole: 'OWNER' | 'ADMIN' | 'STAFF' = 'OWNER') =>
 describe('UsersView', () => {
   it('renders user list', () => {
     renderView();
-    expect(screen.getAllByText('User Management')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Miembros del equipo')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Staff')[0]).toBeInTheDocument();
   });
@@ -54,18 +54,18 @@ describe('UsersView', () => {
         onDelete={vi.fn()}
       />,
     );
-    await userEvt.click(screen.getAllByText('New User')[0]);
+    await userEvt.click(screen.getAllByText('Agregar usuario')[0]);
     expect(onOpenModal).toHaveBeenCalledTimes(1);
   });
 
   it('renders the Invite button for ADMIN and OWNER viewers', () => {
     renderView('ADMIN');
-    expect(screen.getAllByText('Invite').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Invitar').length).toBeGreaterThanOrEqual(1);
   });
 
   it('hides the Invite button for STAFF viewers', () => {
     renderView('STAFF');
-    expect(screen.queryByText('Invite')).not.toBeInTheDocument();
+    expect(screen.queryByText('Invitar')).not.toBeInTheDocument();
   });
 
   it('calls onInvite when the Invite button is clicked', async () => {
@@ -81,7 +81,7 @@ describe('UsersView', () => {
         onDelete={vi.fn()}
       />,
     );
-    await userEvt.click(screen.getAllByText('Invite')[0]);
+    await userEvt.click(screen.getAllByText('Invitar')[0]);
     expect(onInvite).toHaveBeenCalledTimes(1);
   });
 });

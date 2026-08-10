@@ -28,13 +28,13 @@ export const UserCardMobile = ({
       </div>
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light">
         <p className="text-xs text-txt-muted">
-          Created: {new Date(user.creadoEn).toLocaleDateString()}
+          Creado: {new Date(user.creadoEn).toLocaleDateString()}
         </p>
         <div className="flex items-center gap-3">
           {canModify ? (
             <UserRowActions user={user} onEdit={onEdit} onDelete={onDelete} />
           ) : (
-            <span className="text-xs text-txt-muted italic">Protected</span>
+            <span className="text-xs text-txt-muted italic">Protegido</span>
           )}
         </div>
       </div>

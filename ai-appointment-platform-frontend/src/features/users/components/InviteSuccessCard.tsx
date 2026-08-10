@@ -21,16 +21,16 @@ export const InviteSuccessCard = ({
         <div className="flex items-start gap-3 min-w-0">
           <CheckCircle2 className="w-6 h-6 text-success shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-txt">Invitation sent</h3>
+            <h3 className="text-base font-bold text-txt">Invitación enviada</h3>
             <p className="text-sm text-txt-secondary mt-1">
-              Share this link with the invited person. It expires in 48 hours.
+              Comparte este enlace con la persona invitada. Expira en 48 horas.
             </p>
             <p className="text-xs text-txt-muted break-all mt-2 font-mono">{url}</p>
           </div>
         </div>
         <button
           onClick={onDismiss}
-          aria-label="Dismiss"
+          aria-label="Descartar"
           className="p-1.5 hover:bg-surface-elevated rounded-full transition-colors shrink-0"
         >
           <X className="w-5 h-5 text-txt-muted" />
@@ -39,7 +39,7 @@ export const InviteSuccessCard = ({
       <div className="mt-4">
         <button onClick={handleCopy} className="btn-secondary text-sm">
           <Copy className="w-4 h-4" />
-          Copy link
+          Copiar enlace
         </button>
       </div>
     </div>
