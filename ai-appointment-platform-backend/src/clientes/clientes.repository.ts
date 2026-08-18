@@ -83,4 +83,20 @@ export class ClientesRepository {
       where: { id },
     });
   }
+
+  async countNoShows(clienteId: number, negocioId: number): Promise<number> {
+    const cliente = await this.prisma.cliente.findFirst({
+      where: { id: clienteId, negocioId },
+      select: { telefono: true },
+    });
+    if (!cliente) throw new NotFoundError('Cliente');
+
+    return this.prisma.cita.count({
+      where: {
+        clienteTelefono: cliente.telefono,
+        negocioId,
+        estado: 'NO_SHOW',
+      },
+    });
+  }
 }
