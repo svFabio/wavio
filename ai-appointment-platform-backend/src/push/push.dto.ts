@@ -7,3 +7,9 @@ export const subscribePushSchema = z.object({
 });
 
 export type SubscribePushDto = z.infer<typeof subscribePushSchema>;
+
+export const unsubscribePushSchema = z.object({
+  endpoint: z.string().url(),
+});
+
+export type UnsubscribePushDto = z.infer<typeof unsubscribePushSchema>;
