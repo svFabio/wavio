@@ -14,27 +14,13 @@ export const AsistenteContainer = (): React.JSX.Element => {
     queryFn: configuracionApi.getConfiguracion,
   });
 
-  const [trigger, setTrigger] = useState('');
-  const [mensajeBienvenida, setMensajeBienvenida] = useState('');
-  const [mensajeConfirmacion, setMensajeConfirmacion] = useState('');
-  const [cobrarAdelanto, setCobrarAdelanto] = useState(true);
-  const [porcentajeAdelanto, setPorcentajeAdelanto] = useState(50);
-  const [chatFlow, setChatFlow] = useState<ChatFlowStep[]>([]);
-  const [qrFotoUrl, setQrFotoUrl] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
-
-  useEffect(() => {
-    if (config && !initialized) {
-      setTrigger(config.trigger);
-      setMensajeBienvenida(config.mensajeBienvenida);
-      setMensajeConfirmacion(config.mensajeConfirmacion);
-      setCobrarAdelanto(config.cobrarAdelanto);
-      setPorcentajeAdelanto(config.porcentajeAdelanto);
-      setChatFlow(config.chatFlow || []);
-      setQrFotoUrl(config.qrFotoUrl || null);
-      setInitialized(true);
-    }
-  }, [config, initialized]);
+  const [trigger, setTrigger] = useState(config?.trigger ?? '');
+  const [mensajeBienvenida, setMensajeBienvenida] = useState(config?.mensajeBienvenida ?? '');
+  const [mensajeConfirmacion, setMensajeConfirmacion] = useState(config?.mensajeConfirmacion ?? '');
+  const [cobrarAdelanto, setCobrarAdelanto] = useState(config?.cobrarAdelanto ?? true);
+  const [porcentajeAdelanto, setPorcentajeAdelanto] = useState(config?.porcentajeAdelanto ?? 50);
+  const [chatFlow, setChatFlow] = useState<ChatFlowStep[]>(config?.chatFlow ?? []);
+  const [qrFotoUrl, setQrFotoUrl] = useState<string | null>(config?.qrFotoUrl ?? null);
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -80,6 +66,7 @@ export const AsistenteContainer = (): React.JSX.Element => {
 
   return (
     <AsistenteView
+      key={config?.updatedAt ? new Date(config.updatedAt).getTime() : 'initial'}
       loading={loadingConfig}
       error={error}
       trigger={trigger}

@@ -58,7 +58,7 @@ export const AdminWhatsapp = (): React.JSX.Element => {
     if (document.getElementById('facebook-jssdk')) return;
     window.fbAsyncInit = function () {
       window.FB.init({
-        appId: import.meta.env.VITE_META_APP_ID || 'TU_META_APP_ID',
+        appId: import.meta.env.VITE_META_APP_ID || '',
         cookie: true,
         xfbml: true,
         version: 'v19.0',
@@ -89,7 +89,7 @@ export const AdminWhatsapp = (): React.JSX.Element => {
         }
       },
       {
-        config_id: import.meta.env.VITE_META_CONFIG_ID || 'TU_CONFIG_ID',
+        config_id: import.meta.env.VITE_META_CONFIG_ID || '',
         response_type: 'code',
         override_default_response_type: true,
         extras: {
@@ -152,9 +152,18 @@ export const AdminWhatsapp = (): React.JSX.Element => {
         </div>
       ) : (
         <div className="space-y-5">
-          <button onClick={launchFacebookLogin} className="w-full btn-primary">
-            Conectar con Facebook
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={launchFacebookLogin}
+              className="w-full btn-primary"
+              disabled={!import.meta.env.VITE_META_APP_ID}
+            >
+              Conectar con Facebook
+            </button>
+            {!import.meta.env.VITE_META_APP_ID && (
+              <p className="text-xs text-warning text-center">Meta App ID no configurado</p>
+            )}
+          </div>
 
           <DevCredentialsForm
             devToken={devToken}
