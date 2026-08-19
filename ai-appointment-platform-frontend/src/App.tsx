@@ -38,14 +38,15 @@ function App(): React.JSX.Element {
             <div className="fixed md:bottom-4 md:right-4 top-4 left-0 right-0 md:left-auto md:top-auto md:w-auto w-full z-toast pointer-events-none flex flex-col items-center md:items-end px-4 md:px-0 gap-2">
               <div className="pointer-events-auto w-full max-w-sm">
                 {notifications.map((notif) => (
-                  <NotificationToast
-                    key={notif.id}
-                    id={notif.id}
-                    clienteNombre={notif.clienteNombre}
-                    fecha={notif.fecha}
-                    horario={notif.horario}
-                    onDismiss={dismissNotification}
-                  />
+                  <ErrorBoundary fallback={null} key={notif.id}>
+                    <NotificationToast
+                      id={notif.id}
+                      clienteNombre={notif.clienteNombre}
+                      fecha={notif.fecha}
+                      horario={notif.horario}
+                      onDismiss={dismissNotification}
+                    />
+                  </ErrorBoundary>
                 ))}
               </div>
             </div>
