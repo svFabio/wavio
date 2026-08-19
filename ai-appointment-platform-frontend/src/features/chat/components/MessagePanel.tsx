@@ -58,11 +58,7 @@ export const MessagePanel = ({
       </div>
 
       <div
-        className="flex-1 overflow-y-auto p-4 space-y-3"
-        style={{
-          backgroundImage: 'radial-gradient(var(--color-border) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-        }}
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-[radial-gradient(circle,var(--color-border)_1px,transparent_1px)] bg-[length:20px_20px]"
       >
         {loadingMensajes ? (
           <div className="space-y-4 p-2">
