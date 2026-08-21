@@ -4,8 +4,6 @@ import { dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { EventoCalendario } from '../types';
-import { ModalDetalle } from './ModalDetalle';
-import { ModalReprogramar } from './ModalReprogramar';
 import { CustomEventDay } from './CustomEventDay';
 import { CustomEventMonth } from './CustomEventMonth';
 import { CustomToolbar } from './CustomToolbar';
@@ -13,7 +11,10 @@ import type { CustomToolbarProps } from './CustomToolbar';
 
 const locales = { es: es };
 
-const MemoizedToolbarWrapper = ({ onNuevaCita, ...toolbarProps }: CustomToolbarProps) => (
+const MemoizedToolbarWrapper = ({
+  onNuevaCita,
+  ...toolbarProps
+}: CustomToolbarProps): React.JSX.Element => (
   <CustomToolbar {...toolbarProps} onNuevaCita={onNuevaCita} />
 );
 const localizer = dateFnsLocalizer({
@@ -47,20 +48,6 @@ interface CalendarioViewProps {
   }) => void;
   onSelectEvent: (event: EventoCalendario) => void;
   onNuevaCita: () => void;
-  citaSeleccionada: EventoCalendario | null;
-  onCerrarDetalle: () => void;
-  onReprogramarDesdeDetalle: () => void;
-  onNoAsistio: () => void;
-  onGuardarDescripcion: (citaId: string, descripcion: string) => Promise<{ success: boolean }>;
-  isLoadingNoShow?: boolean;
-  modalReprogramarAbierto: boolean;
-  citaReprogramar?: EventoCalendario;
-  onCerrarReprogramar: () => void;
-  onReprogramarCita: (
-    citaId: string,
-    fecha: string,
-    horario: string,
-  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const CalendarioView = ({
@@ -74,17 +61,7 @@ export const CalendarioView = ({
   onSelectSlot,
   onSelectEvent,
   onNuevaCita,
-  citaSeleccionada,
-  onCerrarDetalle,
-  onReprogramarDesdeDetalle,
-  onNoAsistio,
-  onGuardarDescripcion,
-  isLoadingNoShow = false,
-  modalReprogramarAbierto,
-  citaReprogramar,
-  onCerrarReprogramar,
-  onReprogramarCita,
-}: CalendarioViewProps) => {
+}: CalendarioViewProps): React.JSX.Element => {
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4">
       <div className="card-modern h-full p-5 flex flex-col">
@@ -125,26 +102,6 @@ export const CalendarioView = ({
           }}
         />
       </div>
-
-      {citaSeleccionada && (
-        <ModalDetalle
-          event={citaSeleccionada}
-          onClose={onCerrarDetalle}
-          onReprogramar={onReprogramarDesdeDetalle}
-          onNoAsistio={onNoAsistio}
-          onGuardarDescripcion={onGuardarDescripcion}
-          isLoadingNoShow={isLoadingNoShow}
-        />
-      )}
-
-      {modalReprogramarAbierto && citaReprogramar && (
-        <ModalReprogramar
-          isOpen={modalReprogramarAbierto}
-          onClose={onCerrarReprogramar}
-          cita={citaReprogramar}
-          onSubmit={onReprogramarCita}
-        />
-      )}
     </div>
   );
 };

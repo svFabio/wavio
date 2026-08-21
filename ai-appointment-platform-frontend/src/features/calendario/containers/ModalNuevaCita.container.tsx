@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { configuracionApi } from '../../configuracion/api/configuracion.api';
 import { usersApi } from '../../users/api/users.api';
 import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';
-import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
 import { ModalNuevaCita } from '../components/ModalNuevaCita';
 import { ModalNuevaCitaForm } from '../components/ModalNuevaCitaForm';
 import type { DatosNuevaCita } from '../types';
@@ -70,16 +69,6 @@ export const ModalNuevaCitaContainer = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const modalRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
-
-  const { handleKeyDown } = useModalAccessibility({
-    isOpen,
-    onClose,
-    modalRef,
-    triggerRef,
-  });
-
   const fechaFormat = formData.fecha;
 
   const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
@@ -137,12 +126,7 @@ export const ModalNuevaCitaContainer = ({
   if (!isOpen) return null;
 
   return (
-    <ModalNuevaCita
-      modalRef={modalRef}
-      handleKeyDown={handleKeyDown}
-      handleClose={handleClose}
-      isLarge={!!computedFormData.esRecurrente}
-    >
+    <ModalNuevaCita handleClose={handleClose} isLarge={!!computedFormData.esRecurrente}>
       <ModalNuevaCitaForm
         formData={computedFormData}
         setFormData={setFormData}

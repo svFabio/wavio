@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useModalAccessibility } from '../../../shared/hooks/useModalAccessibility';
-import { useHorariosDisponiblesQuery } from '../api/useHorariosDisponiblesQuery';
-import { X, Clock, Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
 import type { EventoCalendario } from '../types';
 import { ModalShell } from '../../../shared/components/ModalShell';
 
@@ -11,62 +10,52 @@ interface ModalReprogramarProps {
   isOpen: boolean;
   onClose: () => void;
   cita: EventoCalendario;
-  onSubmit: (
-    citaId: string,
-    fecha: string,
-    horario: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+  fecha: string;
+  onFechaChange: (fecha: string) => void;
+  horario: string;
+  onHorarioChange: (horario: string) => void;
+  horariosDisponibles: string[];
+  loadingHorarios: boolean;
+  saving: boolean;
+  error: string | null;
+  onSubmit: () => void;
 }
 
-export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalReprogramarProps) => {
-  const [fecha, setFecha] = useState(format(cita.start, 'yyyy-MM-dd'));
-  const [horario, setHorario] = useState(format(cita.start, 'HH:mm'));
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+export const ModalReprogramar = ({
+  isOpen,
+  onClose,
+  cita,
+  fecha,
+  onFechaChange,
+  horario,
+  onHorarioChange,
+  horariosDisponibles,
+  loadingHorarios,
+  saving,
+  error,
+  onSubmit,
+}: ModalReprogramarProps): React.JSX.Element | null => {
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
-  const { data: horariosDisponibles = [], isLoading: loadingHorarios } =
-    useHorariosDisponiblesQuery(fecha, isOpen, cita.resource?.servicioId);
-
-  const { handleKeyDown } = useModalAccessibility({
+  useModalAccessibility({
     isOpen,
     onClose,
     modalRef,
     triggerRef,
   });
 
-  useEffect(() => {
-    if (
-      isOpen &&
-      !horariosDisponibles.includes(horario) &&
-      fecha !== format(cita.start, 'yyyy-MM-dd')
-    ) {
-      setHorario('');
-    }
-  }, [isOpen, horariosDisponibles, horario, fecha, cita.start]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const result = await onSubmit(cita.id, fecha, horario);
-    setLoading(false);
-
-    if (result.success) {
-      onClose();
-    } else {
-      setError(result.error || 'Error al reprogramar');
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
     <ModalShell isOpen={isOpen} onClose={onClose} title="Reprogramar Cita" size="md">
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form
+        onSubmit={(e): void => {
+          e.preventDefault();
+          onSubmit();
+        }}
+        className="p-6 space-y-5"
+      >
         {error && (
           <div className="p-3 bg-danger-light border border-danger/20 rounded-xl text-danger text-sm flex items-start gap-2">
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -92,7 +81,7 @@ export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalRepro
               type="date"
               required
               value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
+              onChange={(e) => onFechaChange(e.target.value)}
               min={format(new Date(), 'yyyy-MM-dd')}
               className="input-modern pl-10"
             />
@@ -115,7 +104,7 @@ export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalRepro
                 <button
                   key={h}
                   type="button"
-                  onClick={() => setHorario(h)}
+                  onClick={() => onHorarioChange(h)}
                   className={`py-2 px-1 rounded-lg font-semibold text-xs transition-all ${
                     horario === h
                       ? 'bg-primary text-on-primary shadow-lg shadow-primary/30 transform scale-105'
@@ -133,8 +122,8 @@ export const ModalReprogramar = ({ isOpen, onClose, cita, onSubmit }: ModalRepro
           <button type="button" onClick={onClose} className="btn-secondary flex-1">
             Cancelar
           </button>
-          <button type="submit" disabled={loading || !horario} className="btn-primary flex-1">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Cambio'}
+          <button type="submit" disabled={saving || !horario} className="btn-primary flex-1">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar Cambio'}
           </button>
         </div>
       </form>

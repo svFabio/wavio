@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../../test-setup';
 import { renderWithProviders } from '../../../../test-utils';
@@ -9,6 +9,10 @@ import { AdminWhatsapp } from '../AdminWhatsapp';
 beforeEach(() => {
   window.FB = undefined as unknown as typeof window.FB;
   window.confirm = vi.fn(() => true);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('AdminWhatsapp', () => {
@@ -57,6 +61,8 @@ describe('AdminWhatsapp', () => {
   });
 
   it('shows Facebook SDK error when FB is not loaded', async () => {
+    vi.stubEnv('VITE_META_APP_ID', 'test-app-id');
+    server.use(http.get('*/api/v1/whatsapp/status', () => HttpResponse.json({ connected: false })));
     renderWithProviders(<AdminWhatsapp />);
     await waitFor(() => {
       expect(screen.getByText('Conectar con Facebook')).toBeInTheDocument();

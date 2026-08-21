@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AsistenteView } from '../components/AsistenteView';
 import type { ConfigData } from '../types';
@@ -21,6 +21,21 @@ export const AsistenteContainer = (): React.JSX.Element => {
   const [porcentajeAdelanto, setPorcentajeAdelanto] = useState(config?.porcentajeAdelanto ?? 50);
   const [chatFlow, setChatFlow] = useState<ChatFlowStep[]>(config?.chatFlow ?? []);
   const [qrFotoUrl, setQrFotoUrl] = useState<string | null>(config?.qrFotoUrl ?? null);
+
+  // Seed form state once per loaded config: useState initializers run before the
+  // query resolves, so re-seed them when a new config id arrives (render-time
+  // adjustment pattern — no useEffect data syncing).
+  const [syncedConfigId, setSyncedConfigId] = useState<number | null>(null);
+  if (config && config.id !== syncedConfigId) {
+    setSyncedConfigId(config.id);
+    setTrigger(config.trigger ?? '');
+    setMensajeBienvenida(config.mensajeBienvenida ?? '');
+    setMensajeConfirmacion(config.mensajeConfirmacion ?? '');
+    setCobrarAdelanto(config.cobrarAdelanto ?? true);
+    setPorcentajeAdelanto(config.porcentajeAdelanto ?? 50);
+    setChatFlow(config.chatFlow ?? []);
+    setQrFotoUrl(config.qrFotoUrl ?? null);
+  }
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -66,7 +81,7 @@ export const AsistenteContainer = (): React.JSX.Element => {
 
   return (
     <AsistenteView
-      key={config?.updatedAt ? new Date(config.updatedAt).getTime() : 'initial'}
+      key={config?.id ?? 'initial'}
       loading={loadingConfig}
       error={error}
       trigger={trigger}

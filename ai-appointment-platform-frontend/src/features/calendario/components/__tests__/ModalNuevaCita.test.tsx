@@ -1,12 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
-import React from 'react';
 import { ModalNuevaCita } from '../ModalNuevaCita';
 
 const defaultProps = {
-  modalRef: React.createRef<HTMLDivElement>(),
-  handleKeyDown: vi.fn(),
   handleClose: vi.fn(),
   isLarge: false,
   children: <div data-testid="child">Form content</div>,
@@ -49,6 +46,6 @@ describe('ModalNuevaCita', () => {
     render(<ModalNuevaCita {...defaultProps} />);
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-label', 'Nueva cita');
+    expect(dialog).toHaveAttribute('aria-label', 'Nueva Cita');
   });
 });
