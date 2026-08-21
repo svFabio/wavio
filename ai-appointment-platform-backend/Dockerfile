@@ -43,6 +43,9 @@ COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/prisma ./prisma
 
+# Install prisma CLI globally (removed by prune, needed for migrations)
+RUN npm install -g prisma@5
+
 # Set ownership
 RUN chown -R wavio:wavio /usr/src/app
 
