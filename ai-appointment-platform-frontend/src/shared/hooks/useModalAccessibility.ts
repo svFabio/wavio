@@ -7,18 +7,24 @@ interface UseModalAccessibilityProps {
   triggerRef: React.MutableRefObject<HTMLElement | null>;
 }
 
+interface UseModalAccessibilityResult {
+  handleKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
+}
+
 export function useModalAccessibility({
   isOpen,
   onClose,
   modalRef,
   triggerRef,
-}: UseModalAccessibilityProps) {
+}: UseModalAccessibilityProps): UseModalAccessibilityResult {
   useEffect(() => {
     if (isOpen) {
       triggerRef.current = document.activeElement as HTMLElement;
       const timer = setTimeout(() => {
         const modal = modalRef.current;
-        if (modal) {
+        // Only move focus when the user has not already focused an element
+        // inside the dialog (e.g. clicking straight into an input field).
+        if (modal && !modal.contains(document.activeElement)) {
           const focusable = modal.querySelectorAll<HTMLElement>(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
           );
