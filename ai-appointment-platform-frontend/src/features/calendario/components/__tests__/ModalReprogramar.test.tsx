@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ModalReprogramar } from '../ModalReprogramar';
+import { ModalReprogramarContainer as ModalReprogramar } from '../../containers/ModalReprogramar.container';
 import type { EventoCalendario } from '../../types';
 
 const mockCita: EventoCalendario = {

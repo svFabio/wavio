@@ -2,6 +2,15 @@ import { ArrowLeft, Phone } from 'lucide-react';
 import type { MensajeChat, Conversacion } from '../types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
+import { ChatMessagesSkeleton } from '../../../shared/components/skeletons/ChatMessagesSkeleton';
+
+interface MessageInputState {
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onSend: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+}
 
 interface MessagePanelProps {
   mensajes: MensajeChat[];
@@ -11,11 +20,7 @@ interface MessagePanelProps {
   onVolver: () => void;
   formatJid: (jid: string) => string;
   formatTimestamp: (ts: string) => string;
-  nuevoMensaje: string;
-  enviando: boolean;
-  onNuevoMensajeChange: (value: string) => void;
-  onEnviarMensaje: () => void;
-  onKeyDown: (e: React.KeyboardEvent) => void;
+  input: MessageInputState;
 }
 
 export const MessagePanel = ({
@@ -26,12 +31,8 @@ export const MessagePanel = ({
   onVolver,
   formatJid,
   formatTimestamp,
-  nuevoMensaje,
-  enviando,
-  onNuevoMensajeChange,
-  onEnviarMensaje,
-  onKeyDown,
-}: MessagePanelProps) => {
+  input,
+}: MessagePanelProps): React.JSX.Element => {
   return (
     <>
       <div className="px-4 py-3 border-b border-border bg-surface flex items-center gap-3">
@@ -57,23 +58,9 @@ export const MessagePanel = ({
         </div>
       </div>
 
-      <div
-        className="flex-1 overflow-y-auto p-4 space-y-3"
-        style={{
-          backgroundImage: 'radial-gradient(var(--color-border) 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
-        }}
-      >
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[radial-gradient(circle,var(--color-border)_1px,transparent_1px)] bg-[length:20px_20px]">
         {loadingMensajes ? (
-          <div className="space-y-4 p-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-                <div
-                  className={`skeleton rounded-2xl ${i % 2 === 0 ? 'w-3/5 h-10' : 'w-2/5 h-8'}`}
-                />
-              </div>
-            ))}
-          </div>
+          <ChatMessagesSkeleton />
         ) : (
           mensajes.map((msg) => (
             <MessageBubble key={msg.id} message={msg} formatTimestamp={formatTimestamp} />
@@ -84,11 +71,11 @@ export const MessagePanel = ({
 
       <div className="px-4 py-3 bg-surface border-t border-border">
         <MessageInput
-          value={nuevoMensaje}
-          onChange={onNuevoMensajeChange}
-          onSend={onEnviarMensaje}
-          onKeyDown={onKeyDown}
-          disabled={enviando}
+          value={input.value}
+          onChange={input.onChange}
+          onSend={input.onSend}
+          onKeyDown={input.onKeyDown}
+          disabled={input.disabled}
         />
       </div>
     </>

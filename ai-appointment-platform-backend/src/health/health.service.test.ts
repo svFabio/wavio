@@ -1,25 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HealthService } from './health.service';
-import { createMockPrisma, type MockPrisma } from '../__tests__/mocks/prisma';
+import type { HealthRepository } from './health.repository';
 
 describe('HealthService', () => {
-  let prisma: MockPrisma;
+  let mockRepo: { pingDatabase: ReturnType<typeof vi.fn> };
   let service: HealthService;
 
   beforeEach(() => {
-    prisma = createMockPrisma();
-    service = new HealthService(prisma as never);
+    mockRepo = { pingDatabase: vi.fn() };
+    service = new HealthService(mockRepo as unknown as HealthRepository);
   });
 
   describe('check', () => {
     it('should return ok status when db is reachable', async () => {
-      prisma.$queryRaw.mockResolvedValue([{ '1': 1 }]);
       vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1005);
       vi.spyOn(process, 'uptime').mockReturnValue(120);
 
       const result = await service.check();
 
-      expect(prisma.$queryRaw).toHaveBeenCalled();
+      expect(mockRepo.pingDatabase).toHaveBeenCalled();
       expect(result.status).toBe('ok');
       expect(result.db.status).toBe('ok');
       expect(result.db.latencyMs).toBe(5);
@@ -28,7 +27,7 @@ describe('HealthService', () => {
     });
 
     it('should return degraded status when db fails', async () => {
-      prisma.$queryRaw.mockRejectedValue(new Error('DB connection failed'));
+      mockRepo.pingDatabase.mockRejectedValue(new Error('DB connection failed'));
       vi.spyOn(Date, 'now').mockReturnValueOnce(2000).mockReturnValueOnce(2010);
       vi.spyOn(process, 'uptime').mockReturnValue(300);
 

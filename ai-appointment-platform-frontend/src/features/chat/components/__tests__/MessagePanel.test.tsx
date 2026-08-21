@@ -35,6 +35,14 @@ const formatJid = (jid: string) => jid.split('@')[0];
 const formatTimestamp = (_ts: string) => '14:30';
 const messagesEndRef = { current: null } as React.RefObject<HTMLDivElement | null>;
 
+const makeInput = () => ({
+  value: '',
+  disabled: false,
+  onChange: vi.fn(),
+  onSend: vi.fn(),
+  onKeyDown: vi.fn(),
+});
+
 describe('MessagePanel', () => {
   it('renders conversation header', () => {
     render(
@@ -46,11 +54,7 @@ describe('MessagePanel', () => {
         onVolver={vi.fn()}
         formatJid={formatJid}
         formatTimestamp={formatTimestamp}
-        nuevoMensaje=""
-        enviando={false}
-        onNuevoMensajeChange={vi.fn()}
-        onEnviarMensaje={vi.fn()}
-        onKeyDown={vi.fn()}
+        input={makeInput()}
       />,
     );
     expect(screen.getByText('Juan Perez')).toBeInTheDocument();
@@ -67,11 +71,7 @@ describe('MessagePanel', () => {
         onVolver={vi.fn()}
         formatJid={formatJid}
         formatTimestamp={formatTimestamp}
-        nuevoMensaje=""
-        enviando={false}
-        onNuevoMensajeChange={vi.fn()}
-        onEnviarMensaje={vi.fn()}
-        onKeyDown={vi.fn()}
+        input={makeInput()}
       />,
     );
     expect(screen.getByText('Juan Perez')).toBeInTheDocument();
@@ -87,11 +87,7 @@ describe('MessagePanel', () => {
         onVolver={vi.fn()}
         formatJid={formatJid}
         formatTimestamp={formatTimestamp}
-        nuevoMensaje=""
-        enviando={false}
-        onNuevoMensajeChange={vi.fn()}
-        onEnviarMensaje={vi.fn()}
-        onKeyDown={vi.fn()}
+        input={makeInput()}
       />,
     );
     expect(screen.getByText('Hola')).toBeInTheDocument();
@@ -110,11 +106,7 @@ describe('MessagePanel', () => {
         onVolver={onVolver}
         formatJid={formatJid}
         formatTimestamp={formatTimestamp}
-        nuevoMensaje=""
-        enviando={false}
-        onNuevoMensajeChange={vi.fn()}
-        onEnviarMensaje={vi.fn()}
-        onKeyDown={vi.fn()}
+        input={makeInput()}
       />,
     );
     await user.click(screen.getByLabelText('Volver a conversaciones'));

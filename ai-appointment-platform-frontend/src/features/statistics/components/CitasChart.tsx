@@ -38,8 +38,8 @@ export const CitasChart = ({ horarios }: CitasChartProps) => {
           <YAxis stroke="var(--color-text-muted)" fontSize={12} allowDecimals={false} />
           <Tooltip contentStyle={TOOLTIP_STYLE} />
           <Bar dataKey="totalReservas" fill={PRIMARY_COLOR} radius={[8, 8, 0, 0]} name="Reservas">
-            {horarios.map((_, index) => (
-              <Cell key={index} fill={index === 0 ? PRIMARY_COLOR : `${PRIMARY_COLOR}99`} />
+            {horarios.map((entry, index) => (
+              <Cell key={entry.horario} fill={index === 0 ? PRIMARY_COLOR : `${PRIMARY_COLOR}99`} />
             ))}
           </Bar>
         </BarChart>

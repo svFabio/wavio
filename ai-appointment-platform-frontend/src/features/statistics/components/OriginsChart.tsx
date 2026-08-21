@@ -43,8 +43,8 @@ export const OriginsChart = ({ data, total }: OriginsChartProps) => {
                 dataKey="value"
                 strokeWidth={0}
               >
-                {data.map((_, index) => (
-                  <Cell key={index} fill={ORIGEN_COLORS[index]} />
+                {data.map((entry, index) => (
+                  <Cell key={entry.name} fill={ORIGEN_COLORS[index]} />
                 ))}
               </Pie>
               <Tooltip contentStyle={TOOLTIP_STYLE} />

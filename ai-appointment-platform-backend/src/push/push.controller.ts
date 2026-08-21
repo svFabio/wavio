@@ -6,7 +6,12 @@ import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/utils/jwt';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import { subscribePushSchema, type SubscribePushDto } from './push.dto';
+import {
+  subscribePushSchema,
+  type SubscribePushDto,
+  unsubscribePushSchema,
+  type UnsubscribePushDto,
+} from './push.dto';
 
 @Controller('api/v1/push')
 export class PushController {
@@ -24,14 +29,15 @@ export class PushController {
     @TenantId() negocioId: number,
     @CurrentUser() user: JwtPayload,
     @Body() body: SubscribePushDto,
-  ) {
+  ): Promise<{ id: number }> {
     return this.pushService.subscribe(negocioId, user.id, body);
   }
 
   @Delete('/unsubscribe')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, TenantGuard)
-  async unsubscribe(@Body() body: { endpoint: string }) {
+  @UsePipes(new ZodValidationPipe(unsubscribePushSchema))
+  async unsubscribe(@Body() body: UnsubscribePushDto): Promise<{ success: boolean }> {
     const removed = await this.pushService.unsubscribe(body.endpoint);
     return { success: removed };
   }

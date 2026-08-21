@@ -78,11 +78,13 @@ export const ChatView = ({
             onVolver={onVolver}
             formatJid={formatJid}
             formatTimestamp={formatTimestamp}
-            nuevoMensaje={nuevoMensaje}
-            enviando={enviando}
-            onNuevoMensajeChange={onNuevoMensajeChange}
-            onEnviarMensaje={onEnviarMensaje}
-            onKeyDown={onKeyDown}
+            input={{
+              value: nuevoMensaje,
+              disabled: enviando,
+              onChange: onNuevoMensajeChange,
+              onSend: onEnviarMensaje,
+              onKeyDown,
+            }}
           />
         ) : (
           <EmptyState />

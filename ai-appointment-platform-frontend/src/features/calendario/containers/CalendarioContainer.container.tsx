@@ -10,12 +10,14 @@ import { useReprogramarCitaMutation } from '../api/useReprogramarCitaMutation';
 import { useMarkNoShowMutation, useMarkAsistioMutation } from '../api/useNoShow';
 import type { EventoCalendario } from '../types';
 import { CalendarioView } from '../components/CalendarioView';
+import { ModalDetalle } from '../components/ModalDetalle';
 import { CalendarioSkeleton } from '../../../shared/components/skeletons/CalendarioSkeleton';
 import { ModalNuevaCitaContainer } from './ModalNuevaCita.container';
+import { ModalReprogramarContainer } from './ModalReprogramar.container';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { useCalendarHandlers } from '../hooks/useCalendarHandlers';
 
-export const CalendarioContainer = () => {
+export const CalendarioContainer = (): React.JSX.Element => {
   const { data: dataRaw = [], isLoading: loading } = useCitasQuery();
   const queryClient = useQueryClient();
 
@@ -90,17 +92,25 @@ export const CalendarioContainer = () => {
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
         onNuevaCita={handleNuevaCita}
-        citaSeleccionada={citaSeleccionada}
-        onCerrarDetalle={handleCerrarDetalle}
-        onReprogramarDesdeDetalle={handleReprogramarDesdeDetalle}
-        onNoAsistio={handleNoAsistio}
-        onGuardarDescripcion={handleGuardarDescripcion}
-        isLoadingNoShow={markNoShow.isPending || markAsistio.isPending}
-        modalReprogramarAbierto={modalReprogramar.isOpen}
-        citaReprogramar={modalReprogramar.cita}
-        onCerrarReprogramar={handleCerrarReprogramar}
-        onReprogramarCita={handleReprogramarCita}
       />
+      {citaSeleccionada && (
+        <ModalDetalle
+          event={citaSeleccionada}
+          onClose={handleCerrarDetalle}
+          onReprogramar={handleReprogramarDesdeDetalle}
+          onNoAsistio={handleNoAsistio}
+          onGuardarDescripcion={handleGuardarDescripcion}
+          isLoadingNoShow={markNoShow.isPending || markAsistio.isPending}
+        />
+      )}
+      {modalReprogramar.isOpen && modalReprogramar.cita && (
+        <ModalReprogramarContainer
+          isOpen={modalReprogramar.isOpen}
+          onClose={handleCerrarReprogramar}
+          cita={modalReprogramar.cita}
+          onSubmit={handleReprogramarCita}
+        />
+      )}
       <ModalNuevaCitaContainer
         isOpen={modalNuevaCita.isOpen}
         onClose={handleCerrarNuevaCita}

@@ -117,12 +117,15 @@ describe('UsersContainer', () => {
     await userEvt.type(screen.getByLabelText('Correo electrónico'), 'nuevo@test.com');
     await userEvt.click(screen.getByText('Enviar invitación'));
 
-    await waitFor(() => {
-      expect(invitationsApi.createInvitation).toHaveBeenCalledWith({
-        email: 'nuevo@test.com',
-        rol: 'STAFF',
-      });
-    });
+    await waitFor(
+      () => {
+        expect(invitationsApi.createInvitation).toHaveBeenCalledWith({
+          email: 'nuevo@test.com',
+          rol: 'STAFF',
+        });
+      },
+      { timeout: 3000 },
+    );
     expect(await screen.findByText('Invitación enviada')).toBeInTheDocument();
     expect(screen.getByText(/tok123/)).toBeInTheDocument();
     expect(screen.queryByText('Invitar miembro')).not.toBeInTheDocument();

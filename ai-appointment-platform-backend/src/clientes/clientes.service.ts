@@ -53,4 +53,9 @@ export class ClientesService {
     }
     await this.clientesRepository.delete(clienteId, negocioId);
   }
+
+  async getNoShows(clienteId: number, negocioId: number): Promise<{ noShows: number }> {
+    const noShows = await this.clientesRepository.countNoShows(clienteId, negocioId);
+    return { noShows };
+  }
 }

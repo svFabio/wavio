@@ -63,4 +63,9 @@ export class ClientesController {
   async remove(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
     await this.clientesService.remove(negocioId, id);
   }
+
+  @Get('/:id/no-shows')
+  async getNoShows(@TenantId() negocioId: number, @Param('id', ParseIntPipe) id: number) {
+    return this.clientesService.getNoShows(id, negocioId);
+  }
 }

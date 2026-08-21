@@ -24,15 +24,6 @@ const defaultProps = {
   onSelectSlot: vi.fn(),
   onSelectEvent: vi.fn(),
   onNuevaCita: vi.fn(),
-  citaSeleccionada: null as EventoCalendario | null,
-  onCerrarDetalle: vi.fn(),
-  onReprogramarDesdeDetalle: vi.fn(),
-  onNoAsistio: vi.fn(),
-  onGuardarDescripcion: vi.fn(),
-  isLoadingNoShow: false,
-  modalReprogramarAbierto: false,
-  onCerrarReprogramar: vi.fn(),
-  onReprogramarCita: vi.fn(),
 };
 
 vi.mock('react-big-calendar', () => ({
@@ -45,25 +36,6 @@ vi.mock('react-big-calendar', () => ({
   }),
   Views: { MONTH: 'month', WEEK: 'week', DAY: 'day' },
   dateFnsLocalizer: vi.fn(() => ({})),
-}));
-
-vi.mock('../ModalDetalle', () => ({
-  ModalDetalle: vi.fn(({ event, onClose }) => (
-    <div data-testid="modal-detalle">
-      <span>Detalle: {event.title}</span>
-      <button onClick={onClose}>Cerrar Detalle</button>
-    </div>
-  )),
-}));
-
-vi.mock('../ModalReprogramar', () => ({
-  ModalReprogramar: vi.fn(({ isOpen, onClose }) =>
-    isOpen ? (
-      <div data-testid="modal-reprogramar">
-        <button onClick={onClose}>Cerrar Reprogramar</button>
-      </div>
-    ) : null,
-  ),
 }));
 
 describe('CalendarioView', () => {
@@ -80,32 +52,5 @@ describe('CalendarioView', () => {
     render(<CalendarioView {...defaultProps} eventos={[mockEvent]} />);
     const calendar = screen.getByTestId('rbc-calendar');
     expect(calendar.getAttribute('data-events-count')).toBe('1');
-  });
-
-  it('does not render ModalDetalle when citaSeleccionada is null', () => {
-    render(<CalendarioView {...defaultProps} citaSeleccionada={null} />);
-    expect(screen.queryByTestId('modal-detalle')).not.toBeInTheDocument();
-  });
-
-  it('renders ModalDetalle when citaSeleccionada is provided', () => {
-    render(<CalendarioView {...defaultProps} citaSeleccionada={mockEvent} />);
-    expect(screen.getByTestId('modal-detalle')).toBeInTheDocument();
-    expect(screen.getByText('Detalle: Juan Pérez')).toBeInTheDocument();
-  });
-
-  it('does not render ModalReprogramar when modalReprogramarAbierto is false', () => {
-    render(<CalendarioView {...defaultProps} modalReprogramarAbierto={false} />);
-    expect(screen.queryByTestId('modal-reprogramar')).not.toBeInTheDocument();
-  });
-
-  it('renders ModalReprogramar when modalReprogramarAbierto is true and citaReprogramar is set', () => {
-    render(
-      <CalendarioView
-        {...defaultProps}
-        modalReprogramarAbierto={true}
-        citaReprogramar={mockEvent}
-      />,
-    );
-    expect(screen.getByTestId('modal-reprogramar')).toBeInTheDocument();
   });
 });
