@@ -28,7 +28,7 @@ RUN pnpm prune --prod
 # ─── Stage 2: Production ─────────────────────────────────────────────────────
 FROM node:22-slim AS production
 
-# Baileys needs openssl for crypto operations
+# Install openssl (required for Node 22 crypto)
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -56,7 +56,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
+  CMD wget -qO- http://localhost:3000/health || exit 1
 
 # Run migrations then start server
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
