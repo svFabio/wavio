@@ -27,7 +27,7 @@ services:
       - key: CLOUDINARY_API_KEY
         value: "928628678117964"
       - key: GOOGLE_CLIENT_ID
-        value: 98281127419-3nrunjee2963q6n1c2kncrnh031lg22q.apps.googleusercontent.com
+        value: 140424648854-ha2r94qu3u7oejvdfb04lqmcjhais1t8.apps.googleusercontent.com
       - key: META_WEBHOOK_VERIFY_TOKEN
         value: mi_token_secreto_wavio
       - key: CORS_ORIGINS
@@ -43,7 +43,7 @@ services:
       - key: VITE_API_URL
         value: https://wavio-backend-7d24.onrender.com/api/v1
       - key: VITE_GOOGLE_CLIENT_ID
-        value: 98281127419-3nrunjee2963q6n1c2kncrnh031lg22q.apps.googleusercontent.com
+        value: 140424648854-ha2r94qu3u7oejvdfb04lqmcjhais1t8.apps.googleusercontent.com
     routes:
       - type: rewrite
         from: /*
