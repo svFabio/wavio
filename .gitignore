@@ -32,8 +32,5 @@ Thumbs.db
 # Test coverage
 coverage/
 
-# Prisma
-ai-appointment-platform-backend/prisma/migrations/
-
 # Docker
 docker-compose.override.yml
