@@ -6,7 +6,7 @@ services:
     dockerfilePath: ./ai-appointment-platform-backend/Dockerfile
     dockerContext: ./ai-appointment-platform-backend
     plan: starter
-    healthCheckPath: /health
+    healthCheckPath: /api/v1/health
     envVars:
       # Secrets — set these in Render Dashboard, not here
       - key: DATABASE_URL
