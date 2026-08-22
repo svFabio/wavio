@@ -1,0 +1,50 @@
+services:
+  # ─── Backend (Docker) ───────────────────────────────────────────────────────
+  - type: web
+    name: wavio-backend
+    runtime: docker
+    dockerfilePath: ./ai-appointment-platform-backend/Dockerfile
+    dockerContext: ./ai-appointment-platform-backend
+    plan: starter
+    healthCheckPath: /api/v1/health
+    envVars:
+      # Secrets — set these in Render Dashboard, not here
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      # Non-secret config
+      - key: PORT
+        value: 3000
+      - key: CLOUDINARY_CLOUD_NAME
+        value: dmkg8aycy
+      - key: CLOUDINARY_API_KEY
+        value: "928628678117964"
+      - key: GOOGLE_CLIENT_ID
+        value: 140424648854-ha2r94qu3u7oejvdfb04lqmcjhais1t8.apps.googleusercontent.com
+      - key: META_WEBHOOK_VERIFY_TOKEN
+        value: mi_token_secreto_wavio
+      - key: CORS_ORIGINS
+        value: https://wavio-frontend.onrender.com
+
+  # ─── Frontend (Static Site) ─────────────────────────────────────────────────
+  - type: web
+    name: wavio-frontend
+    runtime: static
+    buildCommand: cd ai-appointment-platform-frontend && pnpm install --frozen-lockfile && pnpm build
+    staticPublishPath: ai-appointment-platform-frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://wavio-backend-7d24.onrender.com/api/v1
+      - key: VITE_GOOGLE_CLIENT_ID
+        value: 140424648854-ha2r94qu3u7oejvdfb04lqmcjhais1t8.apps.googleusercontent.com
+    routes:
+      - type: rewrite
+        from: /*
+        to: /index.html

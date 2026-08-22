@@ -18,14 +18,14 @@ describe('HealthController', () => {
     await app.init();
   });
 
-  it('GET /health should return status ok', async () => {
+  it('GET /api/v1/health should return status ok', async () => {
     mockHealthService.check.mockResolvedValue({
       status: 'ok' as const,
       uptime: 12345,
       db: { status: 'ok' as const, latencyMs: 2 },
       timestamp: '2026-07-28T00:00:00.000Z',
     });
-    const res = await request(app.getHttpServer()).get('/health');
+    const res = await request(app.getHttpServer()).get('/api/v1/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(res.body.uptime).toBe(12345);

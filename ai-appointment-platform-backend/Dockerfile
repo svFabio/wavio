@@ -28,7 +28,7 @@ RUN pnpm prune --prod
 # ─── Stage 2: Production ─────────────────────────────────────────────────────
 FROM node:22-slim AS production
 
-# Baileys needs openssl for crypto operations
+# Install openssl (required for Node 22 crypto)
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -42,6 +42,9 @@ COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/prisma ./prisma
+
+# Install prisma CLI globally (removed by prune, needed for migrations)
+RUN npm install -g prisma@5
 
 # Set ownership
 RUN chown -R wavio:wavio /usr/src/app
