@@ -4,7 +4,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { JWT_EXPIRES_IN, BCRYPT_SALT_ROUNDS } from '../config';
-import { UnauthorizedError, ConflictError, NotFoundError } from '../domain/errors';
+import {
+  UnauthorizedError,
+  ConflictError,
+  NotFoundError,
+  GoogleEmailNotVerifiedError,
+} from '../domain/errors';
 import { AuthRepository } from './auth.repository';
 import { uploadBase64Image } from '../lib/cloudinary';
 
@@ -77,6 +82,10 @@ export class AuthService {
     }
     if (!payload || !payload.sub || !payload.email) {
       throw new UnauthorizedError('Token de Google inválido');
+    }
+    const emailVerified = payload.email_verified as boolean | string | undefined;
+    if (emailVerified !== true && emailVerified !== 'true') {
+      throw new GoogleEmailNotVerifiedError();
     }
     googleId = payload.sub;
     email = payload.email;

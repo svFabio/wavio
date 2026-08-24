@@ -28,6 +28,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class GoogleEmailNotVerifiedError extends AppError {
+  constructor(message = 'El email de Google no está verificado') {
+    super(message, 401, 'GOOGLE_EMAIL_NOT_VERIFIED');
+  }
+}
+
 export class ForbiddenError extends AppError {
   constructor(message = 'Forbidden') {
     super(message, 403, 'FORBIDDEN');

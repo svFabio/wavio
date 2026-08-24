@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthService } from './auth.service';
 import type { AuthRepository } from './auth.repository';
-import { UnauthorizedError, ConflictError, NotFoundError } from '../domain/errors';
+import {
+  UnauthorizedError,
+  ConflictError,
+  NotFoundError,
+  GoogleEmailNotVerifiedError,
+} from '../domain/errors';
+import { JWT_EXPIRES_IN } from '../config';
 vi.hoisted(() => {
   process.env.LOG_LEVEL = 'fatal';
 });
@@ -43,6 +49,7 @@ describe('AuthService', () => {
     sub: 'google_123',
     email: 'test@example.com',
     name: 'Test User',
+    email_verified: true,
     ...overrides,
   });
 
@@ -203,7 +210,7 @@ describe('AuthService', () => {
           ],
         },
         expect.any(String),
-        expect.objectContaining({ expiresIn: '7d' }),
+        expect.objectContaining({ expiresIn: JWT_EXPIRES_IN }),
       );
     });
 
@@ -470,6 +477,117 @@ describe('AuthService', () => {
       mockVerifyIdToken.mockResolvedValue({ getPayload: () => null });
 
       await expect(service.loginConGoogle(validGoogleToken)).rejects.toThrow(UnauthorizedError);
+    });
+
+    it('should throw when the Google email is not verified and not link any account', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload({ email_verified: false }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findNegocioByEmail.mockResolvedValue({
+        id: 5,
+        googleId: 'email-owner@example.com',
+        email: 'victim@example.com',
+        nombre: 'Victim Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findUsuarioByNegocioAndEmail.mockResolvedValue({
+        id: 2,
+        nombre: 'Victim',
+        email: 'victim@example.com',
+        googleId: null,
+        rol: 'OWNER',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+
+      await expect(service.loginConGoogle(validGoogleToken)).rejects.toThrow(
+        GoogleEmailNotVerifiedError,
+      );
+      expect(mockAuthRepository.findNegocioByEmail).not.toHaveBeenCalled();
+      expect(mockAuthRepository.updateNegocioGoogleId).not.toHaveBeenCalled();
+      expect(mockAuthRepository.updateUsuarioGoogleId).not.toHaveBeenCalled();
+      expect(mockAuthRepository.createNegocioWithAdmin).not.toHaveBeenCalled();
+    });
+
+    it('should throw when email_verified is missing from the payload', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => makePayload({ email_verified: undefined }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+
+      await expect(service.loginConGoogle(validGoogleToken)).rejects.toThrow(
+        GoogleEmailNotVerifiedError,
+      );
+      expect(mockAuthRepository.findNegocioByEmail).not.toHaveBeenCalled();
+      expect(mockAuthRepository.createNegocioWithAdmin).not.toHaveBeenCalled();
+    });
+
+    it('should accept string "true" as verified email and link accounts as before', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () =>
+          makePayload({ sub: 'google_email', email: 'owner@example.com', email_verified: 'true' }),
+      });
+      mockAuthRepository.findNegocioByGoogleId.mockResolvedValue(null);
+      mockAuthRepository.findNegocioByEmail.mockResolvedValue({
+        id: 5,
+        googleId: 'email-owner@example.com',
+        email: 'owner@example.com',
+        nombre: 'Mi Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.updateNegocioGoogleId.mockResolvedValue({
+        id: 5,
+        googleId: 'google_email',
+        email: 'owner@example.com',
+        nombre: 'Mi Negocio',
+        plan: 'FREE',
+        waPhoneNumberId: null,
+        waWabaId: null,
+        waAppId: null,
+        isWaConnected: false,
+        creadoEn: new Date(),
+      });
+      mockAuthRepository.findUsuarioByNegocioAndGoogleId.mockResolvedValue({
+        id: 1,
+        nombre: 'owner',
+        email: 'owner@example.com',
+        googleId: 'google_email',
+        rol: 'OWNER',
+        creadoEn: new Date(),
+        fotoPerfil: null,
+      });
+      mockAuthRepository.findNegociosByUsuarioId.mockResolvedValue([
+        {
+          id: 5,
+          googleId: 'google_email',
+          email: 'owner@example.com',
+          nombre: 'Mi Negocio',
+          plan: 'FREE',
+          waPhoneNumberId: null,
+          waWabaId: null,
+          waAppId: null,
+          isWaConnected: false,
+          creadoEn: new Date(),
+          rol: 'OWNER',
+        },
+      ]);
+
+      const result = await service.loginConGoogle(validGoogleToken);
+
+      expect(mockAuthRepository.updateNegocioGoogleId).toHaveBeenCalledWith(5, 'google_email');
+      expect(result.esNuevo).toBe(false);
     });
   });
 

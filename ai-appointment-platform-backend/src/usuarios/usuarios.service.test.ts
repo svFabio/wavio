@@ -305,6 +305,61 @@ describe('UsuariosService', () => {
       expect(mockRepo.update).not.toHaveBeenCalled();
     });
 
+    it('should throw ForbiddenError when ADMIN resets an OWNER password', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
+
+      await expect(service.updateUser(1, 2, { password: 'newpass123' }, 'ADMIN')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when ADMIN changes an OWNER email', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
+      mockRepo.findByEmail.mockResolvedValue(null);
+
+      await expect(
+        service.updateUser(1, 2, { email: 'hijacked@test.com' }, 'ADMIN'),
+      ).rejects.toThrow(ForbiddenError);
+      expect(mockRepo.findByEmail).not.toHaveBeenCalled();
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when ADMIN updates another ADMIN password', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+
+      await expect(service.updateUser(1, 2, { password: 'newpass123' }, 'ADMIN')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenError when ADMIN renames an OWNER', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
+
+      await expect(service.updateUser(1, 2, { nombre: 'New Name' }, 'ADMIN')).rejects.toThrow(
+        ForbiddenError,
+      );
+      expect(mockRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('should allow OWNER to update an ADMIN password', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
+      const updated = {
+        id: 2,
+        nombre: 'Admin',
+        email: 'admin@test.com',
+        rol: 'ADMIN',
+        creadoEn: new Date(),
+      };
+      mockRepo.update.mockResolvedValue(updated);
+
+      const result = await service.updateUser(1, 2, { password: 'newpass123' }, 'OWNER');
+
+      expect(result).toEqual(updated);
+      expect(mockRepo.update).toHaveBeenCalledWith(2, { password: 'hashed_password' });
+    });
+
     it('should throw ForbiddenError when modifying an OWNER', async () => {
       mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
 

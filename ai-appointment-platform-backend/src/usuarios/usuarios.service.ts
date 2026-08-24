@@ -104,6 +104,13 @@ export class UsuariosService {
       throw new NotFoundError('Usuario');
     }
 
+    if (target.rol === 'OWNER') {
+      throw new ForbiddenError('El propietario no puede ser modificado');
+    }
+    if (requestingRol === 'ADMIN' && target.rol === 'ADMIN') {
+      throw new ForbiddenError('Solo el propietario puede gestionar administradores');
+    }
+
     const updateData: { nombre?: string; email?: string; password?: string; rol?: Rol } = {};
     if (nombre) updateData.nombre = nombre;
     if (email) {
@@ -118,13 +125,10 @@ export class UsuariosService {
       if (!['ADMIN', 'STAFF'].includes(rol)) {
         throw new ValidationError('Rol inválido');
       }
-      if (target.rol === 'OWNER') {
-        throw new ForbiddenError('El propietario no puede ser modificado');
-      }
-      if (requestingRol === 'ADMIN' && (target.rol === 'ADMIN' || rol === 'ADMIN')) {
+      if (requestingRol === 'ADMIN' && rol === 'ADMIN') {
         throw new ForbiddenError('Solo el propietario puede gestionar administradores');
       }
-      if ((target.rol === 'ADMIN' || target.rol === 'OWNER') && rol !== target.rol) {
+      if (target.rol === 'ADMIN' && rol !== target.rol) {
         const admins = await this.usuariosRepository.countAdminsByNegocio(negocioId);
         if (admins <= 1) {
           throw new ForbiddenError('No puedes degradar al último administrador');

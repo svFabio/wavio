@@ -8,6 +8,7 @@ import {
   ConflictError,
   WhatsAppError,
   ExternalServiceError,
+  GoogleEmailNotVerifiedError,
 } from './errors';
 
 describe('AppError', () => {
@@ -140,5 +141,17 @@ describe('ExternalServiceError', () => {
 
     expect(error.code).toBe('STRIPE_ERROR');
     expect(error.statusCode).toBe(503);
+  });
+});
+
+describe('GoogleEmailNotVerifiedError', () => {
+  it('should create with status 401 and dedicated code', () => {
+    const error = new GoogleEmailNotVerifiedError();
+
+    expect(error.message).toBe('El email de Google no está verificado');
+    expect(error.statusCode).toBe(401);
+    expect(error.code).toBe('GOOGLE_EMAIL_NOT_VERIFIED');
+    expect(error.name).toBe('GoogleEmailNotVerifiedError');
+    expect(error).toBeInstanceOf(AppError);
   });
 });
