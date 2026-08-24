@@ -47,7 +47,7 @@ export const LoginView = ({
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-on-primary text-xl mb-4 shadow-lg">
             {'\uD83D\uDCAC'}
           </div>
-          <h1 className="text-txt text-2xl font-bold tracking-tight">CitasWA</h1>
+          <h1 className="text-txt text-2xl font-bold tracking-tight">Wavio</h1>
           <p className="text-txt-muted text-sm mt-1">
             {pendingData
               ? 'Selecciona un negocio'
@@ -129,18 +129,12 @@ export const LoginView = ({
                   )}
                 </button>
               </form>
-
-              {tab === 'register' && (
-                <p className="text-center text-xs text-txt-muted">
-                  Luego podras ponerle nombre a tu negocio
-                </p>
-              )}
             </>
           )}
         </div>
 
         <p className="text-center text-xs text-txt-muted mt-6">
-          {'\u00A9'} {new Date().getFullYear()} CitasWA
+          {'\u00A9'} {new Date().getFullYear()} Wavio
         </p>
       </div>
     </div>

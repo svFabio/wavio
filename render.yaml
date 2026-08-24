@@ -31,7 +31,7 @@ services:
       - key: META_WEBHOOK_VERIFY_TOKEN
         value: mi_token_secreto_wavio
       - key: CORS_ORIGINS
-        value: https://wavio-frontend.onrender.com
+        value: https://wavio.onrender.com
 
   # ─── Frontend (Static Site) ─────────────────────────────────────────────────
   - type: web

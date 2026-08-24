@@ -80,8 +80,6 @@ export const LoginContainer = () => {
   const switchTab = (t: Tab) => {
     setTab(t);
     setError(null);
-    setEmail('');
-    setPassword('');
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../features/auth/api/auth.api';
 import { auth } from '../lib/auth';
@@ -34,21 +34,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [localActiveId, setLocalActiveId] = useState<number | null>(() =>
     auth.getActiveNegocioId(),
   );
-  const [localToken, setLocalToken] = useState<string | null>(auth.getToken());
+  const [localToken, setLocalToken] = useState<string | null>(() => auth.getToken());
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setLocalToken(null);
+      setLocalActiveId(null);
+      queryClient.setQueryData(['me'], null);
+    };
+    window.addEventListener('unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('unauthorized', handleUnauthorized);
+  }, [queryClient]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['me'],
     queryFn: async () => {
-      try {
-        return await authApi.me();
-      } catch (error) {
+      const result = await authApi.me();
+      if (!result) {
         auth.clearToken();
         auth.clearActiveNegocioId();
-        throw error;
+        setLocalToken(null);
+        setLocalActiveId(null);
+        return null;
       }
+      return result;
     },
     enabled: !!localToken,
-    retry: false,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   const usuario = isError ? null : data?.usuario || null;

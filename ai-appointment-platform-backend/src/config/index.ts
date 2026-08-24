@@ -9,7 +9,7 @@
  */
 export const MAX_BOTS_ACTIVOS = 2;
 
-export const JWT_EXPIRES_IN = '7d';
+export const JWT_EXPIRES_IN = '30d';
 
 export const BCRYPT_SALT_ROUNDS = 10;
 
