@@ -19,11 +19,15 @@ class SocketManager {
     return SocketManager.instance;
   }
 
-  static connect() {
+  static connect(): void {
     const socket = this.getInstance();
+    const token = auth.getToken();
+    if (!token) {
+      return;
+    }
     const activeNegocioId = auth.getActiveNegocioId();
     socket.auth = {
-      token: auth.getToken(),
+      token,
       negocioId: activeNegocioId ?? undefined,
     };
     if (!socket.connected) {
@@ -31,13 +35,13 @@ class SocketManager {
     }
   }
 
-  static disconnect() {
+  static disconnect(): void {
     if (SocketManager.instance) {
       SocketManager.instance.disconnect();
     }
   }
 }
 
-export const getSocket = () => SocketManager.getInstance();
-export const connectSocket = () => SocketManager.connect();
-export const disconnectSocket = () => SocketManager.disconnect();
+export const getSocket = (): Socket => SocketManager.getInstance();
+export const connectSocket = (): void => SocketManager.connect();
+export const disconnectSocket = (): void => SocketManager.disconnect();

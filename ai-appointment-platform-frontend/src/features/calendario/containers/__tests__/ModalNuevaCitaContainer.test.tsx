@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { format } from 'date-fns';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -68,6 +69,7 @@ vi.mock('../../components/ModalNuevaCitaForm', () => ({
           ))}
         </div>
         <span data-testid="selected-horario">{formData.horario}</span>
+        <span data-testid="fecha-value">{formData.fecha}</span>
         <button type="submit" disabled={loading} data-testid="submit-btn">
           {loading ? 'Cargando...' : 'Crear Cita'}
         </button>
@@ -113,6 +115,23 @@ describe('ModalNuevaCitaContainer', () => {
       <ModalNuevaCitaContainer {...defaultProps} isOpen={false} />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('defaults form fecha to today when opened without fechaInicial', () => {
+    renderWithProviders(<ModalNuevaCitaContainer {...defaultProps} />);
+
+    expect(screen.getByTestId('fecha-value')).toHaveTextContent(format(new Date(), 'yyyy-MM-dd'));
+  });
+
+  it('reconciles form fecha when fechaInicial changes to the clicked slot date after mount', () => {
+    const slotDate = new Date('2026-09-15T10:00:00');
+
+    const { rerender } = renderWithProviders(<ModalNuevaCitaContainer {...defaultProps} />);
+    expect(screen.getByTestId('fecha-value')).toHaveTextContent(format(new Date(), 'yyyy-MM-dd'));
+
+    rerender(<ModalNuevaCitaContainer {...defaultProps} fechaInicial={slotDate} />);
+
+    expect(screen.getByTestId('fecha-value')).toHaveTextContent('2026-09-15');
   });
 
   it('renders the modal with form when isOpen is true', async () => {

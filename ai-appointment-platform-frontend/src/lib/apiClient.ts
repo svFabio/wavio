@@ -33,9 +33,15 @@ async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Pro
     headers.set('x-negocio-id', String(activeNegocioId));
   }
 
+  let signal = options.signal;
+  if (!signal && typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    signal = AbortSignal.timeout(15000);
+  }
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    signal,
   });
 
   let data: unknown;

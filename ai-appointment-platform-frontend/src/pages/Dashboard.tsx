@@ -21,7 +21,7 @@ const Dashboard = () => {
             <div className="w-7 h-7 gradient-primary rounded-lg flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold text-base text-txt">Citas WA</span>
+            <span className="font-bold text-base text-txt">Wavio</span>
           </div>
         </div>
       </div>

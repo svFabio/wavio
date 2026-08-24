@@ -63,11 +63,24 @@ export const ModalNuevaCitaContainer = ({
     enabled: isOpen,
   });
 
+  const fechaInicialStr = fechaInicial ? format(fechaInicial, 'yyyy-MM-dd') : null;
+
   const [formData, setFormData] = useState<DatosNuevaCita>(() =>
     makeInitialForm(fechaInicial, servicios[0]?.id),
   );
+  const [lastFechaInicialStr, setLastFechaInicialStr] = useState<string | null>(fechaInicialStr);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Render-time adjustment when the clicked calendar slot changes after mount
+  // (same pattern as ModalReprogramar — no useEffect state syncing).
+  if (fechaInicialStr !== lastFechaInicialStr) {
+    setLastFechaInicialStr(fechaInicialStr);
+    setFormData((prev) => ({
+      ...prev,
+      fecha: fechaInicialStr ?? format(new Date(), 'yyyy-MM-dd'),
+    }));
+  }
 
   const fechaFormat = formData.fecha;
 
