@@ -1,17 +1,38 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { json, urlencoded, type Request, type Response } from 'express';
 import { env } from './config/env';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
+    bodyParser: false,
   });
+
+  app.use(
+    json({
+      limit: '10mb',
+      verify: (req: Request, _res: Response, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
+  app.use(
+    urlencoded({
+      extended: true,
+      limit: '10mb',
+      verify: (req: Request, _res: Response, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
 
   const allowedOrigins = env.CORS_ORIGINS
     ? env.CORS_ORIGINS.split(',').map((s: string) => s.trim())

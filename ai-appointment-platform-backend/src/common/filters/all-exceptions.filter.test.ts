@@ -123,5 +123,35 @@ describe('AllExceptionsFilter', () => {
         code: 'INTERNAL_SERVER_ERROR',
       });
     });
+
+    it('should return 413 for PayloadTooLargeError with status property', () => {
+      const payloadError = {
+        status: 413,
+        message: 'request entity too large',
+      };
+
+      filter.catch(payloadError, createHost());
+
+      expect(mockStatus).toHaveBeenCalledWith(413);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'request entity too large',
+        code: 'PAYLOAD_TOO_LARGE',
+      });
+    });
+
+    it('should return 400 for errors with statusCode property', () => {
+      const badRequestError = {
+        statusCode: 400,
+        message: 'invalid json format',
+      };
+
+      filter.catch(badRequestError, createHost());
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'invalid json format',
+        code: 'BAD_REQUEST',
+      });
+    });
   });
 });
