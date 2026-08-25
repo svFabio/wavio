@@ -37,6 +37,9 @@ export const createTestQueryClient = (): QueryClient =>
       queries: {
         retry: false,
       },
+      mutations: {
+        retry: false,
+      },
     },
   });
 

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -45,9 +45,11 @@ describe('InvitacionAceptarContainer', () => {
     await userEvt.type(screen.getByLabelText('Password'), 'secret1');
     await userEvt.click(screen.getByText('Accept invitation'));
 
-    expect(mockAceptar).toHaveBeenCalledWith('tok123', {
-      nombre: 'Juan',
-      password: 'secret1',
+    await waitFor(() => {
+      expect(mockAceptar).toHaveBeenCalledWith('tok123', {
+        nombre: 'Juan',
+        password: 'secret1',
+      });
     });
   });
 
