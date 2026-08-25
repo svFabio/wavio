@@ -24,6 +24,8 @@ interface MockAuthOptions {
   activeNegocioId?: number | null;
   token?: string | null;
   loading?: boolean;
+  isError?: boolean;
+  refetchUser?: () => void;
   isAdmin?: boolean;
   isOwner?: boolean;
   setFotoPerfil?: (url: string | null) => void;
