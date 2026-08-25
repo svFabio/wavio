@@ -17,6 +17,8 @@ interface AuthContextType {
   activeNegocioId: number | null;
   token: string | null;
   loading: boolean;
+  isError: boolean;
+  refetchUser: () => void;
   login: (token: string, usuario: Usuario, negocios: Negocio[]) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -46,7 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener('unauthorized', handleUnauthorized);
   }, [queryClient]);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['me'],
     queryFn: async () => {
       const result = await authApi.me();
@@ -61,7 +63,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     enabled: !!localToken,
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   const usuario = isError ? null : data?.usuario || null;
@@ -69,13 +77,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loading = isLoading;
   const token = isError ? null : localToken;
 
+  useEffect(() => {
+    if (negocios.length > 0) {
+      const stored = auth.getActiveNegocioId();
+      const found = stored && negocios.some((n) => n.id === stored);
+      const targetId = found ? stored : negocios[0].id;
+      if (stored !== targetId || localActiveId !== targetId) {
+        auth.setActiveNegocioId(targetId);
+        setLocalActiveId(targetId);
+      }
+    }
+  }, [negocios, localActiveId]);
+
   const activeNegocioId = useMemo(() => {
     if (!negocios || negocios.length === 0) return null;
     const found = localActiveId && negocios.find((n) => n.id === localActiveId);
     if (found) return localActiveId;
-
-    // If not found or null, default to the first one (we do NOT call auth.setActiveNegocioId here
-    // because this is during render. The UI will just use the first one, and if they switch, it persists)
     return negocios[0].id;
   }, [negocios, localActiveId]);
 
@@ -100,6 +117,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     [queryClient],
   );
+
+  const refetchUser = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   const login = useCallback(
     (newToken: string, newUser: Usuario, newNegocios: Negocio[]) => {
@@ -156,6 +177,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       activeNegocioId,
       token,
       loading,
+      isError,
+      refetchUser,
       login,
       logout,
       isAuthenticated: !!usuario,
@@ -172,6 +195,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       activeNegocioId,
       token,
       loading,
+      isError,
+      refetchUser,
       login,
       logout,
       isAdmin,

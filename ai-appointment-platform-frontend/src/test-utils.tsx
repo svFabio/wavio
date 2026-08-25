@@ -24,6 +24,8 @@ interface MockAuthOptions {
   activeNegocioId?: number | null;
   token?: string | null;
   loading?: boolean;
+  isError?: boolean;
+  refetchUser?: () => void;
   isAdmin?: boolean;
   isOwner?: boolean;
   setFotoPerfil?: (url: string | null) => void;
@@ -35,6 +37,9 @@ export const createTestQueryClient = (): QueryClient =>
   new QueryClient({
     defaultOptions: {
       queries: {
+        retry: false,
+      },
+      mutations: {
         retry: false,
       },
     },
@@ -55,6 +60,8 @@ function buildAuthValue(auth?: MockAuthOptions) {
     activeNegocioId: 1 as number | null,
     token: 'test-token' as string | null,
     loading: false,
+    isError: false,
+    refetchUser: vi.fn() as unknown as () => void,
     login: vi.fn() as unknown as (token: string, usuario: Usuario, negocios: Negocio[]) => void,
     logout: vi.fn() as unknown as () => void,
     isAuthenticated: false,

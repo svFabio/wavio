@@ -33,6 +33,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
 
+    const err = exception as { status?: number; statusCode?: number; message?: string };
+    const status =
+      typeof err?.status === 'number'
+        ? err.status
+        : typeof err?.statusCode === 'number'
+          ? err.statusCode
+          : null;
+
+    if (status && status >= 400 && status < 500) {
+      const message = typeof err?.message === 'string' ? err.message : 'Bad request';
+      response.status(status).json({
+        error: message,
+        code: status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+      });
+      return;
+    }
+
     logger.error(
       {
         err: exception,
