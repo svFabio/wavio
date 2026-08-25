@@ -95,4 +95,23 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Home Page')).toBeInTheDocument();
     expect(screen.queryByText('Admin Content')).not.toBeInTheDocument();
   });
+
+  it('shows error state with retry button when isError is true', () => {
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="*"
+          element={
+            <ProtectedRoute>
+              <div>Protected Content</div>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>,
+      { auth: { isError: true } },
+    );
+    expect(screen.getByText('No se pudo conectar con el servidor.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
+    expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
+  });
 });
