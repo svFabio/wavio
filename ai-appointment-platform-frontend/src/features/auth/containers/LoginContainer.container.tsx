@@ -18,7 +18,17 @@ export const LoginContainer = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/dashboard';
+
+  const getTargetDestination = (): string => {
+    const stateFrom = (
+      location.state as { from?: string | { pathname: string; search?: string; hash?: string } }
+    )?.from;
+    if (!stateFrom) return '/dashboard';
+    if (typeof stateFrom === 'string') return stateFrom;
+    return `${stateFrom.pathname || '/dashboard'}${stateFrom.search || ''}${stateFrom.hash || ''}`;
+  };
+
+  const from = getTargetDestination();
 
   const completeLogin = (data: LoginResponse, negocioId?: number) => {
     const negocios = negocioId ? data.negocios.filter((n) => n.id === negocioId) : data.negocios;

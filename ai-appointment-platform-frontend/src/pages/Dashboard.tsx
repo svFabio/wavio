@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../shared/components/Sidebar';
-import { Menu, Sparkles } from 'lucide-react';
+import { Menu, Sparkles, Loader2 } from 'lucide-react';
+
+const DashboardContentFallback = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
 
 const Dashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,7 +46,9 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="flex-1 w-full relative h-full overflow-auto pt-14 md:pt-0">
         <div className="p-4 md:p-6 lg:p-8 min-h-full">
-          <Outlet />
+          <Suspense fallback={<DashboardContentFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>
