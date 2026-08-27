@@ -1,4 +1,7 @@
+import { createLogger } from '../logger';
 import type { RedisService } from './redis.service';
+
+const logger = createLogger('CacheHelpers');
 
 /**
  * Try cache first. On miss, call fn and store the result.
@@ -55,8 +58,8 @@ export async function invalidate(redis: RedisService, ...keys: string[]): Promis
             await redis.del(...keys);
           }
         } while (cursor !== '0');
-      } catch {
-        // Silently fail pattern invalidation
+      } catch (err) {
+        logger.debug({ pattern, err }, 'Redis SCAN invalidation failed');
       }
     }
   }

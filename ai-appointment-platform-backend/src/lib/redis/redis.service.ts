@@ -1,9 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
+import { createLogger } from '../logger';
 import { REDIS_CLIENT } from './redis.module';
 
 @Injectable()
 export class RedisService {
+  private readonly logger = createLogger('RedisService');
+
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis | null) {}
 
   get isAvailable(): boolean {
@@ -17,7 +20,8 @@ export class RedisService {
       const raw = await this.redis!.get(key);
       if (raw === null) return null;
       return JSON.parse(raw) as T;
-    } catch {
+    } catch (err) {
+      this.logger.debug({ key, err }, 'Redis GET failed, returning null');
       return null;
     }
   }
@@ -32,8 +36,8 @@ export class RedisService {
       } else {
         await this.redis!.set(key, serialized);
       }
-    } catch {
-      // Silently fail — callers fall back to non-cached path
+    } catch (err) {
+      this.logger.debug({ key, err }, 'Redis SET failed, skipping cache write');
     }
   }
 
@@ -42,8 +46,8 @@ export class RedisService {
 
     try {
       await this.redis!.del(...keys);
-    } catch {
-      // Silently fail
+    } catch (err) {
+      this.logger.debug({ keys, err }, 'Redis DEL failed');
     }
   }
 
@@ -53,7 +57,8 @@ export class RedisService {
     try {
       const result = await this.redis!.exists(key);
       return result === 1;
-    } catch {
+    } catch (err) {
+      this.logger.debug({ key, err }, 'Redis EXISTS failed, returning false');
       return false;
     }
   }
