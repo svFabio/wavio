@@ -9,6 +9,7 @@ import {
   UsePipes,
   ParseIntPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { InvitacionesService } from './invitaciones.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -47,6 +48,7 @@ export class InvitacionesController {
   }
 
   @Post('aceptar')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UsePipes(new ZodValidationPipe(AceptarInvitacionSchema))
   async aceptar(
     @Body() body: { token: string; nombre: string; password: string },
