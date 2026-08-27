@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { es as chronoEs } from 'chrono-node';
 import { ChatService } from '../chat/chat.service';
 import { NegocioService } from '../negocio/negocio.service';
@@ -6,6 +6,8 @@ import { ServiciosService } from '../servicios/servicios.service';
 import { CitasService } from '../citas/citas.service';
 import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
 import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
+import { RedisService } from '../lib/redis/redis.service';
+import { cached } from '../lib/redis/cache-helpers';
 import type { Servicio, Negocio, Configuracion } from '../domain/types';
 import { createLogger } from '../lib/logger';
 import type Stripe from 'stripe';
@@ -38,6 +40,16 @@ interface NegocioCache {
   config: Configuracion;
 }
 
+const CACHE_TTL = {
+  NEGOCIO_BY_PHONE: 60,
+  SERVICIOS: 60,
+  CONFIGURACION: 60,
+} as const;
+
+const CACHE_KEYS = {
+  servicios: (negocioId: number) => `servicios:${negocioId}`,
+} as const;
+
 @Injectable()
 export class WebhookService {
   constructor(
@@ -45,6 +57,7 @@ export class WebhookService {
     private readonly negocioService: NegocioService,
     private readonly serviciosService: ServiciosService,
     private readonly citasService: CitasService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   async processWithRetry(body: Record<string, unknown>, maxRetries = 3): Promise<void> {
@@ -68,7 +81,8 @@ export class WebhookService {
     if (body.object !== 'whatsapp_business_account') return;
     if (!Array.isArray(body.entry) || body.entry.length === 0) return;
 
-    const negocioCache = new Map<number, NegocioCache>();
+    // In-memory fallback cache (used when Redis unavailable)
+    const localNegocioCache = new Map<number, NegocioCache>();
 
     for (const entry of body.entry) {
       if (!Array.isArray(entry.changes)) continue;
@@ -90,6 +104,7 @@ export class WebhookService {
 
               if (!phoneNumberId || !from || !textBody) continue;
 
+              // Negocio lookup — cached via NegocioService (60s)
               const negocio =
                 await this.negocioService.findByWaPhoneNumberIdForInternal(phoneNumberId);
               if (!negocio) {
@@ -142,14 +157,17 @@ export class WebhookService {
                 }
               }
 
-              let cached = negocioCache.get(negocio.id);
-              if (!cached) {
+              // Try Redis cache first, then fall back to local Map
+              let cachedData = localNegocioCache.get(negocio.id);
+              if (!cachedData) {
                 const [servicios, config] = await Promise.all([
-                  this.serviciosService.getAll(negocio.id),
+                  cached(this.redis, CACHE_KEYS.servicios(negocio.id), CACHE_TTL.SERVICIOS, () =>
+                    this.serviciosService.getAll(negocio.id),
+                  ),
                   this.negocioService.getConfiguracion(negocio.id),
                 ]);
-                cached = { servicios, config };
-                negocioCache.set(negocio.id, cached);
+                cachedData = { servicios, config };
+                localNegocioCache.set(negocio.id, cachedData);
               }
 
               const sessionJid = `${from}`;
@@ -162,20 +180,20 @@ export class WebhookService {
                   }
                 : { estado: 'INICIO', datos: {}, intentosAclaracion: 0 };
 
-              const serviciosDisponibles = cached.servicios.map(
+              const serviciosDisponibles = cachedData.servicios.map(
                 (s) => `${s.nombre} ($${s.precio})`,
               );
 
-              const chatFlow = cached.config.chatFlow ?? [];
+              const chatFlow = cachedData.config.chatFlow ?? [];
 
               let slotsDisponibles: string[] = [];
               if (contexto.datos.fecha) {
                 try {
-                  const servicioId = cached.servicios[0]?.id;
+                  const servicioId = cachedData.servicios[0]?.id;
                   if (servicioId) {
                     const fechaStr = this.normalizarFecha(
                       contexto.datos.fecha,
-                      cached.config.timezone || 'America/La_Paz',
+                      cachedData.config.timezone || 'America/La_Paz',
                     );
                     if (fechaStr) {
                       const slots = await this.citasService.getSlotDisponibles({
@@ -197,7 +215,7 @@ export class WebhookService {
                   const servicioId =
                     typeof args.servicio_id === 'number'
                       ? args.servicio_id
-                      : cached.servicios[0]?.id;
+                      : cachedData!.servicios[0]?.id;
                   if (!servicioId) return [];
                   const slots = await this.citasService.getSlotDisponibles({
                     negocioId: negocio.id,
@@ -235,7 +253,7 @@ export class WebhookService {
                 ejecutarHerramienta,
               );
 
-              const timezone = cached.config.timezone || 'America/La_Paz';
+              const timezone = cachedData.config.timezone || 'America/La_Paz';
               const entidades = resultadoIA.entidades;
               if (entidades?.fecha) {
                 const fechaParsed = parsearFechaRelativa(entidades.fecha, timezone);
@@ -258,7 +276,7 @@ export class WebhookService {
               }
 
               try {
-                await this.handleAIResponse(negocio, from, resultadoIA, contexto, cached);
+                await this.handleAIResponse(negocio, from, resultadoIA, contexto, cachedData);
               } finally {
                 const datosPersistir: Record<string, unknown> = { ...contexto.datos };
                 if (datosPersistir.fecha instanceof Date) {

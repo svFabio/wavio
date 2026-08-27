@@ -1,14 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import type Redis from 'ioredis';
 import { verifyJwt } from '../common/utils/jwt';
 import { env } from '../config/env';
 import { createLogger } from '../lib/logger';
+import { REDIS_CLIENT } from '../lib/redis/redis.module';
 
 const logger = createLogger('events-gateway');
 
@@ -21,9 +25,30 @@ const logger = createLogger('events-gateway');
     credentials: true,
   },
 })
-export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
+
+  constructor(@Inject(REDIS_CLIENT) private readonly redisClient: Redis | null) {}
+
+  afterInit(): void {
+    if (!this.redisClient || this.redisClient.status !== 'ready') {
+      logger.warn('Redis not available — Socket.IO running without Redis adapter');
+      return;
+    }
+
+    try {
+      const pubClient = this.redisClient;
+      const subClient = pubClient.duplicate();
+      this.server.adapter(createAdapter(pubClient, subClient));
+      logger.info('Socket.IO Redis adapter configured');
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err.message : 'unknown' },
+        'Failed to configure Socket.IO Redis adapter — running without it',
+      );
+    }
+  }
 
   handleConnection(client: Socket): void {
     const token =

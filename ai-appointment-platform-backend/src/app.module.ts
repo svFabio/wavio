@@ -4,6 +4,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AppConfigModule } from './config/config.module';
+import { RedisModule } from './lib/redis/redis.module';
+import { RedisThrottlerStorage } from './lib/redis/redis-throttler-storage';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
@@ -25,7 +27,14 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    RedisModule,
+    ThrottlerModule.forRootAsync({
+      inject: [RedisThrottlerStorage],
+      useFactory: (storage: RedisThrottlerStorage | null) => ({
+        throttlers: [{ ttl: 60000, limit: 100 }],
+        storage: storage ?? undefined,
+      }),
+    }),
     PrismaModule,
     AppConfigModule,
     HealthModule,

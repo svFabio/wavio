@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { StatisticsService } from './statistics.service';
 import type { StatisticsRepository } from './statistics.repository';
 import { ValidationError } from '../domain/errors';
+import type { RedisService } from '../lib/redis/redis.service';
 
 describe('StatisticsService', () => {
   let service: StatisticsService;
@@ -15,6 +16,7 @@ describe('StatisticsService', () => {
     countCitasPorOrigen: ReturnType<typeof vi.fn>;
     getCitasIngresos: ReturnType<typeof vi.fn>;
   };
+  let mockRedis: RedisService;
 
   beforeEach(() => {
     mockRepo = {
@@ -27,7 +29,15 @@ describe('StatisticsService', () => {
       countCitasPorOrigen: vi.fn(),
       getCitasIngresos: vi.fn(),
     };
-    service = new StatisticsService(mockRepo as unknown as StatisticsRepository);
+    mockRedis = {
+      isAvailable: false,
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+      del: vi.fn().mockResolvedValue(undefined),
+      exists: vi.fn().mockResolvedValue(false),
+      getClient: vi.fn().mockReturnValue(null),
+    } as unknown as RedisService;
+    service = new StatisticsService(mockRepo as unknown as StatisticsRepository, mockRedis);
   });
 
   describe('getOverview', () => {
