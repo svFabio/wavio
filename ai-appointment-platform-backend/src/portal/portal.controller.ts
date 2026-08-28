@@ -8,6 +8,7 @@ import {
   HttpCode,
   UseGuards,
   UsePipes,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PortalService } from './portal.service';
@@ -16,13 +17,7 @@ import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import type { Cita } from '../domain/types';
-import { z } from 'zod';
-
-const bookAppointmentSchema = z.object({
-  fecha: z.string().min(1, 'Fecha es requerida'),
-  horario: z.string().min(1, 'Horario es requerido'),
-  servicioId: z.number().optional(),
-});
+import { bookAppointmentSchema } from './dto/portal.dto';
 
 @Controller('api/v1/portal')
 export class PortalController {
@@ -33,7 +28,7 @@ export class PortalController {
   @HttpCode(201)
   async generateMagicLink(
     @TenantId() negocioId: number,
-    @Param('clienteId') clienteId: number,
+    @Param('clienteId', ParseIntPipe) clienteId: number,
   ): Promise<{ url: string; token: string }> {
     return this.portalService.generateMagicLink(negocioId, clienteId);
   }

@@ -3,6 +3,7 @@ import { NegocioService } from './negocio.service';
 import type { NegocioRepository } from './negocio.repository';
 import type { ConfiguracionService } from './configuracion.service';
 import { ValidationError, NotFoundError } from '../domain/errors';
+import type { RedisService } from '../lib/redis/redis.service';
 
 describe('NegocioService', () => {
   let service: NegocioService;
@@ -16,6 +17,7 @@ describe('NegocioService', () => {
   let mockConfig: {
     getConfiguracion: ReturnType<typeof vi.fn>;
   };
+  let mockRedis: RedisService;
 
   beforeEach(() => {
     mockRepo = {
@@ -26,9 +28,18 @@ describe('NegocioService', () => {
       getActiveBusinessIds: vi.fn(),
     };
     mockConfig = { getConfiguracion: vi.fn() };
+    mockRedis = {
+      isAvailable: false,
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+      del: vi.fn().mockResolvedValue(undefined),
+      exists: vi.fn().mockResolvedValue(false),
+      getClient: vi.fn().mockReturnValue(null),
+    } as unknown as RedisService;
     service = new NegocioService(
       mockRepo as unknown as NegocioRepository,
       mockConfig as unknown as ConfiguracionService,
+      mockRedis,
     );
   });
 

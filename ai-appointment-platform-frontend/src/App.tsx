@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
@@ -209,12 +209,12 @@ function App(): React.JSX.Element {
                         <div className="text-center">
                           <h1 className="text-4xl font-bold text-txt mb-2">404</h1>
                           <p className="text-txt-secondary mb-4">Pagina no encontrada</p>
-                          <a
-                            href="/dashboard"
+                          <Link
+                            to="/dashboard"
                             className="bg-txt text-surface px-4 py-2 rounded-lg hover:bg-txt-secondary transition-colors"
                           >
                             Volver al Dashboard
-                          </a>
+                          </Link>
                         </div>
                       </div>
                     </ErrorBoundary>

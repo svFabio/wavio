@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WebhookService, parsearFechaRelativa, formatearFechaEnZona } from './webhook.service';
 import type { Negocio, Servicio, Configuracion } from '../domain/types';
+import type { RedisService } from '../lib/redis/redis.service';
 
 const { mockEnviarMensaje, mockEnviarImagen, mockProcesarMensajeConIA } = vi.hoisted(() => ({
   mockEnviarMensaje: vi.fn(),
@@ -35,6 +36,7 @@ describe('WebhookService', () => {
     getSlotDisponibles: ReturnType<typeof vi.fn>;
     crearCitaAdmin: ReturnType<typeof vi.fn>;
   };
+  let mockRedisService: RedisService;
 
   const mockNegocio: Negocio = {
     id: 1,
@@ -120,11 +122,20 @@ describe('WebhookService', () => {
       getSlotDisponibles: vi.fn(),
       crearCitaAdmin: vi.fn(),
     };
+    mockRedisService = {
+      isAvailable: false,
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+      del: vi.fn().mockResolvedValue(undefined),
+      exists: vi.fn().mockResolvedValue(false),
+      getClient: vi.fn().mockReturnValue(null),
+    } as unknown as RedisService;
     service = new WebhookService(
       mockChatService as any,
       mockNegocioService as any,
       mockServiciosService as any,
       mockCitasService as any,
+      mockRedisService,
     );
   });
 

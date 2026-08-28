@@ -1,12 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { StatisticsRepository } from './statistics.repository';
 import { ValidationError } from '../domain/errors';
+import { RedisService } from '../lib/redis/redis.service';
+import { cached } from '../lib/redis/cache-helpers';
+
+const CACHE_TTL = {
+  OVERVIEW: 30,
+} as const;
+
+const CACHE_KEYS = {
+  overview: (negocioId: number) => `statistics:overview:${negocioId}`,
+} as const;
 
 @Injectable()
 export class StatisticsService {
-  constructor(private readonly statisticsRepository: StatisticsRepository) {}
+  constructor(
+    private readonly statisticsRepository: StatisticsRepository,
+    @Inject(RedisService) private readonly redis: RedisService,
+  ) {}
 
   async getOverview(negocioId: number): Promise<{
+    citasMes: number;
+    ingresosMes: number;
+    topClientes: Array<{ nombre: string; telefono: string; totalCitas: number }>;
+    horariosPopulares: Array<{ horario: string; totalReservas: number }>;
+    citasVirtuales: number;
+    citasPresenciales: number;
+    ratingPromedio: number;
+    ultimosComentarios: Array<{
+      clienteNombre: string | null;
+      rating: number | null;
+      comentario: string | null;
+      fecha: Date;
+    }>;
+  }> {
+    return cached(this.redis, CACHE_KEYS.overview(negocioId), CACHE_TTL.OVERVIEW, () =>
+      this.fetchOverview(negocioId),
+    );
+  }
+
+  private async fetchOverview(negocioId: number): Promise<{
     citasMes: number;
     ingresosMes: number;
     topClientes: Array<{ nombre: string; telefono: string; totalCitas: number }>;

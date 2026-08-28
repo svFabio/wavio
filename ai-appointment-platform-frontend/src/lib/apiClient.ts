@@ -35,7 +35,7 @@ async function fetchWrapper<T>(endpoint: string, options: RequestInit = {}): Pro
 
   let signal = options.signal;
   if (!signal && typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
-    signal = AbortSignal.timeout(15000);
+    signal = AbortSignal.timeout(30000);
   }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
