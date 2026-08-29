@@ -1,13 +1,61 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
+import { env } from '../../config/env';
 import { createLogger } from '../logger';
-import { REDIS_CLIENT } from './redis.module';
 
 @Injectable()
-export class RedisService {
+export class RedisService implements OnModuleDestroy {
   private readonly logger = createLogger('RedisService');
+  private readonly redis: Redis | null;
 
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis | null) {}
+  constructor() {
+    if (!env.REDIS_URL) {
+      this.logger.warn('REDIS_URL not set — running without Redis (in-memory fallback)');
+      this.redis = null;
+      return;
+    }
+
+    try {
+      this.redis = new Redis(env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        retryStrategy(times: number) {
+          if (times > 3) {
+            return null;
+          }
+          return Math.min(times * 200, 2000);
+        },
+        lazyConnect: true,
+      });
+
+      this.redis.on('error', (err) => {
+        this.logger.warn({ err: err.message }, 'Redis connection error');
+      });
+
+      this.redis.on('ready', () => {
+        this.logger.info('Redis connected and ready');
+      });
+
+      this.redis.connect().catch((err) => {
+        this.logger.warn(
+          { err: err.message },
+          'Redis initial connection failed — falling back to in-memory',
+        );
+      });
+    } catch (err) {
+      this.logger.warn(
+        { err: err instanceof Error ? err.message : 'unknown' },
+        'Failed to create Redis client — falling back to in-memory',
+      );
+      this.redis = null;
+    }
+  }
+
+  onModuleDestroy(): void {
+    if (this.redis) {
+      this.redis.disconnect();
+      this.logger.info('Redis client disconnected');
+    }
+  }
 
   get isAvailable(): boolean {
     return this.redis !== null && this.redis.status === 'ready';
