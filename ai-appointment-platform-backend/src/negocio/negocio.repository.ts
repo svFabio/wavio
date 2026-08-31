@@ -47,6 +47,14 @@ export class NegocioRepository {
     });
   }
 
+  async findByIdsForInternal(ids: number[]): Promise<Negocio[]> {
+    if (ids.length === 0) return [];
+    return this.prisma.negocio.findMany({
+      where: { id: { in: ids } },
+      select: { ...NEGOCIO_SAFE_SELECT, waAccessToken: true, geminiApiKey: true },
+    });
+  }
+
   async update(
     id: number,
     data: Record<string, unknown>,

@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import { json, urlencoded, type Request, type Response } from 'express';
 import { env } from './config/env';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { createLogger } from './lib/logger';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -64,7 +65,21 @@ async function bootstrap(): Promise<void> {
     SwaggerModule.setup('api/docs', app, document);
   }
 
+  app.enableShutdownHooks();
+
   await app.listen(Number(env.PORT), '0.0.0.0');
+
+  const logger = createLogger('bootstrap');
+  logger.info({ port: env.PORT }, 'Server started');
+
+  const shutdown = async (signal: string) => {
+    logger.info({ signal }, 'Shutdown signal received — closing app');
+    await app.close();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
 bootstrap();

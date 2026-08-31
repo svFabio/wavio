@@ -1,5 +1,5 @@
-import { Controller, Post, Req, HttpCode, Res, HttpException, HttpStatus } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Controller, Post, Req, HttpCode, HttpException, HttpStatus } from '@nestjs/common';
+import { Request } from 'express';
 import Stripe from 'stripe';
 import { WebhookService } from './webhook.service';
 import { env } from '../config/env';
@@ -15,7 +15,7 @@ export class StripeController {
 
   @Post('/stripe')
   @HttpCode(200)
-  async handleEvent(@Req() req: RawBodyRequest, @Res() res: Response): Promise<void> {
+  async handleEvent(@Req() req: RawBodyRequest): Promise<{ received: boolean }> {
     const sig = req.headers['stripe-signature'] as string | undefined;
     const rawBody = req.rawBody;
 
@@ -41,12 +41,9 @@ export class StripeController {
       throw new HttpException('Invalid signature', HttpStatus.BAD_REQUEST);
     }
 
-    try {
-      await this.webhookService.processStripeEvent(event);
-    } catch (err) {
-      logger.error({ err, type: event.type }, 'Stripe webhook processing failed');
-    }
+    // Let processing errors propagate — NestJS returns 500, Stripe retries the webhook
+    await this.webhookService.processStripeEvent(event);
 
-    res.status(200).json({ received: true });
+    return { received: true };
   }
 }

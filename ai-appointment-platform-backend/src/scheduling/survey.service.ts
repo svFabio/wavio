@@ -35,10 +35,16 @@ export class SurveyService {
         );
         const citas = candidatas.filter((cita) => isBeforeSurveyCutoff(cita, cutoff));
 
+        if (citas.length === 0) continue;
+
+        // Batch-fetch all negocio credentials once per negocio
+        const uniqueNegocioIds = [...new Set(citas.map((c) => c.negocioId))];
+        const credMap = await this.negocioService.findByIdsForInternal(uniqueNegocioIds);
+
         for (const cita of citas) {
           if (cita.encuestaEnviada) continue;
 
-          const waCreds = await this.negocioService.findByIdForInternal(cita.negocioId);
+          const waCreds = credMap.get(cita.negocioId);
           if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
           const nombre = cita.clienteNombre || 'Cliente';

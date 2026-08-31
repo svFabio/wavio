@@ -30,6 +30,11 @@ export class NegocioService {
     return this.negocioRepository.findByIdForInternal(id);
   }
 
+  async findByIdsForInternal(ids: number[]): Promise<Map<number, Negocio>> {
+    const negocios = await this.negocioRepository.findByIdsForInternal(ids);
+    return new Map(negocios.map((n) => [n.id, n]));
+  }
+
   async findByWaPhoneNumberIdForInternal(phoneNumberId: string): Promise<Negocio | null> {
     return cached(
       this.redis,
