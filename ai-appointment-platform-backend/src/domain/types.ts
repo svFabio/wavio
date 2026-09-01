@@ -79,6 +79,7 @@ export interface Cita {
   estado: string;
   comprobanteUrl: string | null;
   descripcion: string | null;
+  googleEventId?: string | null;
   origen: string;
   recordatorio24h: boolean;
   recordatorio1h: boolean;
