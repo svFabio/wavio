@@ -12,6 +12,7 @@ export class HealthController {
     status: 'ok' | 'degraded';
     uptime: number;
     db: { status: 'ok' | 'error'; latencyMs: number };
+    redis: { status: 'ok' | 'unavailable' };
     timestamp: string;
   }> {
     return this.healthService.check();

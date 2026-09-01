@@ -69,7 +69,7 @@ export class RedisService implements OnModuleDestroy {
       if (raw === null) return null;
       return JSON.parse(raw) as T;
     } catch (err) {
-      this.logger.debug({ key, err }, 'Redis GET failed, returning null');
+      this.logger.warn({ key, err }, 'Redis GET failed, returning null');
       return null;
     }
   }
@@ -85,7 +85,7 @@ export class RedisService implements OnModuleDestroy {
         await this.redis!.set(key, serialized);
       }
     } catch (err) {
-      this.logger.debug({ key, err }, 'Redis SET failed, skipping cache write');
+      this.logger.warn({ key, err }, 'Redis SET failed, skipping cache write');
     }
   }
 
@@ -95,7 +95,7 @@ export class RedisService implements OnModuleDestroy {
     try {
       await this.redis!.del(...keys);
     } catch (err) {
-      this.logger.debug({ keys, err }, 'Redis DEL failed');
+      this.logger.warn({ keys, err }, 'Redis DEL failed');
     }
   }
 
@@ -106,7 +106,7 @@ export class RedisService implements OnModuleDestroy {
       const result = await this.redis!.exists(key);
       return result === 1;
     } catch (err) {
-      this.logger.debug({ key, err }, 'Redis EXISTS failed, returning false');
+      this.logger.warn({ key, err }, 'Redis EXISTS failed, returning false');
       return false;
     }
   }
