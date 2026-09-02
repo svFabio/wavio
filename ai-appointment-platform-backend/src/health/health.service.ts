@@ -9,6 +9,7 @@ export class HealthService {
     status: 'ok' | 'degraded';
     uptime: number;
     db: { status: 'ok' | 'error'; latencyMs: number };
+    redis: { status: 'ok' | 'unavailable' };
     timestamp: string;
   }> {
     const start = Date.now();
@@ -21,6 +22,7 @@ export class HealthService {
     }
 
     const latencyMs = Date.now() - start;
+    const redisStatus = this.healthRepository.getRedisStatus();
 
     return {
       status: dbOk ? 'ok' : 'degraded',
@@ -28,6 +30,9 @@ export class HealthService {
       db: {
         status: dbOk ? 'ok' : 'error',
         latencyMs,
+      },
+      redis: {
+        status: redisStatus.available ? 'ok' : 'unavailable',
       },
       timestamp: new Date().toISOString(),
     };

@@ -1,5 +1,7 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { apiClient } from '../../lib/apiClient';
+import { auth } from '../../lib/auth';
 
 interface Props {
   children: ReactNode;
@@ -22,8 +24,28 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to console, which could later be replaced by Sentry or LogRocket
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Structured logging for debugging
+    const context = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      userId: auth.getToken() ? 'authenticated' : 'anonymous',
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+    };
+    console.error('[ErrorBoundary]', context);
+
+    // Best-effort server logging — fire and forget, never block render
+    if (auth.getToken()) {
+      apiClient
+        .post('/logs/error', {
+          source: 'ErrorBoundary',
+          ...context,
+        })
+        .catch(() => {
+          // Silently ignore — server logging is best-effort
+        });
+    }
   }
 
   public render() {

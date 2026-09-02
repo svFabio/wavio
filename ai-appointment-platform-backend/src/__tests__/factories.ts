@@ -250,6 +250,7 @@ export interface FactoryCita {
   estado: string;
   comprobanteUrl: string | null;
   descripcion: string | null;
+  googleEventId: string | null;
   origen: string;
   recordatorio24h: boolean;
   recordatorio1h: boolean;
@@ -278,9 +279,10 @@ export const buildCita = (
   staffId: null,
   estadoPago: 'PENDIENTE',
   monto: 250,
-  estado: 'PENDIENTE',
+  estado: 'CONFIRMADA',
   comprobanteUrl: null,
   descripcion: null,
+  googleEventId: null,
   origen: 'whatsapp',
   recordatorio24h: false,
   recordatorio1h: false,

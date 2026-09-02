@@ -27,6 +27,7 @@ describe('SurveyService', () => {
   let mockNegocio: {
     getActiveBusinessIds: ReturnType<typeof vi.fn>;
     findByIdForInternal: ReturnType<typeof vi.fn>;
+    findByIdsForInternal: ReturnType<typeof vi.fn>;
   };
   let mockEvents: { sendWhatsAppMessage: ReturnType<typeof vi.fn> };
 
@@ -41,6 +42,7 @@ describe('SurveyService', () => {
     mockNegocio = {
       getActiveBusinessIds: vi.fn(),
       findByIdForInternal: vi.fn(),
+      findByIdsForInternal: vi.fn(),
     };
     mockEvents = { sendWhatsAppMessage: vi.fn() };
     service = new SurveyService(
@@ -94,10 +96,9 @@ describe('SurveyService', () => {
       mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
         cita({ id: 1, horario: '10:00' }, '2026-07-27'),
       ]);
-      mockNegocio.findByIdForInternal.mockResolvedValue({
-        waAccessToken: null,
-        waPhoneNumberId: null,
-      });
+      mockNegocio.findByIdsForInternal.mockResolvedValue(
+        new Map([[1, { waAccessToken: null, waPhoneNumberId: null }]]),
+      );
 
       await service.handleSurveys();
 
@@ -109,10 +110,9 @@ describe('SurveyService', () => {
       mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
         cita({ id: 1, horario: '10:00' }, '2026-07-27'),
       ]);
-      mockNegocio.findByIdForInternal.mockResolvedValue({
-        waAccessToken: 'token',
-        waPhoneNumberId: '123',
-      });
+      mockNegocio.findByIdsForInternal.mockResolvedValue(
+        new Map([[1, { waAccessToken: 'token', waPhoneNumberId: '123' }]]),
+      );
 
       await service.handleSurveys();
 

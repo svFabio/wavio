@@ -37,10 +37,16 @@ export class ReminderService {
         );
         const citas = candidatas.filter((cita) => isWithinReminderWindow(cita, desde, hasta));
 
+        if (citas.length === 0) continue;
+
+        // Batch-fetch all negocio credentials once per negocio
+        const uniqueNegocioIds = [...new Set(citas.map((c) => c.negocioId))];
+        const credMap = await this.negocioService.findByIdsForInternal(uniqueNegocioIds);
+
         for (const cita of citas) {
           if (cita.recordatorio24h) continue;
 
-          const waCreds = await this.negocioService.findByIdForInternal(cita.negocioId);
+          const waCreds = credMap.get(cita.negocioId);
           if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
           const fechaFormateada = new Date(cita.fecha).toLocaleDateString('es-ES', {
@@ -93,10 +99,16 @@ export class ReminderService {
         );
         const citas = candidatas.filter((cita) => isWithinReminderWindow(cita, desde, hasta));
 
+        if (citas.length === 0) continue;
+
+        // Batch-fetch all negocio credentials once per negocio
+        const uniqueNegocioIds = [...new Set(citas.map((c) => c.negocioId))];
+        const credMap = await this.negocioService.findByIdsForInternal(uniqueNegocioIds);
+
         for (const cita of citas) {
           if (cita.recordatorio1h) continue;
 
-          const waCreds = await this.negocioService.findByIdForInternal(cita.negocioId);
+          const waCreds = credMap.get(cita.negocioId);
           if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
           const mensaje =

@@ -23,6 +23,7 @@ describe('HealthController', () => {
       status: 'ok' as const,
       uptime: 12345,
       db: { status: 'ok' as const, latencyMs: 2 },
+      redis: { status: 'ok' as const },
       timestamp: '2026-07-28T00:00:00.000Z',
     });
     const res = await request(app.getHttpServer()).get('/api/v1/health');

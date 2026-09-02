@@ -672,4 +672,16 @@ export class CitasService {
   ): Promise<boolean> {
     return this.citasRepository.updateLastAppointmentRating(negocioId, clienteTelefono, rating);
   }
+
+  async setGoogleEventId(
+    id: number,
+    negocioId: number,
+    googleEventId: string | null,
+  ): Promise<Cita> {
+    const cita = await this.citasRepository.getByIdAndNegocio(id, negocioId);
+    if (!cita) {
+      throw new NotFoundError('Cita');
+    }
+    return this.citasRepository.update(id, { googleEventId });
+  }
 }

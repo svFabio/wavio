@@ -27,8 +27,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 @Module({
   imports: [
-    RedisModule,
     ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
       inject: [RedisThrottlerStorage],
       useFactory: (storage: RedisThrottlerStorage | null) => ({
         throttlers: [{ ttl: 60000, limit: 100 }],

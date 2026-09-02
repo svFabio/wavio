@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { ThrottlerStorage } from '@nestjs/throttler';
 import type Redis from 'ioredis';
-import { REDIS_CLIENT } from './redis.module';
+import { RedisService } from './redis.service';
 import { createLogger } from '../logger';
 
 interface ThrottlerStorageRecord {
@@ -15,10 +15,14 @@ const logger = createLogger('redis-throttler-storage');
 
 @Injectable()
 export class RedisThrottlerStorage implements ThrottlerStorage {
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis | null) {}
+  constructor(private readonly redisService: RedisService) {}
+
+  private get redis(): Redis | null {
+    return this.redisService.getClient();
+  }
 
   get isAvailable(): boolean {
-    return this.redis !== null && this.redis.status === 'ready';
+    return this.redisService.isAvailable;
   }
 
   async increment(
@@ -29,7 +33,6 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
     throttlerName: string,
   ): Promise<ThrottlerStorageRecord> {
     if (!this.isAvailable) {
-      // Fallback: return a pass-through that doesn't actually block
       return {
         totalHits: 1,
         timeToExpire: Math.ceil(ttl / 1000),
@@ -42,7 +45,6 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
     const blockKey = `throttle:block:${key}:${throttlerName}`;
 
     try {
-      // Check if blocked
       const isBlocked = await this.redis!.exists(blockKey);
       if (isBlocked) {
         const blockTtl = await this.redis!.pttl(blockKey);
@@ -55,17 +57,14 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
         };
       }
 
-      // Increment counter
       const totalHits = await this.redis!.incr(storageKey);
 
-      // Set expiration on first hit
       if (totalHits === 1) {
         await this.redis!.pexpire(storageKey, ttl);
       }
 
       const timeToExpire = await this.redis!.pttl(storageKey);
 
-      // Check if limit exceeded
       if (totalHits > limit && blockDuration > 0) {
         await this.redis!.setex(blockKey, Math.ceil(blockDuration / 1000), '1');
         return {

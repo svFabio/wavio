@@ -218,6 +218,7 @@ model Cita {
   estado          String   @default("PENDIENTE")
   comprobanteUrl  String?
   descripcion     String?
+  googleEventId   String?
   origen          String   @default("virtual")
   recordatorio24h Boolean  @default(false)
   recordatorio1h  Boolean  @default(false)

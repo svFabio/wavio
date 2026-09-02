@@ -56,6 +56,9 @@ export class CalendarController {
     if (!cita) throw new NotFoundError('Cita');
 
     const googleEventId = await this.googleCalendarService.createEvent(negocioId, cita);
+    if (googleEventId) {
+      await this.citasService.setGoogleEventId(citaId, negocioId, googleEventId);
+    }
     return { success: true, googleEventId };
   }
 
@@ -67,7 +70,14 @@ export class CalendarController {
     const cita = await this.citasService.getByIdAndNegocio(citaId, negocioId);
     if (!cita) throw new NotFoundError('Cita');
 
-    const deleted = await this.googleCalendarService.deleteEvent(negocioId, String(citaId));
+    if (!cita.googleEventId) {
+      return { success: true };
+    }
+
+    const deleted = await this.googleCalendarService.deleteEvent(negocioId, cita.googleEventId);
+    if (deleted) {
+      await this.citasService.setGoogleEventId(citaId, negocioId, null);
+    }
     return { success: deleted };
   }
 
