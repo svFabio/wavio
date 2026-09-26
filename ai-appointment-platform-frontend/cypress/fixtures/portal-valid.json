@@ -1,0 +1,9 @@
+{
+  "cliente": {
+    "id": 7,
+    "nombre": "Cliente E2E",
+    "telefono": "+34000000000",
+    "email": null
+  },
+  "negocio": { "id": 1, "nombre": "Negocio E2E" }
+}

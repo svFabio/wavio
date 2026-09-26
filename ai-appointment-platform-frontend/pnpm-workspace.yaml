@@ -1,8 +1,9 @@
 allowBuilds:
+  cypress: true
   esbuild: false
   msw: false
 
-onlyBuiltDependencies: '["msw"]'
+onlyBuiltDependencies: '["msw", "cypress"]'
 
 minimumReleaseAgeExclude:
   - nanoid@3.3.18

@@ -1,0 +1,14 @@
+{
+  "data": [
+    {
+      "remoteJid": "59161234567@s.whatsapp.net",
+      "ultimoMensaje": "2026-09-26T10:05:00.000Z",
+      "totalMensajes": 2,
+      "ultimoContenido": "¿Qué día tienes disponible?",
+      "ultimaDireccion": "SALIENTE",
+      "clienteNombre": "Cliente E2E",
+      "telefonoReal": "59161234567"
+    }
+  ],
+  "pagination": { "total": 1, "page": 1, "limit": 10, "totalPages": 1 }
+}

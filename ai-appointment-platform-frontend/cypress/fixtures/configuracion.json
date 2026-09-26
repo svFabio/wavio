@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "trigger": "hola",
+  "mensajeBienvenida": "Bienvenido al negocio E2E",
+  "mensajeConfirmacion": "Tu cita fue confirmada",
+  "qrFotoUrl": null,
+  "cobrarAdelanto": false,
+  "porcentajeAdelanto": 0,
+  "timezone": "America/La_Paz",
+  "chatFlow": []
+}

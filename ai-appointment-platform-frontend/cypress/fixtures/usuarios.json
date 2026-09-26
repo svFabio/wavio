@@ -1,0 +1,12 @@
+{
+  "data": [
+    {
+      "id": 2,
+      "nombre": "Staff E2E",
+      "email": "staff-e2e@wavio.test",
+      "rol": "STAFF",
+      "creadoEn": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": { "total": 1, "page": 1, "limit": 10, "totalPages": 1 }
+}
