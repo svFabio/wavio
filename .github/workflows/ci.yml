@@ -363,3 +363,62 @@ jobs:
           cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+
+  # ---------------------------------------------------------------------------
+  # E2E — Cypress contra `vite preview` con API interceptada (ver ADR-011).
+  # No requiere backend ni Postgres: los specs usan cy.intercept.
+  # ---------------------------------------------------------------------------
+
+  e2e-frontend:
+    name: E2E — Frontend (Cypress, ${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox]
+    defaults:
+      run:
+        working-directory: ai-appointment-platform-frontend
+    env:
+      VITE_GOOGLE_CLIENT_ID: dummy-e2e-client-id
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ai-appointment-platform-frontend
+          build: pnpm run build
+          start: pnpm exec vite preview --port 4173 --strictPort
+          wait-on: "http://localhost:4173"
+          wait-on-timeout: 120
+          browser: ${{ matrix.browser }}
+          config: baseUrl=http://localhost:4173,video=true
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots-${{ matrix.browser }}
+          path: ai-appointment-platform-frontend/cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos-${{ matrix.browser }}
+          path: ai-appointment-platform-frontend/cypress/videos
+          if-no-files-found: ignore
