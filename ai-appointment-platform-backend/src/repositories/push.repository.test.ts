@@ -70,4 +70,22 @@ describe('PushRepository', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('findByNegocioId', () => {
+    it('should find all subscriptions for a negocio', async () => {
+      const subs = [
+        { id: 1, endpoint: 'https://p1', p256dh: 'k1', auth: 'a1' },
+        { id: 2, endpoint: 'https://p2', p256dh: 'k2', auth: 'a2' },
+      ];
+      prisma.pushSubscription.findMany.mockResolvedValue(subs);
+
+      const result = await repo.findByNegocioId(1);
+
+      expect(prisma.pushSubscription.findMany).toHaveBeenCalledWith({
+        where: { negocioId: 1 },
+        select: { id: true, endpoint: true, p256dh: true, auth: true },
+      });
+      expect(result).toEqual(subs);
+    });
+  });
 });
