@@ -5,6 +5,8 @@ import type { AvailabilityRepository } from './availability.repository';
 import type { NegocioService } from '../negocio/negocio.service';
 import type { ChatService } from '../chat/chat.service';
 import type { EventsService } from '../events/events.service';
+import type { GoogleCalendarService } from '../calendar/google-calendar.service';
+import type { WaitlistService } from '../waitlist/waitlist.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { buildCita, buildNegocio } from '../__tests__/factories';
 import type { Cita } from '../domain/types';
@@ -17,6 +19,7 @@ vi.mock('../config/env', () => ({
     JWT_SECRET: 'test-jwt-secret',
     CORS_ORIGINS: undefined,
     GEMINI_API_KEY: 'test-gemini-key',
+    GEMINI_MODEL: 'gemini-1.5-flash',
     CLOUDINARY_CLOUD_NAME: 'test-cloud',
     CLOUDINARY_API_KEY: 'test-key',
     CLOUDINARY_API_SECRET: 'test-secret',
@@ -31,6 +34,7 @@ vi.mock('../config/env', () => ({
     GOOGLE_CALENDAR_CLIENT_SECRET: undefined,
     GOOGLE_CALENDAR_REDIRECT_URI: undefined,
     BACKEND_URL: undefined,
+    FRONTEND_URL: undefined,
     STRIPE_SECRET_KEY: undefined,
     STRIPE_WEBHOOK_SECRET: undefined,
     VAPID_PUBLIC_KEY: undefined,
@@ -82,6 +86,8 @@ describe('CitasService', () => {
       cancelRecurringSeries: vi.fn(),
       findRecurringSeries: vi.fn(),
       updateLastAppointmentRating: vi.fn(),
+      confirmarPagoStripe: vi.fn(),
+      findUltimaCitaPendiente: vi.fn(),
     };
 
     mockAvailabilityRepository = {
@@ -915,6 +921,29 @@ describe('CitasService', () => {
       expect(mockEventsService.emitCambioCitas).toHaveBeenCalledTimes(2);
     });
 
+    it('should inherit baseCita monto for recurring instances when data.monto is omitted', async () => {
+      const baseCita = buildCita(negocioId, {
+        fecha: new Date('2026-07-29T10:00:00.000Z'),
+        horario: '10:00',
+        servicioId: 1,
+        monto: 300,
+      });
+      mockGetSlotsDisponibles.mockResolvedValue([{ inicio: '10:00', fin: '11:00', staffId: null }]);
+      mockCitasRepository.createIfSlotAvailable.mockResolvedValue(baseCita);
+      mockCitasRepository.createRecurringInstances.mockResolvedValue(2);
+
+      const dataWithoutMonto = { ...recurrenteData, monto: undefined };
+      await service.crearCitaRecurrente(negocioId, {
+        ...dataWithoutMonto,
+        recurrenceEnd: '2026-08-12',
+      });
+
+      expect(mockCitasRepository.createRecurringInstances).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ monto: 300 })]),
+        negocioId,
+      );
+    });
+
     it('should return zero instances when recurrenceEnd is before first candidate', async () => {
       const baseCita = buildCita(negocioId, {
         fecha: new Date('2026-07-29T10:00:00.000Z'),
@@ -1210,6 +1239,298 @@ describe('CitasService', () => {
       const result = await service.updateLastAppointmentRating(negocioId, '+529999999999', 3);
 
       expect(result).toBe(false);
+    });
+  });
+
+  /* ─── confirmarPagoStripe ────────────────────────────────────────────── */
+  describe('confirmarPagoStripe', () => {
+    it('should update cita, emit socket event and return true on success', async () => {
+      mockCitasRepository.confirmarPagoStripe.mockResolvedValue(1);
+
+      const result = await service.confirmarPagoStripe(10, negocioId, 'pi_test_123');
+
+      expect(mockCitasRepository.confirmarPagoStripe).toHaveBeenCalledWith(10, negocioId);
+      expect(mockEventsService.emitCambioCitas).toHaveBeenCalledWith(negocioId);
+      expect(result).toBe(true);
+    });
+
+    it('should return false and not emit events when count is 0 (idempotent)', async () => {
+      mockCitasRepository.confirmarPagoStripe.mockResolvedValue(0);
+
+      const result = await service.confirmarPagoStripe(10, negocioId, 'pi_test_123');
+
+      expect(mockCitasRepository.confirmarPagoStripe).toHaveBeenCalledWith(10, negocioId);
+      expect(mockEventsService.emitCambioCitas).not.toHaveBeenCalled();
+      expect(result).toBe(false);
+    });
+  });
+
+  /* ─── asociarComprobante ─────────────────────────────────────────────── */
+  describe('asociarComprobante', () => {
+    it('should associate comprobante to pending appointment and emit socket event', async () => {
+      mockCitasRepository.findUltimaCitaPendiente.mockResolvedValue({
+        ...defaultCita,
+        id: 42,
+        estado: 'PENDIENTE',
+      });
+      mockCitasRepository.update.mockResolvedValue({
+        ...defaultCita,
+        id: 42,
+        estado: 'VALIDACION_PENDIENTE',
+        comprobanteUrl: 'https://cloudinary.com/test.jpg',
+      });
+
+      const result = await service.asociarComprobante(
+        negocioId,
+        '+521234567890',
+        'https://cloudinary.com/test.jpg',
+      );
+
+      expect(mockCitasRepository.findUltimaCitaPendiente).toHaveBeenCalledWith(
+        negocioId,
+        '+521234567890',
+      );
+      expect(mockCitasRepository.update).toHaveBeenCalledWith(42, {
+        comprobanteUrl: 'https://cloudinary.com/test.jpg',
+        estado: 'VALIDACION_PENDIENTE',
+      });
+      expect(mockEventsService.emitCambioCitas).toHaveBeenCalledWith(negocioId);
+      expect(result?.id).toBe(42);
+      expect(result?.estado).toBe('VALIDACION_PENDIENTE');
+    });
+
+    it('should return null and not update or emit when no pending appointment found', async () => {
+      mockCitasRepository.findUltimaCitaPendiente.mockResolvedValue(null);
+
+      const result = await service.asociarComprobante(
+        negocioId,
+        '+521234567890',
+        'https://cloudinary.com/test.jpg',
+      );
+
+      expect(result).toBeNull();
+      expect(mockCitasRepository.update).not.toHaveBeenCalled();
+      expect(mockEventsService.emitCambioCitas).not.toHaveBeenCalled();
+    });
+  });
+
+  /* ─── Google Calendar Auto-sync & Timezone normalization ─────────────── */
+  describe('Google Calendar auto-sync and UTC normalization', () => {
+    let mockGoogleCalendarService: {
+      isConnected: ReturnType<typeof vi.fn>;
+      createEvent: ReturnType<typeof vi.fn>;
+      updateEvent: ReturnType<typeof vi.fn>;
+      deleteEvent: ReturnType<typeof vi.fn>;
+    };
+    let serviceWithCalendar: CitasService;
+
+    beforeEach(() => {
+      mockGoogleCalendarService = {
+        isConnected: vi.fn().mockResolvedValue(true),
+        createEvent: vi.fn().mockResolvedValue('google_evt_123'),
+        updateEvent: vi.fn().mockResolvedValue(true),
+        deleteEvent: vi.fn().mockResolvedValue(true),
+      };
+
+      serviceWithCalendar = new CitasService(
+        mockCitasRepository as unknown as CitasRepository,
+        mockAvailabilityRepository as unknown as AvailabilityRepository,
+        mockNegocioService as unknown as NegocioService,
+        mockChatService as unknown as ChatService,
+        mockEventsService as unknown as EventsService,
+        undefined,
+        mockGoogleCalendarService as unknown as GoogleCalendarService,
+      );
+    });
+
+    it('normalizes fecha as pure UTC midnight when creating cita', async () => {
+      mockCitasRepository.createIfSlotAvailable.mockResolvedValue({
+        ...defaultCita,
+        id: 10,
+        estado: 'CONFIRMADA',
+      });
+
+      await service.crearCitaAdmin(negocioId, {
+        clienteNombre: 'Carlos',
+        clienteTelefono: '+521234567890',
+        fecha: '2026-10-25',
+        horario: '14:30',
+        monto: 100,
+      });
+
+      expect(mockCitasRepository.createIfSlotAvailable).toHaveBeenCalledWith(
+        negocioId,
+        new Date('2026-10-25T00:00:00.000Z'),
+        '14:30',
+        expect.anything(),
+      );
+    });
+
+    it('automatically triggers createEvent in background when confirmed cita is created', async () => {
+      const createdCita = { ...defaultCita, id: 10, estado: 'CONFIRMADA' };
+      mockCitasRepository.createIfSlotAvailable.mockResolvedValue(createdCita);
+      mockCitasRepository.getByIdAndNegocio.mockResolvedValue(createdCita);
+      mockCitasRepository.update.mockResolvedValue({
+        ...createdCita,
+        googleEventId: 'google_evt_123',
+      });
+
+      await serviceWithCalendar.crearCitaAdmin(negocioId, {
+        clienteNombre: 'Carlos',
+        clienteTelefono: '+521234567890',
+        fecha: '2026-10-25',
+        horario: '14:30',
+        monto: 100,
+        estado: 'CONFIRMADA',
+      });
+
+      // Allow background microtask to execute
+      await vi.runAllTimersAsync();
+
+      expect(mockGoogleCalendarService.isConnected).toHaveBeenCalledWith(negocioId);
+      expect(mockGoogleCalendarService.createEvent).toHaveBeenCalledWith(negocioId, createdCita);
+      expect(mockCitasRepository.update).toHaveBeenCalledWith(10, {
+        googleEventId: 'google_evt_123',
+      });
+    });
+
+    it('automatically triggers updateEvent when rescheduling a cita with googleEventId', async () => {
+      const citaConGoogle = {
+        ...defaultCita,
+        id: 15,
+        googleEventId: 'google_evt_existing',
+      };
+      mockCitasRepository.getByIdAndNegocio.mockResolvedValue(citaConGoogle);
+      mockCitasRepository.reprogramarIfSlotAvailable.mockResolvedValue({
+        ...citaConGoogle,
+        horario: '16:00',
+      });
+
+      await serviceWithCalendar.reprogramarCita(15, negocioId, '2026-10-26', '16:00');
+
+      await vi.runAllTimersAsync();
+
+      expect(mockGoogleCalendarService.updateEvent).toHaveBeenCalledWith(
+        negocioId,
+        'google_evt_existing',
+        expect.objectContaining({ horario: '16:00' }),
+      );
+    });
+
+    it('automatically triggers deleteEvent when cancelling a cita with googleEventId', async () => {
+      const citaConGoogle = {
+        ...defaultCita,
+        id: 20,
+        estado: 'CONFIRMADA',
+        googleEventId: 'google_evt_to_del',
+      };
+      mockCitasRepository.getByIdAndNegocio.mockResolvedValue(citaConGoogle);
+      mockCitasRepository.update.mockResolvedValue({ ...citaConGoogle, estado: 'CANCELADA' });
+
+      await serviceWithCalendar.cambiarEstado(20, negocioId, 'CANCELADA');
+
+      await vi.runAllTimersAsync();
+
+      expect(mockGoogleCalendarService.deleteEvent).toHaveBeenCalledWith(
+        negocioId,
+        'google_evt_to_del',
+      );
+    });
+
+    it('does not throw when Google Calendar operation fails in background', async () => {
+      mockGoogleCalendarService.createEvent.mockRejectedValue(new Error('Google API 500'));
+      const createdCita = { ...defaultCita, id: 25, estado: 'CONFIRMADA' };
+      mockCitasRepository.createIfSlotAvailable.mockResolvedValue(createdCita);
+
+      const result = await serviceWithCalendar.crearCitaAdmin(negocioId, {
+        clienteNombre: 'Carlos',
+        clienteTelefono: '+521234567890',
+        fecha: '2026-10-25',
+        horario: '14:30',
+        estado: 'CONFIRMADA',
+      });
+
+      await vi.runAllTimersAsync();
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(25);
+    });
+  });
+
+  /* ─── Waitlist slot notification on cancellation ─────────────────────── */
+  describe('Waitlist slot notification on cancellation', () => {
+    let mockWaitlistService: {
+      notifyAvailableSlot: ReturnType<typeof vi.fn>;
+    };
+    let serviceWithWaitlist: CitasService;
+
+    beforeEach(() => {
+      mockWaitlistService = {
+        notifyAvailableSlot: vi.fn().mockResolvedValue(1),
+      };
+
+      serviceWithWaitlist = new CitasService(
+        mockCitasRepository as unknown as CitasRepository,
+        mockAvailabilityRepository as unknown as AvailabilityRepository,
+        mockNegocioService as unknown as NegocioService,
+        mockChatService as unknown as ChatService,
+        mockEventsService as unknown as EventsService,
+        undefined,
+        undefined,
+        mockWaitlistService as unknown as WaitlistService,
+      );
+    });
+
+    it('triggers notifyAvailableSlot non-blockingly when changing state to CANCELADA', async () => {
+      const cita = {
+        ...defaultCita,
+        id: 77,
+        fecha: new Date('2026-10-30T00:00:00.000Z'),
+        estado: 'CONFIRMADA',
+      };
+      mockCitasRepository.getByIdAndNegocio.mockResolvedValue(cita);
+      mockCitasRepository.update.mockResolvedValue({ ...cita, estado: 'CANCELADA' });
+
+      await serviceWithWaitlist.cambiarEstado(77, negocioId, 'CANCELADA');
+
+      await vi.runAllTimersAsync();
+
+      expect(mockWaitlistService.notifyAvailableSlot).toHaveBeenCalledWith(negocioId, cita.fecha);
+    });
+
+    it('triggers notifyAvailableSlot non-blockingly when validating action is CANCELAR', async () => {
+      const cita = {
+        ...defaultCita,
+        id: 88,
+        fecha: new Date('2026-10-30T00:00:00.000Z'),
+        estado: 'VALIDACION_PENDIENTE',
+      };
+      mockCitasRepository.getByIdAndNegocio.mockResolvedValue(cita);
+      mockCitasRepository.update.mockResolvedValue({ ...cita, estado: 'CANCELADA' });
+
+      await serviceWithWaitlist.validarCita(88, negocioId, 'CANCELAR');
+
+      await vi.runAllTimersAsync();
+
+      expect(mockWaitlistService.notifyAvailableSlot).toHaveBeenCalledWith(negocioId, cita.fecha);
+    });
+
+    it('does not throw when notifyAvailableSlot fails in background', async () => {
+      mockWaitlistService.notifyAvailableSlot.mockRejectedValue(new Error('Waitlist Error'));
+      const cita = {
+        ...defaultCita,
+        id: 99,
+        fecha: new Date('2026-10-30T00:00:00.000Z'),
+        estado: 'CONFIRMADA',
+      };
+      mockCitasRepository.getByIdAndNegocio.mockResolvedValue(cita);
+      mockCitasRepository.update.mockResolvedValue({ ...cita, estado: 'CANCELADA' });
+
+      const result = await serviceWithWaitlist.cambiarEstado(99, negocioId, 'CANCELADA');
+
+      await vi.runAllTimersAsync();
+
+      expect(result.estado).toBe('CANCELADA');
     });
   });
 });

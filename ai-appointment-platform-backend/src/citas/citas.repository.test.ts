@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { CitasRepository } from './citas.repository';
 import { createMockPrisma, type MockPrisma } from '../__tests__/mocks/prisma';
 import { buildCita, resetIds, today, daysFromNow } from '../__tests__/factories';
 import type { PrismaService } from '../prisma/prisma.service';
+import { ConflictError } from '../domain/errors';
 
 describe('CitasRepository', () => {
   let prisma: MockPrisma;
@@ -272,6 +274,25 @@ describe('CitasRepository', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should throw ConflictError when Prisma throws P2002 (race condition)', async () => {
+      const p2002Error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '5.0.0',
+      });
+      prisma.$transaction.mockRejectedValue(p2002Error);
+
+      await expect(
+        repo.createIfSlotAvailable(1, today(), '10:00', {
+          clienteNombre: 'Juan',
+          clienteTelefono: '+521234567890',
+          servicio: 'Corte',
+          duracionMinutos: 60,
+          monto: 250,
+          estado: 'CONFIRMADA',
+        }),
+      ).rejects.toThrow(ConflictError);
+    });
   });
 
   describe('update', () => {
@@ -465,6 +486,67 @@ describe('CitasRepository', () => {
       const result = await repo.updateLastAppointmentRating(1, '+521234567890', 5);
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('confirmarPagoStripe', () => {
+    it('should update cita payment status atomically and return count', async () => {
+      prisma.cita.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await repo.confirmarPagoStripe(10, 1);
+
+      expect(prisma.cita.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 10,
+          negocioId: 1,
+          estadoPago: { not: 'PAGADO' },
+        },
+        data: {
+          estadoPago: 'PAGADO',
+          estado: 'CONFIRMADA',
+        },
+      });
+      expect(result).toBe(1);
+    });
+
+    it('should return 0 when already paid or not found (idempotency)', async () => {
+      prisma.cita.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await repo.confirmarPagoStripe(10, 1);
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('findUltimaCitaPendiente', () => {
+    it('should find latest pending appointment matching client phone variants', async () => {
+      const mockCita = buildCita(1, {
+        id: 99,
+        estado: 'PENDIENTE',
+        monto: new Prisma.Decimal(150) as unknown as number,
+      });
+      prisma.cita.findFirst.mockResolvedValue(mockCita);
+
+      const result = await repo.findUltimaCitaPendiente(1, '+521234567890');
+
+      expect(prisma.cita.findFirst).toHaveBeenCalledWith({
+        where: {
+          negocioId: 1,
+          clienteTelefono: { in: ['+521234567890', '521234567890', '+521234567890'] },
+          estado: { in: ['PENDIENTE', 'VALIDACION_PENDIENTE'] },
+        },
+        orderBy: { creadoEn: 'desc' },
+      });
+      expect(result?.id).toBe(99);
+      expect(result?.monto).toBe(150);
+    });
+
+    it('should return null if no pending appointment found', async () => {
+      prisma.cita.findFirst.mockResolvedValue(null);
+
+      const result = await repo.findUltimaCitaPendiente(1, '521234567890');
+
+      expect(result).toBeNull();
     });
   });
 });
