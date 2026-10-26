@@ -14,6 +14,7 @@ describe('StatisticsService', () => {
     getRatingPromedio: ReturnType<typeof vi.fn>;
     getUltimosComentarios: ReturnType<typeof vi.fn>;
     countCitasPorOrigen: ReturnType<typeof vi.fn>;
+    getCitasPorOrigen: ReturnType<typeof vi.fn>;
     getCitasIngresos: ReturnType<typeof vi.fn>;
   };
   let mockRedis: RedisService;
@@ -27,6 +28,7 @@ describe('StatisticsService', () => {
       getRatingPromedio: vi.fn(),
       getUltimosComentarios: vi.fn(),
       countCitasPorOrigen: vi.fn(),
+      getCitasPorOrigen: vi.fn(),
       getCitasIngresos: vi.fn(),
     };
     mockRedis = {
@@ -55,7 +57,12 @@ describe('StatisticsService', () => {
       mockRepo.getUltimosComentarios.mockResolvedValue([
         { clienteNombre: 'Juan', rating: 5, comentario: 'Excelente', fecha: new Date() },
       ]);
-      mockRepo.countCitasPorOrigen.mockResolvedValueOnce(3).mockResolvedValueOnce(7);
+      mockRepo.getCitasPorOrigen.mockResolvedValue([
+        { origen: 'virtual', _count: { id: 3 } },
+        { origen: 'presencial', _count: { id: 7 } },
+        { origen: 'whatsapp', _count: { id: 4 } },
+        { origen: 'portal', _count: { id: 2 } },
+      ]);
 
       const result = await service.getOverview(1);
 
@@ -68,6 +75,8 @@ describe('StatisticsService', () => {
         ultimosComentarios: [{ clienteNombre: 'Juan', rating: 5, comentario: 'Excelente' }],
         citasVirtuales: 3,
         citasPresenciales: 7,
+        citasWhatsapp: 4,
+        citasPortal: 2,
       });
     });
   });

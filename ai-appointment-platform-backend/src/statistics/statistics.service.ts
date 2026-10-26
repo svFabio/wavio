@@ -26,6 +26,8 @@ export class StatisticsService {
     horariosPopulares: Array<{ horario: string; totalReservas: number }>;
     citasVirtuales: number;
     citasPresenciales: number;
+    citasWhatsapp: number;
+    citasPortal: number;
     ratingPromedio: number;
     ultimosComentarios: Array<{
       clienteNombre: string | null;
@@ -46,6 +48,8 @@ export class StatisticsService {
     horariosPopulares: Array<{ horario: string; totalReservas: number }>;
     citasVirtuales: number;
     citasPresenciales: number;
+    citasWhatsapp: number;
+    citasPortal: number;
     ratingPromedio: number;
     ultimosComentarios: Array<{
       clienteNombre: string | null;
@@ -65,8 +69,7 @@ export class StatisticsService {
       horariosAgrupados,
       ratingPromedio,
       ultimosComentarios,
-      citasVirtuales,
-      citasPresenciales,
+      origenesAgrupados,
     ] = await Promise.all([
       this.statisticsRepository.countCitasMes(negocioId, startOfMonth, endOfMonth),
       this.statisticsRepository.getCitasConfirmadasMonto(negocioId, startOfMonth, endOfMonth),
@@ -74,14 +77,22 @@ export class StatisticsService {
       this.statisticsRepository.getHorariosPopulares(negocioId),
       this.statisticsRepository.getRatingPromedio(negocioId),
       this.statisticsRepository.getUltimosComentarios(negocioId),
-      this.statisticsRepository.countCitasPorOrigen(negocioId, startOfMonth, endOfMonth, 'virtual'),
-      this.statisticsRepository.countCitasPorOrigen(
-        negocioId,
-        startOfMonth,
-        endOfMonth,
-        'presencial',
-      ),
+      this.statisticsRepository.getCitasPorOrigen(negocioId, startOfMonth, endOfMonth),
     ]);
+
+    let citasVirtuales = 0;
+    let citasPresenciales = 0;
+    let citasWhatsapp = 0;
+    let citasPortal = 0;
+
+    for (const item of origenesAgrupados) {
+      const count = item._count.id;
+      const origen = item.origen?.toLowerCase();
+      if (origen === 'virtual') citasVirtuales = count;
+      else if (origen === 'presencial') citasPresenciales = count;
+      else if (origen === 'whatsapp') citasWhatsapp = count;
+      else if (origen === 'portal') citasPortal = count;
+    }
 
     const ingresosMes = citasConfirmadas.reduce((sum, cita) => sum + Number(cita.monto), 0);
     const topClientes = clientesAgrupados.map((c) => ({
@@ -102,6 +113,8 @@ export class StatisticsService {
       horariosPopulares,
       citasVirtuales,
       citasPresenciales,
+      citasWhatsapp,
+      citasPortal,
       ratingPromedio,
       ultimosComentarios,
     };

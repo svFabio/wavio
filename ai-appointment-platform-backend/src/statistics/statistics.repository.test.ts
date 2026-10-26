@@ -140,6 +140,31 @@ describe('StatisticsRepository', () => {
     });
   });
 
+  describe('getCitasPorOrigen', () => {
+    it('should return grouped counts by origin', async () => {
+      const origenes = [
+        { origen: 'virtual', _count: { id: 3 } },
+        { origen: 'presencial', _count: { id: 7 } },
+        { origen: 'whatsapp', _count: { id: 4 } },
+        { origen: 'portal', _count: { id: 2 } },
+      ];
+      prisma.cita.groupBy.mockResolvedValue(origenes);
+
+      const result = await repo.getCitasPorOrigen(1, today(), daysFromNow(30));
+
+      expect(prisma.cita.groupBy).toHaveBeenCalledWith({
+        by: ['origen'],
+        _count: { id: true },
+        where: {
+          negocioId: 1,
+          fecha: { gte: today(), lte: daysFromNow(30) },
+          estado: { not: 'CANCELADA' },
+        },
+      });
+      expect(result).toEqual(origenes);
+    });
+  });
+
   describe('countCitasPorOrigen', () => {
     it('should count citas by origin', async () => {
       prisma.cita.count.mockResolvedValue(7);

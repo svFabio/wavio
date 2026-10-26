@@ -7,6 +7,8 @@ const overview = {
   ingresosMes: 5000,
   citasVirtuales: 6,
   citasPresenciales: 4,
+  citasWhatsapp: 3,
+  citasPortal: 2,
   topClientes: [{ nombre: 'Juan Perez', telefono: '59170000000', totalCitas: 5 }],
   horariosPopulares: [
     { horario: '10:00', totalReservas: 8 },
