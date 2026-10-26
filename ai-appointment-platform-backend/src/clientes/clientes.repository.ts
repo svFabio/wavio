@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Cliente } from '../domain/types';
 import { NotFoundError } from '../domain/errors';
+import { normalizePhoneE164 } from '../common/utils/phone.util';
 
 @Injectable()
 export class ClientesRepository {
@@ -40,7 +41,7 @@ export class ClientesRepository {
 
   async findByTelefono(telefono: string, negocioId: number): Promise<Cliente | null> {
     const record = await this.prisma.cliente.findUnique({
-      where: { negocioId_telefono: { negocioId, telefono } },
+      where: { negocioId_telefono: { negocioId, telefono: normalizePhoneE164(telefono) } },
     });
     return record;
   }
@@ -52,7 +53,12 @@ export class ClientesRepository {
     email?: string;
     notas?: string;
   }): Promise<Cliente> {
-    const record = await this.prisma.cliente.create({ data });
+    const record = await this.prisma.cliente.create({
+      data: {
+        ...data,
+        telefono: normalizePhoneE164(data.telefono),
+      },
+    });
     return record;
   }
 
@@ -67,7 +73,12 @@ export class ClientesRepository {
     if (!existing) throw new NotFoundError('Cliente');
 
     const record = await this.prisma.cliente.update({
-      where: { id },
+      where: {
+        negocioId_telefono: {
+          negocioId,
+          telefono: existing.telefono,
+        },
+      },
       data,
     });
     return record;
@@ -80,7 +91,12 @@ export class ClientesRepository {
     if (!existing) throw new NotFoundError('Cliente');
 
     await this.prisma.cliente.delete({
-      where: { id },
+      where: {
+        negocioId_telefono: {
+          negocioId,
+          telefono: existing.telefono,
+        },
+      },
     });
   }
 
@@ -95,7 +111,7 @@ export class ClientesRepository {
       where: {
         clienteTelefono: cliente.telefono,
         negocioId,
-        estado: 'NO_SHOW',
+        estado: 'NO_ASISTIO',
       },
     });
   }

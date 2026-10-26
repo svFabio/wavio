@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizePhoneE164 } from '../../common/utils/phone.util';
 
 export const validarCitaSchema = z.object({
   accion: z.enum(['CONFIRMAR', 'APROBAR', 'CANCELAR', 'RECHAZAR'], {
@@ -8,7 +9,10 @@ export const validarCitaSchema = z.object({
 
 export const crearCitaAdminSchema = z.object({
   clienteNombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  clienteTelefono: z.string().min(8, 'El teléfono debe tener al menos 8 dígitos numéricos'),
+  clienteTelefono: z
+    .string()
+    .min(8, 'El teléfono debe tener al menos 8 dígitos numéricos')
+    .transform((val) => normalizePhoneE164(val)),
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido. Use YYYY-MM-DD'),
   horario: z.string().min(1, 'El horario es requerido'),
   monto: z.number().min(0, 'El monto no puede ser negativo').optional(),
