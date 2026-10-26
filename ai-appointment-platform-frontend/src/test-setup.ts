@@ -5,6 +5,64 @@ import { handlers } from './__tests__/mocks/handlers';
 
 export const server = setupServer(...handlers);
 
+class MockStorage implements Storage {
+  private store = new Map<string, string>();
+
+  get length(): number {
+    return this.store.size;
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.store.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    const keys = Array.from(this.store.keys());
+    return keys[index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, String(value));
+  }
+}
+
+const mockLocalStorage = new MockStorage();
+const mockSessionStorage = new MockStorage();
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: mockLocalStorage,
+  configurable: true,
+  writable: true,
+});
+
+Object.defineProperty(globalThis, 'sessionStorage', {
+  value: mockSessionStorage,
+  configurable: true,
+  writable: true,
+});
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: mockLocalStorage,
+    configurable: true,
+    writable: true,
+  });
+
+  Object.defineProperty(window, 'sessionStorage', {
+    value: mockSessionStorage,
+    configurable: true,
+    writable: true,
+  });
+}
+
 beforeAll(() => {
   if (!HTMLFormElement.prototype.requestSubmit) {
     HTMLFormElement.prototype.requestSubmit = function (submitter) {
@@ -40,5 +98,9 @@ beforeAll(() => {
   });
 });
 
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  mockSessionStorage.clear();
+  mockLocalStorage.clear();
+});
 afterAll(() => server.close());

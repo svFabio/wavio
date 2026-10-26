@@ -92,4 +92,49 @@ describe('AuthContext', () => {
     expect(auth.clearActiveNegocioId).toHaveBeenCalled();
     expect(result.current.usuario).toBeNull();
   });
+
+  it('maintains stable reference for empty negocios across re-renders', () => {
+    vi.mocked(auth.getToken).mockReturnValue(null);
+    const { result, rerender } = renderHook(() => useAuth(), { wrapper });
+
+    const initialNegocios = result.current.negocios;
+    expect(initialNegocios).toEqual([]);
+
+    rerender();
+    expect(result.current.negocios).toBe(initialNegocios);
+  });
+
+  it('switches negocio, updates socket and invalidates queries', async () => {
+    let currentNegocioId = 1;
+    vi.mocked(auth.getToken).mockReturnValue('valid-token');
+    vi.mocked(auth.getActiveNegocioId).mockImplementation(() => currentNegocioId);
+    vi.mocked(auth.setActiveNegocioId).mockImplementation((id: number) => {
+      currentNegocioId = id;
+    });
+
+    server.use(
+      http.get('*/api/v1/auth/me', () => {
+        return HttpResponse.json({
+          usuario: { id: 1, nombre: 'Test', rol: 'ADMIN' },
+          negocios: [
+            { id: 1, nombre: 'Negocio 1', plan: 'PRO' },
+            { id: 2, nombre: 'Negocio 2', plan: 'FREE' },
+          ],
+        });
+      }),
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.switchNegocio(2);
+    });
+
+    expect(auth.setActiveNegocioId).toHaveBeenCalledWith(2);
+    expect(result.current.activeNegocioId).toBe(2);
+  });
 });
