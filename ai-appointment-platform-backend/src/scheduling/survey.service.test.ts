@@ -119,5 +119,25 @@ describe('SurveyService', () => {
       expect(mockEvents.sendWhatsAppMessage).toHaveBeenCalled();
       expect(mockAppointmentRepo.markSurveySent).toHaveBeenCalledWith(1);
     });
+
+    it('should continue processing remaining citas if sending fails for one cita', async () => {
+      mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
+      mockAppointmentRepo.findCompletedForSurvey.mockResolvedValue([
+        cita({ id: 1, horario: '10:00' }, '2026-07-27'),
+        cita({ id: 2, horario: '10:30' }, '2026-07-27'),
+      ]);
+      mockNegocio.findByIdsForInternal.mockResolvedValue(
+        new Map([[1, { waAccessToken: 'token', waPhoneNumberId: '123' }]]),
+      );
+      mockEvents.sendWhatsAppMessage
+        .mockRejectedValueOnce(new Error('WhatsApp service down'))
+        .mockResolvedValueOnce(undefined);
+
+      await service.handleSurveys();
+
+      expect(mockEvents.sendWhatsAppMessage).toHaveBeenCalledTimes(2);
+      expect(mockAppointmentRepo.markSurveySent).not.toHaveBeenCalledWith(1);
+      expect(mockAppointmentRepo.markSurveySent).toHaveBeenCalledWith(2);
+    });
   });
 });

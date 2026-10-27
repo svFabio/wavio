@@ -37,10 +37,10 @@ export class AppointmentRepository {
     desde: Date,
     hasta: Date,
   ): Promise<CitaCandidata[]> {
-    const fechaMin = new Date(desde);
-    fechaMin.setHours(0, 0, 0, 0);
-    const fechaMax = new Date(hasta);
-    fechaMax.setHours(23, 59, 59, 999);
+    const desdeStr = desde.toISOString().slice(0, 10);
+    const hastaStr = hasta.toISOString().slice(0, 10);
+    const fechaMin = new Date(`${desdeStr}T00:00:00.000Z`);
+    const fechaMax = new Date(`${hastaStr}T23:59:59.999Z`);
 
     return this.prisma.cita.findMany({
       where: {
@@ -75,9 +75,6 @@ export class AppointmentRepository {
    * Exact cutoff matching happens in the domain layer.
    */
   async findCompletedForSurvey(negocioId: number, cutoff: Date): Promise<CitaEncuestaCandidata[]> {
-    const fechaMin = new Date(cutoff);
-    fechaMin.setHours(0, 0, 0, 0);
-
     return this.prisma.cita.findMany({
       where: {
         negocioId,

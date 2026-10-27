@@ -121,6 +121,26 @@ describe('ReminderService', () => {
       expect(mockEvents.sendWhatsAppMessage).toHaveBeenCalled();
       expect(mockAppointmentRepo.markReminderSent).toHaveBeenCalledWith(1, '24h');
     });
+
+    it('should continue processing remaining citas if sending fails for one cita', async () => {
+      mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
+      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
+        cita({ id: 1, horario: '12:00' }, '2026-07-29'),
+        cita({ id: 2, horario: '12:30' }, '2026-07-29'),
+      ]);
+      mockNegocio.findByIdsForInternal.mockResolvedValue(
+        new Map([[1, { waAccessToken: 'token', waPhoneNumberId: '123' }]]),
+      );
+      mockEvents.sendWhatsAppMessage
+        .mockRejectedValueOnce(new Error('WhatsApp API error'))
+        .mockResolvedValueOnce(undefined);
+
+      await service.handleReminders24h();
+
+      expect(mockEvents.sendWhatsAppMessage).toHaveBeenCalledTimes(2);
+      expect(mockAppointmentRepo.markReminderSent).not.toHaveBeenCalledWith(1, '24h');
+      expect(mockAppointmentRepo.markReminderSent).toHaveBeenCalledWith(2, '24h');
+    });
   });
 
   describe('handleReminders1h', () => {
@@ -149,6 +169,26 @@ describe('ReminderService', () => {
       await service.handleReminders1h();
 
       expect(mockEvents.sendWhatsAppMessage).not.toHaveBeenCalled();
+    });
+
+    it('should continue processing remaining citas if sending fails for one cita', async () => {
+      mockNegocio.getActiveBusinessIds.mockResolvedValue([1]);
+      mockAppointmentRepo.findUpcomingForReminder.mockResolvedValue([
+        cita({ id: 2, horario: '13:00' }, '2026-07-28'),
+        cita({ id: 3, horario: '13:05' }, '2026-07-28'),
+      ]);
+      mockNegocio.findByIdsForInternal.mockResolvedValue(
+        new Map([[1, { waAccessToken: 'token', waPhoneNumberId: '456' }]]),
+      );
+      mockEvents.sendWhatsAppMessage
+        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockResolvedValueOnce(undefined);
+
+      await service.handleReminders1h();
+
+      expect(mockEvents.sendWhatsAppMessage).toHaveBeenCalledTimes(2);
+      expect(mockAppointmentRepo.markReminderSent).not.toHaveBeenCalledWith(2, '1h');
+      expect(mockAppointmentRepo.markReminderSent).toHaveBeenCalledWith(3, '1h');
     });
   });
 });
