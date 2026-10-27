@@ -45,24 +45,16 @@ describe('CalendarController', () => {
   });
 
   describe('handleCallback', () => {
-    it('throws when code is missing', async () => {
-      await expect(controller.handleCallback(1, '', '1')).rejects.toThrow(ValidationError);
-    });
-
-    it('throws when state is missing', async () => {
-      await expect(controller.handleCallback(1, 'valid_code', '')).rejects.toThrow(ValidationError);
-    });
-
     it('throws when state does not match authenticated business', async () => {
-      await expect(controller.handleCallback(1, 'valid_code', '2')).rejects.toThrow(
-        ValidationError,
-      );
+      await expect(
+        controller.handleCallback(1, { code: 'valid_code', state: '2' }),
+      ).rejects.toThrow(ValidationError);
     });
 
     it('handles callback successfully when state matches', async () => {
       mockGoogleCalendarService.handleCallback.mockResolvedValue({ calendarId: 'primary' });
 
-      const result = await controller.handleCallback(1, 'valid_code', '1');
+      const result = await controller.handleCallback(1, { code: 'valid_code', state: '1' });
       expect(result).toEqual({ success: true, calendarId: 'primary' });
       expect(mockGoogleCalendarService.handleCallback).toHaveBeenCalledWith('valid_code', 1);
     });

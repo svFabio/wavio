@@ -16,6 +16,7 @@ const mockOAuth2GetToken = vi.hoisted(() => vi.fn());
 const mockOAuth2SetCredentials = vi.hoisted(() => vi.fn());
 const mockCalendarList = vi.hoisted(() => vi.fn());
 const mockCalendarEventsInsert = vi.hoisted(() => vi.fn());
+const mockCalendarEventsPatch = vi.hoisted(() => vi.fn());
 const mockCalendarEventsDelete = vi.hoisted(() => vi.fn());
 
 vi.mock('googleapis', () => ({
@@ -34,6 +35,7 @@ vi.mock('googleapis', () => ({
         calendarList: { list: mockCalendarList },
         events: {
           insert: mockCalendarEventsInsert,
+          patch: mockCalendarEventsPatch,
           delete: mockCalendarEventsDelete,
         },
       };
@@ -61,6 +63,7 @@ describe('GoogleCalendarService', () => {
     mockOAuth2SetCredentials.mockReset();
     mockCalendarList.mockReset();
     mockCalendarEventsInsert.mockReset();
+    mockCalendarEventsPatch.mockReset();
     mockCalendarEventsDelete.mockReset();
   });
 
@@ -155,6 +158,45 @@ describe('GoogleCalendarService', () => {
           calendarId: 'business@google.com',
           requestBody: expect.objectContaining({
             summary: 'Corte Premium — María',
+            start: {
+              dateTime: '2026-08-15T14:30:00',
+              timeZone: 'America/La_Paz',
+            },
+            end: {
+              dateTime: '2026-08-15T16:00:00',
+              timeZone: 'America/La_Paz',
+            },
+          }),
+        }),
+      );
+    });
+
+    it('should use configured business timezone when provided', async () => {
+      mockCalendarRepository.getCalendarCredentials.mockResolvedValue({
+        ...mockCredentials,
+        isGoogleCalendarConnected: true,
+        timezone: 'America/Santiago',
+      });
+      const cita = buildCita(1, {
+        fecha: new Date('2026-09-10'),
+        horario: '10:00',
+        duracionMinutos: 60,
+      }) as unknown as Cita;
+      mockCalendarEventsInsert.mockResolvedValue({ data: { id: 'evt_stg' } });
+
+      await service.createEvent(1, cita);
+
+      expect(mockCalendarEventsInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: expect.objectContaining({
+            start: {
+              dateTime: '2026-09-10T10:00:00',
+              timeZone: 'America/Santiago',
+            },
+            end: {
+              dateTime: '2026-09-10T11:00:00',
+              timeZone: 'America/Santiago',
+            },
           }),
         }),
       );
@@ -177,6 +219,49 @@ describe('GoogleCalendarService', () => {
 
       const cita = buildCita(1) as unknown as Cita;
       await expect(service.createEvent(1, cita)).rejects.toThrow(ExternalServiceError);
+    });
+  });
+
+  /* ─── updateEvent ───────────────────────────────────────────────── */
+
+  describe('updateEvent', () => {
+    it('should patch a calendar event and return true', async () => {
+      mockCalendarRepository.getCalendarCredentials.mockResolvedValue({
+        googleCalendarAccessToken: 'at_123',
+        googleCalendarRefreshToken: 'rt_123',
+        googleCalendarId: 'business@google.com',
+        isGoogleCalendarConnected: true,
+        timezone: 'America/La_Paz',
+      });
+      const cita = buildCita(1, {
+        id: 99,
+        fecha: new Date('2026-08-16'),
+        horario: '16:00',
+        servicio: 'Corte Premium',
+        duracionMinutos: 60,
+      }) as unknown as Cita;
+
+      mockCalendarEventsPatch.mockResolvedValue({ data: { id: 'evt_999' } });
+
+      const result = await service.updateEvent(1, 'evt_999', cita);
+
+      expect(result).toBe(true);
+      expect(mockCalendarEventsPatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          calendarId: 'business@google.com',
+          eventId: 'evt_999',
+          requestBody: expect.objectContaining({
+            start: {
+              dateTime: '2026-08-16T16:00:00',
+              timeZone: 'America/La_Paz',
+            },
+            end: {
+              dateTime: '2026-08-16T17:00:00',
+              timeZone: 'America/La_Paz',
+            },
+          }),
+        }),
+      );
     });
   });
 

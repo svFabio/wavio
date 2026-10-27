@@ -1,29 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Negocio } from '@prisma/client';
 
 @Injectable()
 export class CalendarRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getCalendarCredentials(
-    negocioId: number,
-  ): Promise<Pick<
-    Negocio,
-    | 'googleCalendarAccessToken'
-    | 'googleCalendarRefreshToken'
-    | 'googleCalendarId'
-    | 'isGoogleCalendarConnected'
-  > | null> {
-    return this.prisma.negocio.findUnique({
+  async getCalendarCredentials(negocioId: number): Promise<{
+    googleCalendarAccessToken: string | null;
+    googleCalendarRefreshToken: string | null;
+    googleCalendarId: string | null;
+    isGoogleCalendarConnected: boolean;
+    timezone?: string | null;
+  } | null> {
+    const record = await this.prisma.negocio.findUnique({
       where: { id: negocioId },
       select: {
         googleCalendarAccessToken: true,
         googleCalendarRefreshToken: true,
         googleCalendarId: true,
         isGoogleCalendarConnected: true,
+        configuracion: { select: { timezone: true } },
       },
     });
+
+    if (!record) return null;
+
+    return {
+      googleCalendarAccessToken: record.googleCalendarAccessToken,
+      googleCalendarRefreshToken: record.googleCalendarRefreshToken,
+      googleCalendarId: record.googleCalendarId,
+      isGoogleCalendarConnected: record.isGoogleCalendarConnected,
+      timezone: record.configuracion?.timezone ?? null,
+    };
   }
 
   async saveCalendarTokens(
