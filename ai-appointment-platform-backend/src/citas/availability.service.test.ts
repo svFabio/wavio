@@ -19,18 +19,16 @@ describe('AvailabilityService', () => {
         activo: true,
       }),
       findHorarioEspecial: vi.fn().mockResolvedValue(null),
-      findHorariosNegocio: vi
-        .fn()
-        .mockResolvedValue([
-          {
-            id: 1,
-            negocioId: 1,
-            diaSemana: 0,
-            horaInicio: '09:00',
-            horaFin: '11:00',
-            activo: true,
-          },
-        ]),
+      findHorariosNegocio: vi.fn().mockResolvedValue([
+        {
+          id: 1,
+          negocioId: 1,
+          diaSemana: 0,
+          horaInicio: '09:00',
+          horaFin: '11:00',
+          activo: true,
+        },
+      ]),
       findHorarioStaff: vi.fn().mockResolvedValue(null),
       findCitasDelDia: vi.fn().mockResolvedValue([]),
     };
