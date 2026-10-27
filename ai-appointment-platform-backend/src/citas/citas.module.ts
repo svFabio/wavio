@@ -3,6 +3,7 @@ import { CitasController } from './citas.controller';
 import { CitasService } from './citas.service';
 import { CitasRepository } from './citas.repository';
 import { AvailabilityRepository } from './availability.repository';
+import { AvailabilityService } from './availability.service';
 import { NegocioModule } from '../negocio/negocio.module';
 import { ChatModule } from '../chat/chat.module';
 import { EventsModule } from '../events/events.module';
@@ -20,7 +21,7 @@ import { WaitlistModule } from '../waitlist/waitlist.module';
     forwardRef(() => WaitlistModule),
   ],
   controllers: [CitasController],
-  providers: [CitasService, CitasRepository, AvailabilityRepository],
-  exports: [CitasService, AvailabilityRepository],
+  providers: [CitasService, CitasRepository, AvailabilityRepository, AvailabilityService],
+  exports: [CitasService, AvailabilityRepository, AvailabilityService],
 })
 export class CitasModule {}

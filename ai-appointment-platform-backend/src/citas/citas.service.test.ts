@@ -44,12 +44,8 @@ vi.mock('../config/env', () => ({
   },
 }));
 
-vi.mock('../scheduling/availability-engine', () => ({
-  getSlotsDisponibles: vi.fn(),
-}));
-
-import { getSlotsDisponibles } from '../scheduling/availability-engine';
-const mockGetSlotsDisponibles = vi.mocked(getSlotsDisponibles);
+import { AvailabilityService } from './availability.service';
+let mockGetSlotsDisponibles: ReturnType<typeof vi.fn>;
 
 const anyDate = expect.any(Date);
 
@@ -71,7 +67,7 @@ describe('CitasService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-28T00:00:00.000Z'));
-    mockGetSlotsDisponibles.mockClear();
+    mockGetSlotsDisponibles = vi.fn();
 
     mockCitasRepository = {
       getPendientes: vi.fn(),
@@ -117,6 +113,7 @@ describe('CitasService', () => {
     service = new CitasService(
       mockCitasRepository as unknown as CitasRepository,
       mockAvailabilityRepository as unknown as AvailabilityRepository,
+      { getSlotsDisponibles: mockGetSlotsDisponibles } as unknown as AvailabilityService,
       mockNegocioService as unknown as NegocioService,
       mockChatService as unknown as ChatService,
       mockEventsService as unknown as EventsService,
@@ -453,7 +450,6 @@ describe('CitasService', () => {
 
       expect(result).toEqual(['09:00', '10:00']);
       expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(
-        mockAvailabilityRepository,
         expect.objectContaining({ negocioId, servicioId: 1, fecha: '2026-07-29' }),
       );
     });
@@ -478,7 +474,6 @@ describe('CitasService', () => {
 
       expect(mockAvailabilityRepository.findPrimerServicioActivo).toHaveBeenCalledWith(negocioId);
       expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(
-        mockAvailabilityRepository,
         expect.objectContaining({ servicioId: 42 }),
       );
     });
@@ -499,10 +494,7 @@ describe('CitasService', () => {
 
       await service.getHorariosDisponibles(negocioId, '2026-07-29', 1, 3);
 
-      expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(
-        mockAvailabilityRepository,
-        expect.objectContaining({ staffId: 3 }),
-      );
+      expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(expect.objectContaining({ staffId: 3 }));
     });
   });
 
@@ -753,10 +745,7 @@ describe('CitasService', () => {
 
       await service.reprogramarCita(1, negocioId, '2026-07-30', '14:00');
 
-      expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(
-        mockAvailabilityRepository,
-        expect.objectContaining({ staffId: 3 }),
-      );
+      expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(expect.objectContaining({ staffId: 3 }));
     });
   });
 
@@ -1213,7 +1202,7 @@ describe('CitasService', () => {
 
       const result = await service.getSlotDisponibles(params);
 
-      expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(mockAvailabilityRepository, params);
+      expect(mockGetSlotsDisponibles).toHaveBeenCalledWith(params);
       expect(result).toEqual(expectedSlots);
     });
   });
@@ -1335,6 +1324,7 @@ describe('CitasService', () => {
       serviceWithCalendar = new CitasService(
         mockCitasRepository as unknown as CitasRepository,
         mockAvailabilityRepository as unknown as AvailabilityRepository,
+        { getSlotsDisponibles: mockGetSlotsDisponibles } as unknown as AvailabilityService,
         mockNegocioService as unknown as NegocioService,
         mockChatService as unknown as ChatService,
         mockEventsService as unknown as EventsService,
@@ -1472,6 +1462,7 @@ describe('CitasService', () => {
       serviceWithWaitlist = new CitasService(
         mockCitasRepository as unknown as CitasRepository,
         mockAvailabilityRepository as unknown as AvailabilityRepository,
+        { getSlotsDisponibles: mockGetSlotsDisponibles } as unknown as AvailabilityService,
         mockNegocioService as unknown as NegocioService,
         mockChatService as unknown as ChatService,
         mockEventsService as unknown as EventsService,

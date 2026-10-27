@@ -61,8 +61,8 @@ describe('WaitlistRepository', () => {
   });
 
   describe('getPendingForDate', () => {
-    it('should return pending entries for a given date', async () => {
-      const fecha = new Date(2026, 7, 1);
+    it('should return pending entries for a given date using UTC boundaries', async () => {
+      const fecha = new Date('2026-08-01T00:00:00.000Z');
       const mockEntries = [
         {
           id: 1,
@@ -83,8 +83,8 @@ describe('WaitlistRepository', () => {
           negocioId: 1,
           estado: 'PENDIENTE',
           fechaPreferida: {
-            gte: new Date(2026, 7, 1),
-            lt: new Date(2026, 7, 2),
+            gte: new Date('2026-08-01T00:00:00.000Z'),
+            lte: new Date('2026-08-01T23:59:59.999Z'),
           },
         },
         orderBy: { creadoEn: 'asc' },

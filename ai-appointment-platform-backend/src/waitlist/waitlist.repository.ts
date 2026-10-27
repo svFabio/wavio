@@ -15,13 +15,19 @@ export class WaitlistRepository {
       horarioPreferido?: string;
     },
   ): Promise<{ id: number }> {
+    const isoDate =
+      data.fechaPreferida instanceof Date
+        ? data.fechaPreferida.toISOString().split('T')[0]
+        : String(data.fechaPreferida).split('T')[0];
+    const fechaUtc = new Date(`${isoDate}T00:00:00.000Z`);
+
     const result = await this.prisma.listaEspera.create({
       data: {
         negocioId,
         clienteNombre: data.clienteNombre,
         clienteTelefono: data.clienteTelefono,
         servicioId: data.servicioId ?? null,
-        fechaPreferida: data.fechaPreferida,
+        fechaPreferida: fechaUtc,
         horarioPreferido: data.horarioPreferido ?? null,
       },
     });
@@ -41,13 +47,18 @@ export class WaitlistRepository {
       creadoEn: Date;
     }>
   > {
+    const isoDate =
+      fecha instanceof Date ? fecha.toISOString().split('T')[0] : String(fecha).split('T')[0];
+    const inicioUtc = new Date(`${isoDate}T00:00:00.000Z`);
+    const finUtc = new Date(`${isoDate}T23:59:59.999Z`);
+
     return this.prisma.listaEspera.findMany({
       where: {
         negocioId,
         estado: 'PENDIENTE',
         fechaPreferida: {
-          gte: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()),
-          lt: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1),
+          gte: inicioUtc,
+          lte: finUtc,
         },
       },
       orderBy: { creadoEn: 'asc' },

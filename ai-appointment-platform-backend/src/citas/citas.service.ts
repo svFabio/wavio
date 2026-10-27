@@ -9,7 +9,7 @@ import { GoogleCalendarService } from '../calendar/google-calendar.service';
 import { WaitlistService } from '../waitlist/waitlist.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita, Slot, DisponibilidadParams } from '../domain/types';
-import { getSlotsDisponibles } from '../scheduling/availability-engine';
+import { AvailabilityService } from './availability.service';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 
 @Injectable()
@@ -19,6 +19,7 @@ export class CitasService {
   constructor(
     private readonly citasRepository: CitasRepository,
     private readonly availabilityRepository: AvailabilityRepository,
+    private readonly availabilityService: AvailabilityService,
     private readonly negocioService: NegocioService,
     private readonly chatService: ChatService,
     private readonly eventsService: EventsService,
@@ -273,7 +274,7 @@ export class CitasService {
     }
 
     const config = await this.negocioService.getConfiguracion(negocioId);
-    const slots = await getSlotsDisponibles(this.availabilityRepository, {
+    const slots = await this.availabilityService.getSlotsDisponibles({
       negocioId,
       servicioId: resolvedServicioId,
       fecha: fechaStr,
@@ -321,7 +322,7 @@ export class CitasService {
 
     if (servicioId) {
       const config = await this.negocioService.getConfiguracion(negocioId);
-      const slots = await getSlotsDisponibles(this.availabilityRepository, {
+      const slots = await this.availabilityService.getSlotsDisponibles({
         negocioId,
         servicioId,
         fecha,
@@ -399,7 +400,7 @@ export class CitasService {
 
     if (citaActual.servicioId) {
       const config = await this.negocioService.getConfiguracion(negocioId);
-      const slots = await getSlotsDisponibles(this.availabilityRepository, {
+      const slots = await this.availabilityService.getSlotsDisponibles({
         negocioId,
         servicioId: citaActual.servicioId,
         fecha,
@@ -775,7 +776,7 @@ export class CitasService {
   }
 
   async getSlotDisponibles(params: DisponibilidadParams): Promise<Slot[]> {
-    return getSlotsDisponibles(this.availabilityRepository, params);
+    return this.availabilityService.getSlotsDisponibles(params);
   }
 
   async updateLastAppointmentRating(
