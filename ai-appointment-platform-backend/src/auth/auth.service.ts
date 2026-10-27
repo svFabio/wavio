@@ -9,6 +9,7 @@ import {
   ConflictError,
   NotFoundError,
   GoogleEmailNotVerifiedError,
+  AppError,
 } from '../domain/errors';
 import { AuthRepository } from './auth.repository';
 import { uploadBase64Image } from '../lib/cloudinary';
@@ -324,12 +325,15 @@ export class AuthService {
   }
 
   /**
-   * Reset de contraseña por email (superficie de contrato).
-   * TODO: sin un canal de email/WhatsApp no podemos entregar un token de reset,
-   * así que NO se genera nada y se responde { ok: true } SIEMPRE para evitar
-   * enumeración de usuarios. Implementar el delivery real cuando exista el canal.
+   * Reset de contraseña por email (Issue #86).
+   * Sin canal de email implementado, responde HTTP 501 Not Implemented de forma incondicional
+   * antes de cualquier consulta a base de datos, garantizando cero enumeración de usuarios.
    */
-  async resetPassword(_email: string): Promise<{ ok: boolean }> {
-    return { ok: true };
+  async resetPassword(_email: string): Promise<never> {
+    throw new AppError(
+      'El servicio de recuperación de contraseña no está disponible temporalmente.',
+      501,
+      'NOT_IMPLEMENTED',
+    );
   }
 }

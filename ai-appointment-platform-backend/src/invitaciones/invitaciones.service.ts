@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { env } from '../config/env';
-import { BCRYPT_SALT_ROUNDS, INVITE_EXPIRES_IN_HOURS, BACKEND_URL_FALLBACK } from '../config';
+import { BCRYPT_SALT_ROUNDS, INVITE_EXPIRES_IN_HOURS, FRONTEND_URL_FALLBACK } from '../config';
 import { InvitacionesRepository } from './invitaciones.repository';
 import { ConflictError, ValidationError, NotFoundError, ForbiddenError } from '../domain/errors';
 
@@ -37,8 +37,8 @@ export class InvitacionesService {
   constructor(private readonly invitacionesRepository: InvitacionesRepository) {}
 
   private buildAcceptUrl(rawToken: string): string {
-    const baseUrl = (env.BACKEND_URL ?? BACKEND_URL_FALLBACK).replace(/\/+$/, '');
-    return `${baseUrl}/api/v1/invitaciones/aceptar/${rawToken}`;
+    const baseUrl = (env.FRONTEND_URL ?? FRONTEND_URL_FALLBACK).replace(/\/+$/, '');
+    return `${baseUrl}/invitaciones/aceptar/${rawToken}`;
   }
 
   private computeExpiration(): Date {

@@ -6,6 +6,7 @@ import {
   ConflictError,
   NotFoundError,
   GoogleEmailNotVerifiedError,
+  AppError,
 } from '../domain/errors';
 import { JWT_EXPIRES_IN } from '../config';
 vi.hoisted(() => {
@@ -960,10 +961,15 @@ describe('AuthService', () => {
   /* ─── resetPassword ──────────────────────────────────────────────── */
 
   describe('resetPassword', () => {
-    it('should always return ok without generating anything (no email channel yet)', async () => {
-      const result = await service.resetPassword('anyone@test.com');
-
-      expect(result).toEqual({ ok: true });
+    it('should throw AppError 501 NOT_IMPLEMENTED without querying database', async () => {
+      await expect(service.resetPassword('anyone@test.com')).rejects.toThrow(AppError);
+      try {
+        await service.resetPassword('anyone@test.com');
+      } catch (err) {
+        expect(err).toBeInstanceOf(AppError);
+        expect((err as AppError).statusCode).toBe(501);
+        expect((err as AppError).code).toBe('NOT_IMPLEMENTED');
+      }
       expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
     });
   });
