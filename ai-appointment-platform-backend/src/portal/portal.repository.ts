@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Cita } from '../domain/types';
+import { ConflictError } from '../domain/errors';
 
 @Injectable()
 export class PortalRepository {
@@ -115,6 +116,13 @@ export class PortalRepository {
   }
 
   async createCita(data: Prisma.CitaUncheckedCreateInput): Promise<void> {
-    await this.prisma.cita.create({ data });
+    try {
+      await this.prisma.cita.create({ data });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictError('Ese horario ya fue reservado por otro cliente');
+      }
+      throw error;
+    }
   }
 }

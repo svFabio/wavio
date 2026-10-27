@@ -7,3 +7,8 @@ export const bookAppointmentSchema = z.object({
 });
 
 export type BookAppointmentDto = z.infer<typeof bookAppointmentSchema>;
+
+export const availableSlotsQuerySchema = z.object({
+  fecha: z.string().min(1, 'La fecha es requerida'),
+  servicioId: z.coerce.number().int().optional(),
+});

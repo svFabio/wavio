@@ -46,6 +46,7 @@ describe('ChatService', () => {
 
     mockEventsService = {
       emitConversacionEliminada: vi.fn(),
+      emitNuevoMensaje: vi.fn(),
     };
 
     service = new ChatService(
@@ -160,6 +161,13 @@ describe('ChatService', () => {
           contenido: 'Hola',
           direccion: 'SALIENTE',
           waMessageId: 'wamid_abc',
+        }),
+      );
+      expect(mockEventsService.emitNuevoMensaje).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          remoteJid: jid,
+          mensaje: expect.objectContaining({ contenido: 'Hola' }),
         }),
       );
     });

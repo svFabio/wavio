@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { PortalRepository } from './portal.repository';
 import { createMockPrisma } from '../__tests__/mocks/prisma';
 import type { MockPrisma } from '../__tests__/mocks/prisma';
+import { ConflictError } from '../domain/errors';
 
 describe('PortalRepository', () => {
   let repository: PortalRepository;
@@ -278,6 +280,25 @@ describe('PortalRepository', () => {
       await repository.createCita(data);
 
       expect(prisma.cita.create).toHaveBeenCalledWith({ data });
+    });
+
+    it('should throw ConflictError on P2002 error', async () => {
+      const data = {
+        negocioId: 1,
+        fecha: new Date('2026-08-01'),
+        horario: '10:00',
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '+521234567890',
+        servicio: 'Corte',
+        monto: 0,
+      };
+      const p2002Error = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '5.0.0',
+      });
+      prisma.cita.create.mockRejectedValue(p2002Error);
+
+      await expect(repository.createCita(data)).rejects.toThrow(ConflictError);
     });
   });
 });
