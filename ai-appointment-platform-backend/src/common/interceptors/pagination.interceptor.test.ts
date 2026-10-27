@@ -132,6 +132,27 @@ describe('PaginationInterceptor', () => {
     expect(result).toBe(paginatedResponse);
   });
 
+  it('should correctly format response that has data and total but no pagination wrapper', async () => {
+    const rawResponse = {
+      data: [{ id: 1 }, { id: 2 }],
+      total: 2,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    };
+    const context = createContext({});
+    const next = createNext(rawResponse);
+
+    const result = await new Promise<unknown>((resolve, nextFn) => {
+      interceptor.intercept(context, next as never).subscribe(resolve, nextFn);
+    });
+
+    expect(result).toEqual({
+      data: [{ id: 1 }, { id: 2 }],
+      pagination: { page: 1, limit: 10, total: 2, totalPages: 1 },
+    });
+  });
+
   it('should set request.pagination for downstream use', async () => {
     const req: Record<string, unknown> = { query: { page: '3', limit: '15' } };
     const context = {

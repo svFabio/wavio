@@ -121,11 +121,20 @@ describe('AvailabilityService', () => {
       fecha: today,
     });
 
-    // Slots must not include times in the past
-    const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+    // Slots must not include times in the past in the business timezone
+    const timeParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/La_Paz',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const ahoraH = Number(timeParts.find((p) => p.type === 'hour')?.value ?? '0');
+    const ahoraM = Number(timeParts.find((p) => p.type === 'minute')?.value ?? '0');
+    const nowMinutes = ahoraH * 60 + ahoraM;
+
     for (const slot of slots) {
       const [h, m] = slot.inicio.split(':').map(Number);
-      expect(h * 60 + m).toBeGreaterThan(nowMinutes - 120);
+      expect(h * 60 + m).toBeGreaterThan(nowMinutes);
     }
   });
 });
