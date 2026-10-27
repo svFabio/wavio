@@ -1,21 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockGenerateContent, mockText, mockResponse, genAICalls } = vi.hoisted(() => {
+const { mockGenerateContent, mockText, mockResponse, genAICalls, modelCalls } = vi.hoisted(() => {
   const mockGenerateContent = vi.fn();
   const mockText = vi.fn();
   const mockResponse = { response: { text: mockText } };
   const genAICalls: string[] = [];
-  return { mockGenerateContent, mockText, mockResponse, genAICalls };
+  const modelCalls: Array<{ model: string }> = [];
+  return { mockGenerateContent, mockText, mockResponse, genAICalls, modelCalls };
 });
 
 vi.mock('@google/generative-ai', () => {
   function MockGoogleGenerativeAI(
-    this: { apiKey: string; getGenerativeModel: () => unknown },
+    this: { apiKey: string; getGenerativeModel: (opts: { model: string }) => unknown },
     apiKey: string,
   ) {
     this.apiKey = apiKey;
     genAICalls.push(apiKey);
-    this.getGenerativeModel = () => ({ generateContent: mockGenerateContent });
+    this.getGenerativeModel = (opts: { model: string }) => {
+      modelCalls.push(opts);
+      return { generateContent: mockGenerateContent };
+    };
   }
   return {
     GoogleGenerativeAI: MockGoogleGenerativeAI,
@@ -25,7 +29,7 @@ vi.mock('@google/generative-ai', () => {
 });
 
 vi.mock('../config/env', () => ({
-  env: { GEMINI_API_KEY: 'global-key' },
+  env: { GEMINI_API_KEY: 'global-key', GEMINI_MODEL: 'gemini-1.5-flash' },
 }));
 
 vi.mock('../lib/logger', () => ({
@@ -171,6 +175,63 @@ describe('ai-engine', () => {
 
       expect(result.intencion).toBe('CONSULTAR');
       expect(result.respuestaSugerida).toBe('Hay horarios a las 09:00 y 10:00.');
+    });
+
+    it('should handle natural conversational follow-up response without JSON format when agendar_cita is executed', async () => {
+      const ejecutarHerramienta = vi.fn().mockResolvedValue({ ok: true, citaId: 42 });
+
+      const firstResponse = {
+        response: {
+          functionCalls: () => [
+            {
+              name: 'agendar_cita',
+              args: {
+                fecha_hora: '2026-08-05T10:00',
+                cliente_nombre: 'Maria Gomez',
+                cliente_telefono: '+59170012345',
+                servicio_id: 1,
+              },
+            },
+          ],
+        },
+      };
+      const secondResponse = {
+        response: {
+          text: () => '¡Listo Maria! Tu cita quedó confirmada para el 5 de agosto a las 10:00.',
+        },
+      };
+      mockGenerateContent
+        .mockResolvedValueOnce(firstResponse)
+        .mockResolvedValueOnce(secondResponse);
+
+      const result = await procesarMensajeConIA(
+        'Por favor agenda para Maria Gomez el 5 de agosto a las 10:00, tel +59170012345',
+        { estado: 'INICIO', datos: {}, intentosAclaracion: 0 },
+        ['Corte ($100)'],
+        [],
+        [],
+        'custom-key-456',
+        ejecutarHerramienta,
+      );
+
+      expect(ejecutarHerramienta).toHaveBeenCalledWith('agendar_cita', {
+        fecha_hora: '2026-08-05T10:00',
+        cliente_nombre: 'Maria Gomez',
+        cliente_telefono: '+59170012345',
+        servicio_id: 1,
+      });
+      expect(result.intencion).toBe('AGENDAR');
+      expect(result.confianza).toBe(1.0);
+      expect(result.respuestaSugerida).toBe(
+        '¡Listo Maria! Tu cita quedó confirmada para el 5 de agosto a las 10:00.',
+      );
+      expect(result.entidades.fecha).toBe('2026-08-05');
+      expect(result.entidades.hora).toBe('10:00');
+      expect(result.entidades.nombre).toBe('Maria Gomez');
+
+      // Check model used was gemini-1.5-flash
+      expect(modelCalls.some((c) => c.model === 'gemini-1.5-flash')).toBe(true);
+      expect(modelCalls.some((c) => c.model === 'gemini-2.5-flash')).toBe(false);
     });
 
     it('should call generateContent with a plain string when no ejecutarHerramienta is provided', async () => {
