@@ -168,13 +168,17 @@ export const descargarMediaWhatsApp = async (
   }
 
   const META_API_VERSION = env.META_API_VERSION;
+  const safeMediaId = encodeURIComponent(mediaId);
 
   try {
-    const metaResponse = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${mediaId}`, {
-      headers: {
-        Authorization: `Bearer ${credentials.waAccessToken}`,
+    const metaResponse = await fetch(
+      `https://graph.facebook.com/${META_API_VERSION}/${safeMediaId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${credentials.waAccessToken}`,
+        },
       },
-    });
+    );
 
     if (!metaResponse.ok) {
       throw new ExternalServiceError(
@@ -192,7 +196,30 @@ export const descargarMediaWhatsApp = async (
       throw new ExternalServiceError('Meta API no devolvió URL de media', 'WHATSAPP_ERROR', 502);
     }
 
-    const fileResponse = await fetch(mediaUrl, {
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(mediaUrl);
+    } catch {
+      throw new ExternalServiceError('URL de media inválida', 'WHATSAPP_ERROR', 502);
+    }
+
+    const isAllowedHost =
+      parsedUrl.protocol === 'https:' &&
+      (parsedUrl.hostname === 'lookaside.fbsbx.com' ||
+        parsedUrl.hostname === 'graph.facebook.com' ||
+        parsedUrl.hostname.endsWith('.fbcdn.net') ||
+        parsedUrl.hostname.endsWith('.facebook.com') ||
+        parsedUrl.hostname.endsWith('.whatsapp.net'));
+
+    if (!isAllowedHost) {
+      throw new ExternalServiceError(
+        'URL de descarga de WhatsApp no permitida por política de seguridad',
+        'WHATSAPP_ERROR',
+        502,
+      );
+    }
+
+    const fileResponse = await fetch(parsedUrl.toString(), {
       headers: {
         Authorization: `Bearer ${credentials.waAccessToken}`,
       },

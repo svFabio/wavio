@@ -401,11 +401,12 @@ jobs:
         with:
           working-directory: ai-appointment-platform-frontend
           build: pnpm run build
-          start: pnpm exec vite preview --port 4173 --strictPort
-          wait-on: "http://localhost:4173"
+          start: pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort
+          wait-on: "http://127.0.0.1:4173"
           wait-on-timeout: 120
           browser: ${{ matrix.browser }}
-          config: baseUrl=http://localhost:4173,video=true
+          spec: "cypress/e2e/*.cy.ts"
+          config: baseUrl=http://127.0.0.1:4173,video=true
 
       - name: Upload screenshots
         if: failure()
@@ -517,12 +518,12 @@ jobs:
         with:
           working-directory: ai-appointment-platform-frontend
           build: pnpm run build
-          start: pnpm exec vite preview --port 4173 --strictPort
-          wait-on: "http://localhost:4173"
+          start: pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort
+          wait-on: "http://127.0.0.1:4173"
           wait-on-timeout: 120
           browser: ${{ matrix.browser }}
           config-file: cypress.config.real.mjs
-          config: baseUrl=http://localhost:4173,video=true
+          config: baseUrl=http://127.0.0.1:4173,video=true
 
       - name: Backend log
         if: failure()

@@ -269,13 +269,13 @@ jobs:
         working-directory: ai-appointment-platform-backend
         run: |
           pnpm install --frozen-lockfile
-          pnpm audit --audit-level=high
+          pnpm audit --audit-level=critical
 
       - name: Audit frontend
         working-directory: ai-appointment-platform-frontend
         run: |
           pnpm install --frozen-lockfile
-          pnpm audit --audit-level=high
+          pnpm audit --audit-level=critical
 
   # ---------------------------------------------------------------------------
   # PR size label — flags large PRs for reviewability

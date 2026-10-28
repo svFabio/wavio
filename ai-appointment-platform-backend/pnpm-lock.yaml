@@ -15,6 +15,8 @@ overrides:
   nanoid: 3.3.18
   postcss: 8.5.23
 
+pnpmfileChecksum: sha256-vdNXu10tSEGXp2ICDYoWeyYlyWu6ItVyZmPUN1Hqh4I=
+
 importers:
   .:
     dependencies:
@@ -38,10 +40,10 @@ importers:
         version: 11.0.5(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(passport@0.7.0)
       '@nestjs/platform-express':
         specifier: ^11.1.28
-        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)
+        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(supports-color@5.5.0)
       '@nestjs/platform-socket.io':
         specifier: ^11.1.28
-        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/websockets@11.1.28)(rxjs@7.8.2)
+        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/websockets@11.1.28)(rxjs@7.8.2)(supports-color@5.5.0)
       '@nestjs/schedule':
         specifier: ^6.1.3
         version: 6.1.3(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)
@@ -59,7 +61,7 @@ importers:
         version: 5.22.0(prisma@5.22.0)
       '@socket.io/redis-adapter':
         specifier: ^8.3.0
-        version: 8.3.0(socket.io-adapter@2.5.8)
+        version: 8.3.0(socket.io-adapter@2.5.8(supports-color@5.5.0))(supports-color@5.5.0)
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
@@ -83,13 +85,13 @@ importers:
         version: 17.4.2
       express:
         specifier: ^5.2.1
-        version: 5.2.1
+        version: 5.2.1(supports-color@5.5.0)
       google-auth-library:
         specifier: ^10.6.1
-        version: 10.9.0
+        version: 10.9.0(supports-color@5.5.0)
       googleapis:
         specifier: ^173.0.0
-        version: 173.0.0
+        version: 173.0.0(supports-color@5.5.0)
       helmet:
         specifier: ^8.1.0
         version: 8.3.0
@@ -119,13 +121,13 @@ importers:
         version: 7.8.2
       socket.io:
         specifier: ^4.8.3
-        version: 4.8.3
+        version: 4.8.3(supports-color@5.5.0)
       stripe:
         specifier: ^22.3.2
         version: 22.3.2(@types/node@25.9.5)
       web-push:
         specifier: ^3.6.7
-        version: 3.6.7
+        version: 3.6.7(supports-color@5.5.0)
       zod:
         specifier: ^4.3.6
         version: 4.4.3
@@ -135,7 +137,7 @@ importers:
         version: 9.39.5
       '@nestjs/cli':
         specifier: ^11.0.24
-        version: 11.0.24(@types/node@25.9.5)(prettier@3.9.6)
+        version: 11.0.24(@types/node@25.9.5)(lightningcss@1.33.0)(postcss@8.5.23)(prettier@3.9.6)
       '@nestjs/testing':
         specifier: ^11.1.28
         version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(@nestjs/platform-express@11.1.28)
@@ -4024,10 +4026,10 @@ packages:
         integrity: sha512-a39t9ApHNx2L4+HBnQKqxxHNs1r7KF+Intd8Q/g1bUh6q0WIp9voPXJ/x0j+ZL45KF1pJd9+q2jLIRMfvEshkA==,
       }
 
-  proxy-addr@2.0.7:
+  proxy-addr@2.0.8:
     resolution:
       {
-        integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==,
+        integrity: sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==,
       }
     engines: { node: '>= 0.10' }
 
@@ -5374,7 +5376,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@nestjs/cli@11.0.24(@types/node@25.9.5)(prettier@3.9.6)':
+  '@nestjs/cli@11.0.24(@types/node@25.9.5)(lightningcss@1.33.0)(postcss@8.5.23)(prettier@3.9.6)':
     dependencies:
       '@angular-devkit/core': 19.2.27(chokidar@4.0.3)
       '@angular-devkit/schematics': 19.2.27(chokidar@4.0.3)
@@ -5385,14 +5387,14 @@ snapshots:
       chokidar: 4.0.3
       cli-table3: 0.6.5
       commander: 4.1.1
-      fork-ts-checker-webpack-plugin: 9.1.0(typescript@5.9.3)(webpack@5.106.2)
+      fork-ts-checker-webpack-plugin: 9.1.0(typescript@5.9.3)(webpack@5.106.2(lightningcss@1.33.0)(postcss@8.5.23))
       glob: 13.0.6
       node-emoji: 1.11.0
       ora: 5.4.1
       tsconfig-paths: 4.2.0
       tsconfig-paths-webpack-plugin: 4.2.0
       typescript: 5.9.3
-      webpack: 5.106.2
+      webpack: 5.106.2(lightningcss@1.33.0)(postcss@8.5.23)
       webpack-node-externals: 3.0.0
     transitivePeerDependencies:
       - '@minify-html/node'
@@ -5441,7 +5443,7 @@ snapshots:
       tslib: 2.8.1
       uid: 2.0.2
     optionalDependencies:
-      '@nestjs/platform-express': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)
+      '@nestjs/platform-express': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(supports-color@5.5.0)
       '@nestjs/websockets': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(@nestjs/platform-socket.io@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
   '@nestjs/jwt@11.0.2(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))':
@@ -5460,24 +5462,24 @@ snapshots:
       '@nestjs/common': 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0)
       passport: 0.7.0
 
-  '@nestjs/platform-express@11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)':
+  '@nestjs/platform-express@11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(supports-color@5.5.0)':
     dependencies:
       '@nestjs/common': 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0)
       '@nestjs/core': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/platform-express@11.1.28)(@nestjs/websockets@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       cors: 2.8.6
-      express: 5.2.1
+      express: 5.2.1(supports-color@5.5.0)
       multer: 2.2.0
       path-to-regexp: 8.4.2
       tslib: 2.8.1
     transitivePeerDependencies:
       - supports-color
 
-  '@nestjs/platform-socket.io@11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/websockets@11.1.28)(rxjs@7.8.2)':
+  '@nestjs/platform-socket.io@11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/websockets@11.1.28)(rxjs@7.8.2)(supports-color@5.5.0)':
     dependencies:
       '@nestjs/common': 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0)
       '@nestjs/websockets': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(@nestjs/platform-socket.io@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       rxjs: 7.8.2
-      socket.io: 4.8.3
+      socket.io: 4.8.3(supports-color@5.5.0)
       tslib: 2.8.1
     transitivePeerDependencies:
       - bufferutil
@@ -5521,7 +5523,7 @@ snapshots:
       '@nestjs/core': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/platform-express@11.1.28)(@nestjs/websockets@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       tslib: 2.8.1
     optionalDependencies:
-      '@nestjs/platform-express': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)
+      '@nestjs/platform-express': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(supports-color@5.5.0)
 
   '@nestjs/throttler@6.5.0(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.28)(reflect-metadata@0.2.2)':
     dependencies:
@@ -5539,7 +5541,7 @@ snapshots:
       rxjs: 7.8.2
       tslib: 2.8.1
     optionalDependencies:
-      '@nestjs/platform-socket.io': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/websockets@11.1.28)(rxjs@7.8.2)
+      '@nestjs/platform-socket.io': 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/websockets@11.1.28)(rxjs@7.8.2)(supports-color@5.5.0)
 
   '@noble/hashes@1.8.0': {}
 
@@ -5631,11 +5633,11 @@ snapshots:
 
   '@socket.io/component-emitter@3.1.2': {}
 
-  '@socket.io/redis-adapter@8.3.0(socket.io-adapter@2.5.8)':
+  '@socket.io/redis-adapter@8.3.0(socket.io-adapter@2.5.8(supports-color@5.5.0))(supports-color@5.5.0)':
     dependencies:
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@5.5.0)
       notepack.io: 3.0.1
-      socket.io-adapter: 2.5.8
+      socket.io-adapter: 2.5.8(supports-color@5.5.0)
       uid2: 1.0.0
     transitivePeerDependencies:
       - supports-color
@@ -5791,7 +5793,7 @@ snapshots:
       '@typescript-eslint/parser': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
       '@typescript-eslint/scope-manager': 8.65.0
       '@typescript-eslint/type-utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
       '@typescript-eslint/visitor-keys': 8.65.0
       eslint: 9.39.5(supports-color@5.5.0)
       ignore: 7.0.6
@@ -5805,7 +5807,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/scope-manager': 8.65.0
       '@typescript-eslint/types': 8.65.0
-      '@typescript-eslint/typescript-estree': 8.65.0(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.65.0(supports-color@5.5.0)(typescript@5.9.3)
       '@typescript-eslint/visitor-keys': 8.65.0
       debug: 4.4.3(supports-color@5.5.0)
       eslint: 9.39.5(supports-color@5.5.0)
@@ -5813,7 +5815,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/project-service@8.65.0(typescript@5.9.3)':
+  '@typescript-eslint/project-service@8.65.0(supports-color@5.5.0)(typescript@5.9.3)':
     dependencies:
       '@typescript-eslint/tsconfig-utils': 8.65.0(typescript@5.9.3)
       '@typescript-eslint/types': 8.65.0
@@ -5834,8 +5836,8 @@ snapshots:
   '@typescript-eslint/type-utils@8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)':
     dependencies:
       '@typescript-eslint/types': 8.65.0
-      '@typescript-eslint/typescript-estree': 8.65.0(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.65.0(supports-color@5.5.0)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
       debug: 4.4.3(supports-color@5.5.0)
       eslint: 9.39.5(supports-color@5.5.0)
       ts-api-utils: 2.5.0(typescript@5.9.3)
@@ -5845,9 +5847,9 @@ snapshots:
 
   '@typescript-eslint/types@8.65.0': {}
 
-  '@typescript-eslint/typescript-estree@8.65.0(typescript@5.9.3)':
+  '@typescript-eslint/typescript-estree@8.65.0(supports-color@5.5.0)(typescript@5.9.3)':
     dependencies:
-      '@typescript-eslint/project-service': 8.65.0(typescript@5.9.3)
+      '@typescript-eslint/project-service': 8.65.0(supports-color@5.5.0)(typescript@5.9.3)
       '@typescript-eslint/tsconfig-utils': 8.65.0(typescript@5.9.3)
       '@typescript-eslint/types': 8.65.0
       '@typescript-eslint/visitor-keys': 8.65.0
@@ -5860,12 +5862,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/utils@8.65.0(eslint@9.39.5(supports-color@5.5.0))(typescript@5.9.3)':
+  '@typescript-eslint/utils@8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)':
     dependencies:
       '@eslint-community/eslint-utils': 4.9.1(eslint@9.39.5(supports-color@5.5.0))
       '@typescript-eslint/scope-manager': 8.65.0
       '@typescript-eslint/types': 8.65.0
-      '@typescript-eslint/typescript-estree': 8.65.0(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.65.0(supports-color@5.5.0)(typescript@5.9.3)
       eslint: 9.39.5(supports-color@5.5.0)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -6145,7 +6147,7 @@ snapshots:
 
   bn.js@4.12.5: {}
 
-  body-parser@2.3.0:
+  body-parser@2.3.0(supports-color@5.5.0):
     dependencies:
       bytes: 3.1.2
       content-type: 2.0.0
@@ -6332,9 +6334,11 @@ snapshots:
     optionalDependencies:
       supports-color: 5.5.0
 
-  debug@4.3.7:
+  debug@4.3.7(supports-color@5.5.0):
     dependencies:
       ms: 2.1.3
+    optionalDependencies:
+      supports-color: 5.5.0
 
   debug@4.4.3(supports-color@5.5.0):
     dependencies:
@@ -6395,7 +6399,7 @@ snapshots:
 
   engine.io-parser@5.2.3: {}
 
-  engine.io@6.6.9:
+  engine.io@6.6.9(supports-color@5.5.0):
     dependencies:
       '@types/cors': 2.8.19
       '@types/node': 25.9.5
@@ -6531,10 +6535,10 @@ snapshots:
 
   expect-type@1.4.0: {}
 
-  express@5.2.1:
+  express@5.2.1(supports-color@5.5.0):
     dependencies:
       accepts: 2.0.0
-      body-parser: 2.3.0
+      body-parser: 2.3.0(supports-color@5.5.0)
       content-disposition: 1.1.0
       content-type: 1.0.5
       cookie: 0.7.2
@@ -6544,7 +6548,7 @@ snapshots:
       encodeurl: 2.0.0
       escape-html: 1.0.3
       etag: 1.8.1
-      finalhandler: 2.1.1
+      finalhandler: 2.1.1(supports-color@5.5.0)
       fresh: 2.0.0
       http-errors: 2.0.1
       merge-descriptors: 2.0.0
@@ -6552,12 +6556,12 @@ snapshots:
       on-finished: 2.4.1
       once: 1.4.0
       parseurl: 1.3.3
-      proxy-addr: 2.0.7
+      proxy-addr: 2.0.8
       qs: 6.15.3
       range-parser: 1.3.0
-      router: 2.2.0
-      send: 1.2.1
-      serve-static: 2.2.1
+      router: 2.2.0(supports-color@5.5.0)
+      send: 1.2.1(supports-color@5.5.0)
+      serve-static: 2.2.1(supports-color@5.5.0)
       statuses: 2.0.2
       type-is: 2.1.0
       vary: 1.1.2
@@ -6602,7 +6606,7 @@ snapshots:
     dependencies:
       to-regex-range: 5.0.1
 
-  finalhandler@2.1.1:
+  finalhandler@2.1.1(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
       encodeurl: 2.0.0
@@ -6625,7 +6629,7 @@ snapshots:
 
   flatted@3.4.2: {}
 
-  fork-ts-checker-webpack-plugin@9.1.0(typescript@5.9.3)(webpack@5.106.2):
+  fork-ts-checker-webpack-plugin@9.1.0(typescript@5.9.3)(webpack@5.106.2(lightningcss@1.33.0)(postcss@8.5.23)):
     dependencies:
       '@babel/code-frame': 7.29.7
       chalk: 4.1.2
@@ -6640,7 +6644,7 @@ snapshots:
       semver: 7.8.5
       tapable: 2.3.3
       typescript: 5.9.3
-      webpack: 5.106.2
+      webpack: 5.106.2(lightningcss@1.33.0)(postcss@8.5.23)
 
   form-data@4.0.6:
     dependencies:
@@ -6677,25 +6681,25 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  gaxios@7.3.0:
+  gaxios@7.3.0(supports-color@5.5.0):
     dependencies:
       extend: 3.0.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@5.5.0)
       node-fetch: 3.3.2
     transitivePeerDependencies:
       - supports-color
 
-  gcp-metadata@8.1.2:
+  gcp-metadata@8.1.2(supports-color@5.5.0):
     dependencies:
-      gaxios: 7.3.0
+      gaxios: 7.3.0(supports-color@5.5.0)
       google-logging-utils: 1.1.3
       json-bigint: 1.0.0
     transitivePeerDependencies:
       - supports-color
 
-  gcp-metadata@8.1.3:
+  gcp-metadata@8.1.3(supports-color@5.5.0):
     dependencies:
-      gaxios: 7.3.0
+      gaxios: 7.3.0(supports-color@5.5.0)
       google-logging-utils: 1.1.3
       json-bigint: 1.0.0
     transitivePeerDependencies:
@@ -6739,24 +6743,24 @@ snapshots:
 
   globals@17.7.0: {}
 
-  google-auth-library@10.5.0:
+  google-auth-library@10.5.0(supports-color@5.5.0):
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
-      gaxios: 7.3.0
-      gcp-metadata: 8.1.3
+      gaxios: 7.3.0(supports-color@5.5.0)
+      gcp-metadata: 8.1.3(supports-color@5.5.0)
       google-logging-utils: 1.1.3
-      gtoken: 8.0.0
+      gtoken: 8.0.0(supports-color@5.5.0)
       jws: 4.0.1
     transitivePeerDependencies:
       - supports-color
 
-  google-auth-library@10.9.0:
+  google-auth-library@10.9.0(supports-color@5.5.0):
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
-      gaxios: 7.3.0
-      gcp-metadata: 8.1.2
+      gaxios: 7.3.0(supports-color@5.5.0)
+      gcp-metadata: 8.1.2(supports-color@5.5.0)
       google-logging-utils: 1.1.3
       jws: 4.0.1
     transitivePeerDependencies:
@@ -6764,21 +6768,21 @@ snapshots:
 
   google-logging-utils@1.1.3: {}
 
-  googleapis-common@8.0.2:
+  googleapis-common@8.0.2(supports-color@5.5.0):
     dependencies:
       extend: 3.0.2
-      gaxios: 7.3.0
-      google-auth-library: 10.5.0
+      gaxios: 7.3.0(supports-color@5.5.0)
+      google-auth-library: 10.5.0(supports-color@5.5.0)
       google-logging-utils: 1.1.3
       qs: 6.15.3
       url-template: 2.0.8
     transitivePeerDependencies:
       - supports-color
 
-  googleapis@173.0.0:
+  googleapis@173.0.0(supports-color@5.5.0):
     dependencies:
-      google-auth-library: 10.9.0
-      googleapis-common: 8.0.2
+      google-auth-library: 10.9.0(supports-color@5.5.0)
+      googleapis-common: 8.0.2(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -6786,9 +6790,9 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  gtoken@8.0.0:
+  gtoken@8.0.0(supports-color@5.5.0):
     dependencies:
-      gaxios: 7.3.0
+      gaxios: 7.3.0(supports-color@5.5.0)
       jws: 4.0.1
     transitivePeerDependencies:
       - supports-color
@@ -6821,7 +6825,7 @@ snapshots:
 
   http_ece@1.2.0: {}
 
-  https-proxy-agent@7.0.6:
+  https-proxy-agent@7.0.6(supports-color@5.5.0):
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@5.5.0)
@@ -7338,7 +7342,7 @@ snapshots:
 
   process-warning@5.0.0: {}
 
-  proxy-addr@2.0.7:
+  proxy-addr@2.0.8:
     dependencies:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
@@ -7413,7 +7417,7 @@ snapshots:
       '@rolldown/binding-win32-arm64-msvc': 1.1.5
       '@rolldown/binding-win32-x64-msvc': 1.1.5
 
-  router@2.2.0:
+  router@2.2.0(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
       depd: 2.0.0
@@ -7454,7 +7458,7 @@ snapshots:
 
   semver@7.8.5: {}
 
-  send@1.2.1:
+  send@1.2.1(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
       encodeurl: 2.0.0
@@ -7470,12 +7474,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  serve-static@2.2.1:
+  serve-static@2.2.1(supports-color@5.5.0):
     dependencies:
       encodeurl: 2.0.0
       escape-html: 1.0.3
       parseurl: 1.3.3
-      send: 1.2.1
+      send: 1.2.1(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -7525,7 +7529,7 @@ snapshots:
     dependencies:
       semver: 7.8.5
 
-  socket.io-adapter@2.5.8:
+  socket.io-adapter@2.5.8(supports-color@5.5.0):
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
       ws: 8.21.1
@@ -7534,22 +7538,22 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  socket.io-parser@4.2.7:
+  socket.io-parser@4.2.7(supports-color@5.5.0):
     dependencies:
       '@socket.io/component-emitter': 3.1.2
       debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
 
-  socket.io@4.8.3:
+  socket.io@4.8.3(supports-color@5.5.0):
     dependencies:
       accepts: 1.3.8
       base64id: 2.0.0
       cors: 2.8.6
       debug: 4.4.3(supports-color@5.5.0)
-      engine.io: 6.6.9
-      socket.io-adapter: 2.5.8
-      socket.io-parser: 4.2.7
+      engine.io: 6.6.9(supports-color@5.5.0)
+      socket.io-adapter: 2.5.8(supports-color@5.5.0)
+      socket.io-parser: 4.2.7(supports-color@5.5.0)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -7650,13 +7654,16 @@ snapshots:
 
   tapable@2.3.3: {}
 
-  terser-webpack-plugin@5.6.1(webpack@5.106.2):
+  terser-webpack-plugin@5.6.1(lightningcss@1.33.0)(postcss@8.5.23)(webpack@5.106.2(lightningcss@1.33.0)(postcss@8.5.23)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.49.0
-      webpack: 5.106.2
+      webpack: 5.106.2(lightningcss@1.33.0)(postcss@8.5.23)
+    optionalDependencies:
+      lightningcss: 1.33.0
+      postcss: 8.5.23
 
   terser@5.49.0:
     dependencies:
@@ -7752,8 +7759,8 @@ snapshots:
     dependencies:
       '@typescript-eslint/eslint-plugin': 8.65.0(@typescript-eslint/parser@8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3))(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
       '@typescript-eslint/parser': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
-      '@typescript-eslint/typescript-estree': 8.65.0(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.65.0(supports-color@5.5.0)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.65.0(eslint@9.39.5(supports-color@5.5.0))(supports-color@5.5.0)(typescript@5.9.3)
       eslint: 9.39.5(supports-color@5.5.0)
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -7845,11 +7852,11 @@ snapshots:
     dependencies:
       defaults: 1.0.4
 
-  web-push@3.6.7:
+  web-push@3.6.7(supports-color@5.5.0):
     dependencies:
       asn1.js: 5.4.1
       http_ece: 1.2.0
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@5.5.0)
       jws: 4.0.1
       minimist: 1.2.8
     transitivePeerDependencies:
@@ -7861,7 +7868,7 @@ snapshots:
 
   webpack-sources@3.5.1: {}
 
-  webpack@5.106.2:
+  webpack@5.106.2(lightningcss@1.33.0)(postcss@8.5.23):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.9
@@ -7884,7 +7891,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(webpack@5.106.2)
+      terser-webpack-plugin: 5.6.1(lightningcss@1.33.0)(postcss@8.5.23)(webpack@5.106.2(lightningcss@1.33.0)(postcss@8.5.23))
       watchpack: 2.5.2
       webpack-sources: 3.5.1
     transitivePeerDependencies:

@@ -1,6 +1,4 @@
 describe('Chat — conversación con el asistente', (): void => {
-  const jid = '59161234567@s.whatsapp.net';
-
   beforeEach((): void => {
     cy.stubAuthMe();
     cy.intercept('GET', '**/api/v1/chat/conversaciones', {
