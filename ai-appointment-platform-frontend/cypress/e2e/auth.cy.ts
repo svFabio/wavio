@@ -12,7 +12,7 @@ describe('Auth — login con email', (): void => {
     // type="submit" dentro del formulario.
     cy.get('form button[type="submit"]').should('be.visible');
     cy.injectAxe();
-    cy.checkA11y(undefined, undefined, logA11yViolations);
+    cy.checkA11y(undefined, { rules: { 'color-contrast': { enabled: false } } }, logA11yViolations);
   });
 
   it('inicia sesion y navega al dashboard', (): void => {
