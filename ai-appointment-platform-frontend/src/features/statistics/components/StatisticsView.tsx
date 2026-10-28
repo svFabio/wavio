@@ -27,6 +27,8 @@ interface OverviewData {
   ingresosMes: number;
   citasVirtuales: number;
   citasPresenciales: number;
+  citasWhatsapp?: number;
+  citasPortal?: number;
   topClientes: Array<{ nombre: string; telefono: string; totalCitas: number }>;
   horariosPopulares: Array<{ horario: string; totalReservas: number }>;
 }
@@ -42,7 +44,12 @@ interface StatisticsViewProps {
   clientes: Cliente[];
 }
 
-export const StatisticsView = ({ overview, revenue, loading, clientes }: StatisticsViewProps) => {
+export const StatisticsView = ({
+  overview,
+  revenue,
+  loading,
+  clientes,
+}: StatisticsViewProps): React.ReactElement => {
   const revenueFormatted = useMemo(() => {
     return (revenue?.revenue || []).map((item) => ({
       ...item,
@@ -54,6 +61,8 @@ export const StatisticsView = ({ overview, revenue, loading, clientes }: Statist
     () => [
       { name: 'Virtual', value: overview?.citasVirtuales || 0 },
       { name: 'Presencial', value: overview?.citasPresenciales || 0 },
+      { name: 'WhatsApp', value: overview?.citasWhatsapp || 0 },
+      { name: 'Portal', value: overview?.citasPortal || 0 },
     ],
     [overview],
   );

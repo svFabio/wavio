@@ -10,7 +10,9 @@ export function useHorariosDisponiblesQuery(
   return useQuery({
     queryKey: ['horarios', fecha, servicioId],
     queryFn: () => citasApi.obtenerHorariosDisponibles(fecha, servicioId),
-    enabled,
+    // Nunca pedir con fecha vacía: el backend responde 400 de validación y
+    // solo ensucia el Network (la fecha se borra al tipear en el datepicker).
+    enabled: enabled && Boolean(fecha),
     staleTime: 5 * 60 * 1000,
   });
 }

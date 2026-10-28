@@ -1,12 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
 import { CitasRepository } from './citas.repository';
 import { AvailabilityRepository } from './availability.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { ChatService } from '../chat/chat.service';
 import { EventsService } from '../events/events.service';
+import { PushService } from '../push/push.service';
+import { GoogleCalendarService } from '../calendar/google-calendar.service';
+import { WaitlistService } from '../waitlist/waitlist.service';
 import { NotFoundError, ConflictError, ValidationError } from '../domain/errors';
 import { Cita, Slot, DisponibilidadParams } from '../domain/types';
-import { getSlotsDisponibles } from '../scheduling/availability-engine';
+import { AvailabilityService } from './availability.service';
 import { AGENDA_LOOKBACK_DAYS, AGENDA_LOOKAHEAD_DAYS } from '../config';
 
 @Injectable()
@@ -16,10 +19,70 @@ export class CitasService {
   constructor(
     private readonly citasRepository: CitasRepository,
     private readonly availabilityRepository: AvailabilityRepository,
+    private readonly availabilityService: AvailabilityService,
     private readonly negocioService: NegocioService,
     private readonly chatService: ChatService,
     private readonly eventsService: EventsService,
+    @Optional() private readonly pushService?: PushService,
+    @Optional()
+    @Inject(forwardRef(() => GoogleCalendarService))
+    private readonly googleCalendarService?: GoogleCalendarService,
+    @Optional()
+    @Inject(forwardRef(() => WaitlistService))
+    private readonly waitlistService?: WaitlistService,
   ) {}
+
+  private syncGoogleCalendarCreated(negocioId: number, cita: Cita): void {
+    if (!this.googleCalendarService) return;
+    void this.googleCalendarService
+      .isConnected(negocioId)
+      .then((connected) => {
+        if (!connected) return;
+        return this.googleCalendarService!.createEvent(negocioId, cita).then((eventId) => {
+          if (eventId) {
+            return this.setGoogleEventId(cita.id, negocioId, eventId);
+          }
+        });
+      })
+      .catch((err: Error) => {
+        this.logger.error(
+          `Error auto-syncing created appointment with Google Calendar: ${err.message}`,
+          err.stack,
+        );
+      });
+  }
+
+  private syncGoogleCalendarUpdated(negocioId: number, googleEventId: string, cita: Cita): void {
+    if (!this.googleCalendarService) return;
+    void this.googleCalendarService
+      .isConnected(negocioId)
+      .then((connected) => {
+        if (!connected) return;
+        return this.googleCalendarService!.updateEvent(negocioId, googleEventId, cita);
+      })
+      .catch((err: Error) => {
+        this.logger.error(
+          `Error auto-syncing updated appointment with Google Calendar: ${err.message}`,
+          err.stack,
+        );
+      });
+  }
+
+  private syncGoogleCalendarDeleted(negocioId: number, googleEventId: string): void {
+    if (!this.googleCalendarService) return;
+    void this.googleCalendarService
+      .isConnected(negocioId)
+      .then((connected) => {
+        if (!connected) return;
+        return this.googleCalendarService!.deleteEvent(negocioId, googleEventId);
+      })
+      .catch((err: Error) => {
+        this.logger.error(
+          `Error auto-deleting appointment from Google Calendar: ${err.message}`,
+          err.stack,
+        );
+      });
+  }
 
   async getPendientes(
     negocioId: number,
@@ -62,6 +125,20 @@ export class CitasService {
 
     this.eventsService.emitCambioCitas(negocioId);
 
+    if (nuevoEstado === 'CONFIRMADA' && !cita.googleEventId) {
+      this.syncGoogleCalendarCreated(negocioId, citaActualizada);
+    } else if (nuevoEstado === 'CANCELADA') {
+      if (cita.googleEventId) {
+        this.syncGoogleCalendarDeleted(negocioId, cita.googleEventId);
+      }
+      void this.waitlistService?.notifyAvailableSlot(negocioId, cita.fecha).catch((err: Error) => {
+        this.logger.error(
+          `Error notifying waitlist for cancelled appointment: ${err.message}`,
+          err.stack,
+        );
+      });
+    }
+
     try {
       let mensaje = '';
       if (nuevoEstado === 'CONFIRMADA') {
@@ -69,6 +146,7 @@ export class CitasService {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
+          timeZone: 'UTC',
         });
         mensaje =
           `¡Hola ${citaActualizada.clienteNombre || 'Cliente'}! 👋\n\n` +
@@ -152,10 +230,11 @@ export class CitasService {
     completadas: number;
     ingresos: number;
   }> {
-    const inicioHoy = new Date();
-    inicioHoy.setHours(0, 0, 0, 0);
-    const finHoy = new Date();
-    finHoy.setHours(23, 59, 59, 999);
+    const config = await this.negocioService.getConfiguracion(negocioId);
+    const timezone = config?.timezone || 'America/La_Paz';
+    const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
+    const inicioHoy = new Date(`${hoyStr}T00:00:00.000Z`);
+    const finHoy = new Date(`${hoyStr}T23:59:59.999Z`);
 
     const [totalHoy, pendientes, completadas, ingresos] = await Promise.all([
       this.citasRepository.getCitasCount(negocioId, {
@@ -195,7 +274,7 @@ export class CitasService {
     }
 
     const config = await this.negocioService.getConfiguracion(negocioId);
-    const slots = await getSlotsDisponibles(this.availabilityRepository, {
+    const slots = await this.availabilityService.getSlotsDisponibles({
       negocioId,
       servicioId: resolvedServicioId,
       fecha: fechaStr,
@@ -239,15 +318,16 @@ export class CitasService {
       }
     }
 
-    const [year, month, day] = fecha.split('-').map(Number);
-    const fechaCita = new Date(year, month - 1, day);
+    const fechaCita = new Date(`${fecha}T00:00:00.000Z`);
 
     if (servicioId) {
-      const slots = await getSlotsDisponibles(this.availabilityRepository, {
+      const config = await this.negocioService.getConfiguracion(negocioId);
+      const slots = await this.availabilityService.getSlotsDisponibles({
         negocioId,
         servicioId,
         fecha,
         staffId: staffId ?? undefined,
+        timezone: config?.timezone || 'America/La_Paz',
       });
 
       const slotValido = slots.find((s) => s.inicio === horario);
@@ -255,9 +335,6 @@ export class CitasService {
         throw new ValidationError(`Horario ${horario} no está disponible para la fecha ${fecha}`);
       }
     }
-
-    const [horas, minutos] = horario.split(':').map(Number);
-    fechaCita.setHours(horas, minutos, 0, 0);
 
     const nuevaCita = await this.citasRepository.createIfSlotAvailable(
       negocioId,
@@ -292,6 +369,20 @@ export class CitasService {
       horario,
     });
 
+    if (nuevaCita.estado === 'CONFIRMADA') {
+      this.syncGoogleCalendarCreated(negocioId, nuevaCita);
+    }
+
+    if (this.pushService) {
+      this.pushService
+        .sendNotification(negocioId, {
+          title: 'Nueva Cita',
+          body: `Nueva cita de ${clienteNombre || 'Cliente'} para el horario ${horario}`,
+          url: '/calendario',
+        })
+        .catch((err: unknown) => this.logger.warn(`Error sending push notification: ${err}`));
+    }
+
     return nuevaCita;
   }
 
@@ -302,18 +393,19 @@ export class CitasService {
     horario: string,
   ): Promise<Cita> {
     if (!fecha || !horario) throw new ValidationError('Fecha y horario son requeridos');
-    const [year, month, day] = fecha.split('-').map(Number);
-    const nuevaFecha = new Date(year, month - 1, day);
+    const nuevaFecha = new Date(`${fecha}T00:00:00.000Z`);
 
     const citaActual = await this.citasRepository.getByIdAndNegocio(id, negocioId);
     if (!citaActual) throw new NotFoundError('Cita');
 
     if (citaActual.servicioId) {
-      const slots = await getSlotsDisponibles(this.availabilityRepository, {
+      const config = await this.negocioService.getConfiguracion(negocioId);
+      const slots = await this.availabilityService.getSlotsDisponibles({
         negocioId,
         servicioId: citaActual.servicioId,
         fecha,
         staffId: citaActual.staffId ?? undefined,
+        timezone: config?.timezone || 'America/La_Paz',
       });
 
       const slotValido = slots.find((s) => s.inicio === horario);
@@ -321,9 +413,6 @@ export class CitasService {
         throw new ValidationError(`Horario ${horario} no está disponible para la fecha ${fecha}`);
       }
     }
-
-    const [horas, minutos] = horario.split(':').map(Number);
-    nuevaFecha.setHours(horas, minutos, 0, 0);
 
     const citaActualizada = await this.citasRepository.reprogramarIfSlotAvailable(
       id,
@@ -334,6 +423,10 @@ export class CitasService {
     if (!citaActualizada) throw new ConflictError('Ese horario ya está ocupado.');
 
     this.eventsService.emitCambioCitas(negocioId);
+
+    if (citaActual.googleEventId) {
+      this.syncGoogleCalendarUpdated(negocioId, citaActual.googleEventId, citaActualizada);
+    }
 
     return citaActualizada;
   }
@@ -350,22 +443,42 @@ export class CitasService {
     if (!cita) throw new NotFoundError('Cita');
 
     if (estado === 'NO_ASISTIO') {
-      const ahora = new Date();
-      const [year, month, day] = new Date(cita.fecha)
-        .toISOString()
-        .split('T')[0]
-        .split('-')
-        .map(Number);
-      const fechaExacta = new Date(year, month - 1, day);
-      const [horas, minutos] = cita.horario.split(':').map(Number);
-      fechaExacta.setHours(horas, minutos, 0, 0);
+      const config = await this.negocioService.getConfiguracion(negocioId);
+      const timezone = config?.timezone || 'America/La_Paz';
+      const fechaStr =
+        cita.fecha instanceof Date
+          ? cita.fecha.toISOString().split('T')[0]
+          : String(cita.fecha).split('T')[0];
+      const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
+      const horaActualStr = new Intl.DateTimeFormat('en-GB', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(new Date());
 
-      if (fechaExacta > ahora)
+      if (fechaStr > hoyStr || (fechaStr === hoyStr && cita.horario > horaActualStr)) {
         throw new ValidationError('Solo se pueden marcar como "No Asistió" citas pasadas.');
+      }
     }
 
     const actualizada = await this.citasRepository.update(id, { estado });
     this.eventsService.emitCambioCitas(negocioId);
+
+    if (estado === 'CONFIRMADA' && !cita.googleEventId) {
+      this.syncGoogleCalendarCreated(negocioId, actualizada);
+    } else if (estado === 'CANCELADA') {
+      if (cita.googleEventId) {
+        this.syncGoogleCalendarDeleted(negocioId, cita.googleEventId);
+      }
+      void this.waitlistService?.notifyAvailableSlot(negocioId, cita.fecha).catch((err: Error) => {
+        this.logger.error(
+          `Error notifying waitlist for cancelled appointment: ${err.message}`,
+          err.stack,
+        );
+      });
+    }
+
     return actualizada;
   }
 
@@ -392,7 +505,6 @@ export class CitasService {
   ): Promise<{ base: Cita; instancesCreated: number }> {
     const recurrenceId = `rec-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const recurrenceEndDate = new Date(data.recurrenceEnd);
-    const [horas, minutos] = data.horario.split(':').map(Number);
     const duracionMinutos = data.duracionMinutos ?? 60;
 
     // Create the base appointment
@@ -403,6 +515,9 @@ export class CitasService {
       recurrenceEnd: recurrenceEndDate,
     });
 
+    const montoFinal =
+      data.monto !== undefined && data.monto !== null ? data.monto : Number(baseCita.monto);
+
     // ── 1. Generate all candidate dates ────────────────────────────────────
     const baseDate = new Date(baseCita.fecha);
     const candidateDates: Date[] = [];
@@ -412,18 +527,18 @@ export class CitasService {
     for (let i = 0; i < maxInstances; i++) {
       switch (data.recurrence) {
         case 'weekly':
-          cursor.setDate(cursor.getDate() + 7);
+          cursor.setUTCDate(cursor.getUTCDate() + 7);
           break;
         case 'biweekly':
-          cursor.setDate(cursor.getDate() + 14);
+          cursor.setUTCDate(cursor.getUTCDate() + 14);
           break;
         case 'monthly': {
           // Clamp to last day of month to avoid overflow (e.g. Jan 31 → Feb 28)
-          const year = cursor.getFullYear();
-          const month = cursor.getMonth() + 1;
-          const day = cursor.getDate();
-          const lastDayOfNextMonth = new Date(year, month + 1, 0).getDate();
-          cursor.setFullYear(year, month, Math.min(day, lastDayOfNextMonth));
+          const year = cursor.getUTCFullYear();
+          const month = cursor.getUTCMonth() + 1;
+          const day = cursor.getUTCDate();
+          const lastDayOfNextMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+          cursor.setUTCFullYear(year, month, Math.min(day, lastDayOfNextMonth));
           break;
         }
       }
@@ -606,8 +721,7 @@ export class CitasService {
         continue;
       }
 
-      const instanceDate = new Date(date);
-      instanceDate.setHours(horas, minutos, 0, 0);
+      const instanceDate = new Date(`${dateStr}T00:00:00.000Z`);
 
       instancePayloads.push({
         fecha: instanceDate,
@@ -617,7 +731,7 @@ export class CitasService {
         servicioId: data.servicioId ?? null,
         staffId: data.staffId ?? null,
         duracionMinutos,
-        monto: data.monto ?? 0,
+        monto: montoFinal,
         estado: 'CONFIRMADA',
         estadoPago: 'PENDIENTE',
         origen: 'recurrente',
@@ -662,7 +776,7 @@ export class CitasService {
   }
 
   async getSlotDisponibles(params: DisponibilidadParams): Promise<Slot[]> {
-    return getSlotsDisponibles(this.availabilityRepository, params);
+    return this.availabilityService.getSlotsDisponibles(params);
   }
 
   async updateLastAppointmentRating(
@@ -683,5 +797,54 @@ export class CitasService {
       throw new NotFoundError('Cita');
     }
     return this.citasRepository.update(id, { googleEventId });
+  }
+
+  async confirmarPagoStripe(
+    citaId: number,
+    negocioId: number,
+    paymentIntentId?: string,
+  ): Promise<boolean> {
+    const updatedCount = await this.citasRepository.confirmarPagoStripe(citaId, negocioId);
+    if (updatedCount === 0) {
+      this.logger.log(
+        `[Stripe] Cita ${citaId} ya pagada o no encontrada para negocio ${negocioId}, omitiendo`,
+      );
+      return false;
+    }
+
+    this.logger.log(
+      `[Stripe] Pago confirmado para cita ${citaId} (paymentIntent: ${paymentIntentId ?? 'N/A'})`,
+    );
+
+    this.eventsService.emitCambioCitas(negocioId);
+
+    if (this.pushService) {
+      this.pushService
+        .sendNotification(negocioId, {
+          title: 'Pago Confirmado',
+          body: `Se ha confirmado el pago de la cita #${citaId}`,
+          url: '/calendario',
+        })
+        .catch((err: unknown) => this.logger.warn(`Error sending push notification: ${err}`));
+    }
+
+    return true;
+  }
+
+  async asociarComprobante(
+    negocioId: number,
+    clienteTelefono: string,
+    comprobanteUrl: string,
+  ): Promise<Cita | null> {
+    const cita = await this.citasRepository.findUltimaCitaPendiente(negocioId, clienteTelefono);
+    if (!cita) return null;
+
+    const actualizada = await this.citasRepository.update(cita.id, {
+      comprobanteUrl,
+      estado: 'VALIDACION_PENDIENTE',
+    });
+
+    this.eventsService.emitCambioCitas(negocioId);
+    return actualizada;
   }
 }

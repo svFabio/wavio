@@ -25,3 +25,8 @@ dist-ssr
 .env
 .env.*
 .env*.local
+
+# Cypress E2E artifacts
+cypress/screenshots
+cypress/videos
+cypress/downloads

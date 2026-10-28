@@ -35,14 +35,14 @@ describe('CleanupRepository', () => {
   });
 
   describe('cancelExpiredInProgressAppointments', () => {
-    it('should cancel expired EN_PROCESO citas', async () => {
+    it('should cancel expired VALIDACION_PENDIENTE citas', async () => {
       const limit = new Date('2026-01-01');
       prisma.cita.updateMany.mockResolvedValue({ count: 3 });
 
       const result = await repo.cancelExpiredInProgressAppointments(limit);
 
       expect(prisma.cita.updateMany).toHaveBeenCalledWith({
-        where: { estado: 'EN_PROCESO', creadoEn: { lt: limit } },
+        where: { estado: 'VALIDACION_PENDIENTE', creadoEn: { lt: limit } },
         data: { estado: 'CANCELADA' },
       });
       expect(result).toBe(3);

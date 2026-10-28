@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../features/auth/api/auth.api';
 import { auth } from '../lib/auth';
+import { getSocket } from '../lib/socket';
 import type { Usuario } from '../types';
 
 interface Negocio {
@@ -29,9 +30,11 @@ interface AuthContextType {
   switchNegocio: (negocioId: number) => void;
 }
 
+const EMPTY_NEGOCIOS: Negocio[] = [];
+
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }): React.ReactElement => {
   const queryClient = useQueryClient();
   const [localActiveId, setLocalActiveId] = useState<number | null>(() =>
     auth.getActiveNegocioId(),
@@ -59,6 +62,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLocalActiveId(null);
         return null;
       }
+      if (result.negocios && result.negocios.length > 0) {
+        const stored = auth.getActiveNegocioId();
+        const found = stored && result.negocios.some((n) => n.id === stored);
+        const targetId = found ? stored : result.negocios[0].id;
+        if (stored !== targetId) {
+          auth.setActiveNegocioId(targetId);
+        }
+        setLocalActiveId(targetId);
+      }
       return result;
     },
     enabled: !!localToken,
@@ -73,21 +85,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const usuario = isError ? null : data?.usuario || null;
-  const negocios = isError ? [] : data?.negocios || [];
+  const negocios = useMemo(
+    () => (isError || !data?.negocios ? EMPTY_NEGOCIOS : data.negocios),
+    [isError, data?.negocios],
+  );
   const loading = isLoading;
   const token = isError ? null : localToken;
-
-  useEffect(() => {
-    if (negocios.length > 0) {
-      const stored = auth.getActiveNegocioId();
-      const found = stored && negocios.some((n) => n.id === stored);
-      const targetId = found ? stored : negocios[0].id;
-      if (stored !== targetId || localActiveId !== targetId) {
-        auth.setActiveNegocioId(targetId);
-        setLocalActiveId(targetId);
-      }
-    }
-  }, [negocios, localActiveId]);
 
   const activeNegocioId = useMemo(() => {
     if (!negocios || negocios.length === 0) return null;
@@ -113,6 +116,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     (negocioId: number) => {
       setLocalActiveId(negocioId);
       auth.setActiveNegocioId(negocioId);
+      const socket = getSocket();
+      socket.auth = {
+        token: auth.getToken(),
+        negocioId,
+      };
+      socket.disconnect().connect();
       queryClient.invalidateQueries();
     },
     [queryClient],

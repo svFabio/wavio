@@ -1,0 +1,10 @@
+{
+  "token": "cypress-e2e-fake-token",
+  "usuario": {
+    "id": 1,
+    "nombre": "Admin E2E",
+    "email": "admin-e2e@wavio.test",
+    "rol": "ADMIN"
+  },
+  "negocios": [{ "id": 1, "nombre": "Negocio E2E", "plan": "PRO" }]
+}

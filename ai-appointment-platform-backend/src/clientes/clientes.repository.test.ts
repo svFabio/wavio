@@ -130,7 +130,12 @@ describe('ClientesRepository', () => {
         where: { id: 1, negocioId: 1 },
       });
       expect(prisma.cliente.update).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: {
+          negocioId_telefono: {
+            negocioId: 1,
+            telefono: '+521234567890',
+          },
+        },
         data: { nombre: 'Updated' },
       });
       expect(result).toEqual(updated);
@@ -154,13 +159,49 @@ describe('ClientesRepository', () => {
       expect(prisma.cliente.findFirst).toHaveBeenCalledWith({
         where: { id: 1, negocioId: 1 },
       });
-      expect(prisma.cliente.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+      expect(prisma.cliente.delete).toHaveBeenCalledWith({
+        where: {
+          negocioId_telefono: {
+            negocioId: 1,
+            telefono: '+521234567890',
+          },
+        },
+      });
     });
 
     it('should throw NotFoundError when cliente not found', async () => {
       prisma.cliente.findFirst.mockResolvedValue(null);
 
       await expect(repo.delete(999, 1)).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe('countNoShows', () => {
+    it('should count citas with estado NO_ASISTIO for a given cliente', async () => {
+      const cliente = buildCliente(1, { id: 1, telefono: '+521234567890' });
+      prisma.cliente.findFirst.mockResolvedValue(cliente);
+      prisma.cita.count.mockResolvedValue(3);
+
+      const result = await repo.countNoShows(1, 1);
+
+      expect(prisma.cliente.findFirst).toHaveBeenCalledWith({
+        where: { id: 1, negocioId: 1 },
+        select: { telefono: true },
+      });
+      expect(prisma.cita.count).toHaveBeenCalledWith({
+        where: {
+          clienteTelefono: '+521234567890',
+          negocioId: 1,
+          estado: 'NO_ASISTIO',
+        },
+      });
+      expect(result).toBe(3);
+    });
+
+    it('should throw NotFoundError when cliente does not exist', async () => {
+      prisma.cliente.findFirst.mockResolvedValue(null);
+
+      await expect(repo.countNoShows(999, 1)).rejects.toThrow(NotFoundError);
     });
   });
 });

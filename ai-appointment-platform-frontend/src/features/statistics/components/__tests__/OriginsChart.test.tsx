@@ -19,10 +19,14 @@ describe('OriginsChart', () => {
     const data = [
       { name: 'Virtual', value: 6 },
       { name: 'Presencial', value: 4 },
+      { name: 'WhatsApp', value: 3 },
+      { name: 'Portal', value: 2 },
     ];
-    render(<OriginsChart data={data} total={10} />);
+    render(<OriginsChart data={data} total={15} />);
     expect(screen.getByText('Virtual')).toBeInTheDocument();
     expect(screen.getByText('Presencial')).toBeInTheDocument();
+    expect(screen.getByText('WhatsApp')).toBeInTheDocument();
+    expect(screen.getByText('Portal')).toBeInTheDocument();
   });
 
   it('renders the title', () => {

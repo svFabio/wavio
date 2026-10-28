@@ -15,7 +15,7 @@ export class CleanupRepository {
   async cancelExpiredInProgressAppointments(limitDate: Date): Promise<number> {
     const result = await this.prisma.cita.updateMany({
       where: {
-        estado: 'EN_PROCESO',
+        estado: 'VALIDACION_PENDIENTE',
         creadoEn: { lt: limitDate },
       },
       data: { estado: 'CANCELADA' },

@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "nombre": "Corte E2E",
+    "categoria": "Peluqueria",
+    "duracionMinutos": 30,
+    "bufferMinutos": 0,
+    "precio": 20,
+    "activo": true
+  }
+]

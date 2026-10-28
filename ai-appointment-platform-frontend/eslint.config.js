@@ -29,4 +29,27 @@ export default defineConfig([
       'no-useless-catch': 'warn',
     },
   },
+  {
+    // Suite E2E: Cypress aporta sus propios globales y no es código React.
+    files: ['cypress/**/*.ts'],
+    languageOptions: {
+      globals: {
+        cy: 'readonly',
+        Cypress: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        before: 'readonly',
+        beforeEach: 'readonly',
+        after: 'readonly',
+        afterEach: 'readonly',
+        expect: 'readonly',
+      },
+    },
+    rules: {
+      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ]);

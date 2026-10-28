@@ -40,8 +40,20 @@ class SocketManager {
       SocketManager.instance.disconnect();
     }
   }
+
+  static switchNegocio(negocioId: number): void {
+    const socket = this.getInstance();
+    const token = auth.getToken();
+    socket.auth = {
+      token,
+      negocioId,
+    };
+    socket.disconnect().connect();
+  }
 }
 
 export const getSocket = (): Socket => SocketManager.getInstance();
 export const connectSocket = (): void => SocketManager.connect();
 export const disconnectSocket = (): void => SocketManager.disconnect();
+export const switchSocketNegocio = (negocioId: number): void =>
+  SocketManager.switchNegocio(negocioId);

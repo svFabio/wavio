@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PortalService } from './portal.service';
 import type { PortalRepository } from './portal.repository';
-import { NotFoundError, ValidationError } from '../domain/errors';
+import type { CitasService } from '../citas/citas.service';
+import { NotFoundError, ValidationError, ConflictError } from '../domain/errors';
 
 describe('PortalService', () => {
   let service: PortalService;
   let mockPortalRepository: Record<string, ReturnType<typeof vi.fn>>;
+  let mockCitasService: Record<string, ReturnType<typeof vi.fn>>;
 
   const validCliente = {
     id: 1,
@@ -30,7 +32,15 @@ describe('PortalService', () => {
       findCitasOcupadas: vi.fn(),
     };
 
-    service = new PortalService(mockPortalRepository as unknown as PortalRepository);
+    mockCitasService = {
+      getHorariosDisponibles: vi.fn(),
+      crearCitaAdmin: vi.fn(),
+    };
+
+    service = new PortalService(
+      mockPortalRepository as unknown as PortalRepository,
+      mockCitasService as unknown as CitasService,
+    );
   });
 
   /* ─── generateMagicLink ─────────────────────────────────────────── */
@@ -111,57 +121,30 @@ describe('PortalService', () => {
   /* ─── getHorariosDisponibles ────────────────────────────────────── */
 
   describe('getHorariosDisponibles', () => {
-    it('should return available slots after removing occupied ones', async () => {
+    it('should delegate to citasService.getHorariosDisponibles', async () => {
       mockPortalRepository.findClienteByMagicToken.mockResolvedValue(validCliente);
-      mockPortalRepository.findHorariosByDia.mockResolvedValue([
-        { horaInicio: '09:00', horaFin: '13:00' },
-      ]);
-      mockPortalRepository.findServicioById.mockResolvedValue(null);
-      mockPortalRepository.findCitasOcupadas.mockResolvedValue([
-        { horario: '10:00' },
-        { horario: '11:00' },
-      ]);
-
-      const result = await service.getHorariosDisponibles('valid-token', '2026-07-28');
-
-      expect(result).toContain('09:00');
-      expect(result).toContain('12:00');
-      expect(result).not.toContain('10:00');
-      expect(result).not.toContain('11:00');
-    });
-
-    it('should use servicio duration when provided', async () => {
-      mockPortalRepository.findClienteByMagicToken.mockResolvedValue(validCliente);
-      mockPortalRepository.findHorariosByDia.mockResolvedValue([
-        { horaInicio: '09:00', horaFin: '11:00' },
-      ]);
-      mockPortalRepository.findServicioById.mockResolvedValue({
-        id: 5,
-        nombre: 'Premium',
-        duracionMinutos: 90,
-        precio: 500,
-      });
-      mockPortalRepository.findCitasOcupadas.mockResolvedValue([]);
+      mockCitasService.getHorariosDisponibles.mockResolvedValue(['09:00', '10:00', '11:00']);
 
       const result = await service.getHorariosDisponibles('valid-token', '2026-07-28', 5);
 
-      // 09:00-11:00 with 90min slots: 09:00 only
-      expect(result).toEqual(['09:00']);
-      expect(mockPortalRepository.findServicioById).toHaveBeenCalledWith(5, 10);
+      expect(mockCitasService.getHorariosDisponibles).toHaveBeenCalledWith(10, '2026-07-28', 5);
+      expect(result).toEqual(['09:00', '10:00', '11:00']);
     });
   });
 
   /* ─── bookAppointmentFromPortal ─────────────────────────────────── */
 
   describe('bookAppointmentFromPortal', () => {
-    it('should create a cita for valid token and slot', async () => {
+    it('should delegate appointment creation to citasService.crearCitaAdmin', async () => {
       mockPortalRepository.findClienteByMagicToken.mockResolvedValue(validCliente);
-      mockPortalRepository.checkSlotOccupied.mockResolvedValue(false);
-      mockPortalRepository.findServicioById.mockResolvedValue({
-        id: 3,
-        nombre: 'Corte',
-        duracionMinutos: 60,
-        precio: 250,
+      mockCitasService.crearCitaAdmin.mockResolvedValue({
+        id: 1,
+        negocioId: 10,
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '+521234567890',
+        horario: '10:00',
+        servicio: 'Corte',
+        monto: 250,
       });
 
       const result = await service.bookAppointmentFromPortal('valid-token', {
@@ -171,13 +154,15 @@ describe('PortalService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockPortalRepository.createCita).toHaveBeenCalledWith(
+      expect(mockCitasService.crearCitaAdmin).toHaveBeenCalledWith(
+        10,
         expect.objectContaining({
-          negocioId: 10,
           clienteNombre: 'Juan Pérez',
           clienteTelefono: '+521234567890',
+          fecha: '2027-01-15',
           horario: '10:00',
-          servicio: 'Corte',
+          servicioId: 3,
+          estado: 'PENDIENTE',
           origen: 'portal',
         }),
       );
@@ -194,21 +179,42 @@ describe('PortalService', () => {
       ).rejects.toThrow(ValidationError);
     });
 
-    it('should throw ValidationError when slot is occupied', async () => {
+    it('should throw ConflictError when citasService returns null', async () => {
       mockPortalRepository.findClienteByMagicToken.mockResolvedValue(validCliente);
-      mockPortalRepository.checkSlotOccupied.mockResolvedValue(true);
+      mockCitasService.crearCitaAdmin.mockResolvedValue(null);
 
       await expect(
         service.bookAppointmentFromPortal('valid-token', {
           fecha: '2027-01-15',
           horario: '10:00',
         }),
-      ).rejects.toThrow(ValidationError);
+      ).rejects.toThrow(ConflictError);
     });
 
-    it('should use default duration and price when servicioId is not provided', async () => {
+    it('should propagate ConflictError when citasService throws ConflictError', async () => {
       mockPortalRepository.findClienteByMagicToken.mockResolvedValue(validCliente);
-      mockPortalRepository.checkSlotOccupied.mockResolvedValue(false);
+      mockCitasService.crearCitaAdmin.mockRejectedValue(
+        new ConflictError('Ese horario ya fue reservado por otro cliente'),
+      );
+
+      await expect(
+        service.bookAppointmentFromPortal('valid-token', {
+          fecha: '2027-01-15',
+          horario: '10:00',
+        }),
+      ).rejects.toThrow(ConflictError);
+    });
+
+    it('should allow booking when servicioId is not provided', async () => {
+      mockPortalRepository.findClienteByMagicToken.mockResolvedValue(validCliente);
+      mockCitasService.crearCitaAdmin.mockResolvedValue({
+        id: 2,
+        negocioId: 10,
+        clienteNombre: 'Juan Pérez',
+        clienteTelefono: '+521234567890',
+        horario: '10:00',
+        servicioId: null,
+      });
 
       const result = await service.bookAppointmentFromPortal('valid-token', {
         fecha: '2027-01-15',
@@ -216,11 +222,16 @@ describe('PortalService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockPortalRepository.createCita).toHaveBeenCalledWith(
+      expect(mockCitasService.crearCitaAdmin).toHaveBeenCalledWith(
+        10,
         expect.objectContaining({
-          servicio: 'General',
-          duracionMinutos: 60,
-          monto: 0,
+          clienteNombre: 'Juan Pérez',
+          clienteTelefono: '+521234567890',
+          fecha: '2027-01-15',
+          horario: '10:00',
+          servicioId: undefined,
+          estado: 'PENDIENTE',
+          origen: 'portal',
         }),
       );
     });

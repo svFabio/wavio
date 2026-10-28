@@ -7,12 +7,16 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { GoogleCalendarService } from './google-calendar.service';
 import { CitasService } from '../citas/citas.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { calendarCallbackSchema, CalendarCallbackDto } from './dto/calendar.dto';
 import { NotFoundError, ValidationError } from '../domain/errors';
 
 @Controller('api/v1/calendar')
@@ -20,6 +24,7 @@ import { NotFoundError, ValidationError } from '../domain/errors';
 export class CalendarController {
   constructor(
     private readonly googleCalendarService: GoogleCalendarService,
+    @Inject(forwardRef(() => CitasService))
     private readonly citasService: CitasService,
   ) {}
 
@@ -32,18 +37,14 @@ export class CalendarController {
   @Get('/callback')
   async handleCallback(
     @TenantId() negocioId: number,
-    @Query('code') code: string,
-    @Query('state') state: string,
+    @Query(new ZodValidationPipe(calendarCallbackSchema)) query: CalendarCallbackDto,
   ): Promise<{ success: boolean; calendarId: string }> {
-    if (!code) throw new ValidationError('Missing authorization code');
-    if (!state) throw new ValidationError('Missing state parameter');
-
-    const callbackNegocioId = parseInt(state, 10);
+    const callbackNegocioId = parseInt(query.state, 10);
     if (isNaN(callbackNegocioId) || callbackNegocioId !== negocioId) {
       throw new ValidationError('State parameter does not match authenticated business');
     }
 
-    const { calendarId } = await this.googleCalendarService.handleCallback(code, negocioId);
+    const { calendarId } = await this.googleCalendarService.handleCallback(query.code, negocioId);
     return { success: true, calendarId };
   }
 

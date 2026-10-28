@@ -88,6 +88,23 @@ export class StatisticsRepository {
     });
   }
 
+  async getCitasPorOrigen(
+    negocioId: number,
+    startOfMonth: Date,
+    endOfMonth: Date,
+  ): Promise<{ origen: string; _count: { id: number } }[]> {
+    const result = await this.prisma.cita.groupBy({
+      by: ['origen'],
+      _count: { id: true },
+      where: {
+        negocioId,
+        fecha: { gte: startOfMonth, lte: endOfMonth },
+        estado: { not: 'CANCELADA' },
+      },
+    });
+    return result as { origen: string; _count: { id: number } }[];
+  }
+
   async countCitasPorOrigen(
     negocioId: number,
     startOfMonth: Date,

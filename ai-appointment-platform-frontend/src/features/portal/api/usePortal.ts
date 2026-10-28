@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BookAppointmentPayload } from '../types';
 import { portalApi } from './portal.api';
 
@@ -39,8 +39,14 @@ export function usePortalAvailableSlotsQuery(token: string, fecha: string, servi
 }
 
 export function useBookAppointmentMutation(token: string) {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (data: BookAppointmentPayload) => portalApi.bookPortalAppointment(token, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portal', 'appointments', token] });
+      queryClient.invalidateQueries({ queryKey: ['portal', 'slots'] });
+    },
   });
 }
 

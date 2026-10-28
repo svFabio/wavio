@@ -9,6 +9,12 @@ const logger = createLogger('whatsapp-signature-guard');
 
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
+/**
+ * Validates Meta (WhatsApp) webhook payload HMAC signatures using META_APP_SECRET.
+ * In production, META_APP_SECRET is strictly required by envSchema validation at startup.
+ * If META_APP_SECRET is not configured (e.g. incomplete non-production env), this guard
+ * safely fails closed (returns false -> 403 Forbidden).
+ */
 @Injectable()
 export class WhatsappSignatureGuard implements CanActivate {
   constructor(@Inject(ENV_CONFIG) private readonly config: typeof EnvType) {}

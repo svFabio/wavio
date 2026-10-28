@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { useNotifications } from '../../../shared/hooks/useNotifications';
+import { toast } from 'sonner';
 import { citasApi } from '../../calendario/api/citas.api';
 
 export const useValidarPagoMutation = (): UseMutationResult<
@@ -9,7 +9,6 @@ export const useValidarPagoMutation = (): UseMutationResult<
   { id: string; accion: 'APROBAR' | 'RECHAZAR' }
 > => {
   const queryClient = useQueryClient();
-  const { showNotification } = useNotifications();
 
   return useMutation({
     mutationFn: async ({ id, accion }: { id: string; accion: 'APROBAR' | 'RECHAZAR' }) => {
@@ -17,11 +16,12 @@ export const useValidarPagoMutation = (): UseMutationResult<
       if (!success) throw new Error('Error al realizar la acción');
     },
     onSuccess: () => {
-      showNotification('Acción realizada con éxito', 'success');
+      // Sonner (montado en main.tsx): useNotifications no lo renderiza nadie.
+      toast.success('Acción realizada con éxito');
       queryClient.invalidateQueries({ queryKey: ['citas'] });
     },
     onError: () => {
-      showNotification('Error de conexión', 'error');
+      toast.error('Error de conexión');
     },
   });
 };

@@ -70,14 +70,28 @@ describe('usePortalAvailableSlotsQuery', () => {
 });
 
 describe('useBookAppointmentMutation', () => {
-  it('calls bookPortalAppointment', async () => {
-    vi.mocked(portalApi.bookPortalAppointment).mockResolvedValue({} as never);
-    const { result } = renderHookWithProviders(() => useBookAppointmentMutation('token'));
+  it('calls bookPortalAppointment and invalidates appointments and slots cache on success', async () => {
+    vi.mocked(portalApi.bookPortalAppointment).mockResolvedValue({
+      success: true,
+      message: 'ok',
+    } as never);
+    const { result, queryClient } = renderHookWithProviders(() =>
+      useBookAppointmentMutation('token'),
+    );
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
     result.current.mutate({ fecha: '2026-02-01', horario: '10:00' });
+
     await vi.waitFor(() => {
       expect(portalApi.bookPortalAppointment).toHaveBeenCalledWith('token', {
         fecha: '2026-02-01',
         horario: '10:00',
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['portal', 'appointments', 'token'],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['portal', 'slots'],
       });
     });
   });

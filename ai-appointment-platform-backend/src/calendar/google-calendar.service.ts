@@ -67,13 +67,7 @@ export class GoogleCalendarService {
     });
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-    const [hours, minutes] = cita.horario.split(':').map(Number);
-    const startDate = new Date(cita.fecha);
-    startDate.setHours(hours, minutes, 0, 0);
-
-    const endDate = new Date(startDate);
-    endDate.setMinutes(endDate.getMinutes() + (cita.duracionMinutos || 60));
+    const { startDateTime, endDateTime } = this.computeEventTimes(cita);
 
     const event = await calendar.events.insert({
       calendarId: credentials.googleCalendarId!,
@@ -86,18 +80,61 @@ export class GoogleCalendarService {
           `Teléfono: ${cita.clienteTelefono}`,
         ].join('\n'),
         start: {
-          dateTime: startDate.toISOString(),
-          timeZone: 'America/Mexico_City',
+          dateTime: startDateTime,
+          timeZone: credentials.timezone,
         },
         end: {
-          dateTime: endDate.toISOString(),
-          timeZone: 'America/Mexico_City',
+          dateTime: endDateTime,
+          timeZone: credentials.timezone,
         },
       },
     });
 
     this.logger.log(`Created Google Calendar event for cita ${cita.id}: ${event.data.id}`);
     return event.data.id ?? null;
+  }
+
+  async updateEvent(negocioId: number, googleEventId: string, cita: Cita): Promise<boolean> {
+    const credentials = await this.getCredentials(negocioId);
+
+    const oauth2Client = new google.auth.OAuth2(
+      env.GOOGLE_CALENDAR_CLIENT_ID,
+      env.GOOGLE_CALENDAR_CLIENT_SECRET,
+      env.GOOGLE_CALENDAR_REDIRECT_URI,
+    );
+
+    oauth2Client.setCredentials({
+      access_token: credentials.googleCalendarAccessToken,
+      refresh_token: credentials.googleCalendarRefreshToken,
+    });
+
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    const { startDateTime, endDateTime } = this.computeEventTimes(cita);
+
+    await calendar.events.patch({
+      calendarId: credentials.googleCalendarId!,
+      eventId: googleEventId,
+      requestBody: {
+        summary: `${cita.servicio} — ${cita.clienteNombre ?? cita.clienteTelefono}`,
+        description: [
+          `Cita ID: ${cita.id}`,
+          `Servicio: ${cita.servicio}`,
+          `Cliente: ${cita.clienteNombre ?? cita.clienteTelefono}`,
+          `Teléfono: ${cita.clienteTelefono}`,
+        ].join('\n'),
+        start: {
+          dateTime: startDateTime,
+          timeZone: credentials.timezone,
+        },
+        end: {
+          dateTime: endDateTime,
+          timeZone: credentials.timezone,
+        },
+      },
+    });
+
+    this.logger.log(`Updated Google Calendar event for cita ${cita.id}: ${googleEventId}`);
+    return true;
   }
 
   async deleteEvent(negocioId: number, googleEventId: string): Promise<boolean> {
@@ -134,10 +171,36 @@ export class GoogleCalendarService {
     return this.calendarRepository.isConnected(negocioId);
   }
 
+  private computeEventTimes(cita: Cita): { startDateTime: string; endDateTime: string } {
+    const fechaStr =
+      cita.fecha instanceof Date
+        ? cita.fecha.toISOString().split('T')[0]
+        : String(cita.fecha).split('T')[0];
+
+    const [hours, minutes] = cita.horario.split(':').map(Number);
+    const duracion = cita.duracionMinutos || 60;
+    const totalEndMinutes = hours * 60 + minutes + duracion;
+    const endHours = String(Math.floor(totalEndMinutes / 60) % 24).padStart(2, '0');
+    const endMins = String(totalEndMinutes % 60).padStart(2, '0');
+
+    let endFechaStr = fechaStr;
+    if (totalEndMinutes >= 24 * 60) {
+      const nextDay = new Date(`${fechaStr}T00:00:00.000Z`);
+      nextDay.setUTCDate(nextDay.getUTCDate() + Math.floor(totalEndMinutes / (24 * 60)));
+      endFechaStr = nextDay.toISOString().split('T')[0];
+    }
+
+    return {
+      startDateTime: `${fechaStr}T${cita.horario}:00`,
+      endDateTime: `${endFechaStr}T${endHours}:${endMins}:00`,
+    };
+  }
+
   private async getCredentials(negocioId: number): Promise<{
     googleCalendarAccessToken: string;
     googleCalendarRefreshToken: string;
     googleCalendarId: string;
+    timezone: string;
   }> {
     const negocio = await this.calendarRepository.getCalendarCredentials(negocioId);
 
@@ -154,6 +217,7 @@ export class GoogleCalendarService {
       googleCalendarAccessToken: negocio.googleCalendarAccessToken ?? '',
       googleCalendarRefreshToken: negocio.googleCalendarRefreshToken,
       googleCalendarId: negocio.googleCalendarId ?? 'primary',
+      timezone: negocio.timezone || 'America/La_Paz',
     };
   }
 }

@@ -279,3 +279,83 @@ filters/    AllExceptionsFilter (registered globally via APP_FILTER)
 - `POST /auth/cambiar-password` (JWT, sin tenant) verifica `passwordActual` con bcrypt; si el usuario no tiene contraseña (`''`), permite fijar `passwordNueva` directamente (cubre el set-password-on-first-login del staff invitado).
 - `POST /auth/reset-password` (público) responde `{ ok: true }` SIEMPRE y no genera nada: sin canal de email/WhatsApp no se puede entregar un token de reset, y responder siempre evita enumeración de usuarios.
 - Los emails se normalizan a minúsculas al crear la invitación para evitar invitaciones duplicadas que difieran solo en mayúsculas.
+
+---
+
+## ADR-011 — E2E con Cypress (specs con API interceptada, sin backend real)
+
+**Date**: 2026-09-22
+**Status**: Accepted
+
+**Context**: Vitest + MSW cubre unit/integration del frontend, pero ningún test ejercita el flujo real en navegador (routing, guards, React Query contra red). Hacía falta E2E sin acoplar la suite al backend ni a Postgres.
+
+**Options considered**:
+
+- Playwright: más rápido y multi-navegador, pero otra herramienta y otra sintaxis para un equipo que ya usa Vitest/MSW.
+- Cypress component testing: duplica lo que ya cubre Vitest + Testing Library.
+- Cypress E2E con `cy.intercept` sobre `**/api/v1/*`: reutiliza los fixtures mentales de MSW (`src/__tests__/mocks/handlers.ts`), corre contra `vite dev`/`vite preview` y no necesita backend, DB ni secretos en CI.
+
+**Decision**: Cypress 14 E2E en `ai-appointment-platform-frontend/cypress/` (`cypress.config.mjs` en la raíz del frontend — `.mjs` y no `.ts` porque el loader TS de Cypress no resuelve el tsconfig solution-style del proyecto y rompe con `"type": "module"`; specs en `cypress/e2e/*.cy.ts`, comandos en `cypress/support/`, fixtures en `cypress/fixtures/`). Los specs interceptan la API; el E2E contra backend real queda como fase 2 explícitamente fuera de alcance.
+
+**Consequences**:
+
+- Scripts: `pnpm cy:open` (modo interactivo), `pnpm cy:run` / `pnpm e2e` (headless). Requieren el frontend levantado (`pnpm dev` en `:5173` o `vite preview` con `baseUrl` override).
+- Auth en specs: helpers `cy.stubAuthMe()` + `cy.visitAsAdmin()` en `cypress/support/commands.ts`, que replican el contrato de `src/lib/auth.ts` (claves `token` + `activeNegocioId`). Si esas claves cambian, los comandos se actualizan con ellas.
+- Selectores: se usan IDs/roles accesibles existentes (`#login-email`, `#login-password`, `.rbc-calendar`); el día que haya `data-testid` en producción los specs migran a ellos.
+- Google Identity Services se bloquea (`blockHosts`) y sus errores se ignoran en `support/e2e.ts`: ningún flujo cubierto usa login con Google.
+- CI: job `e2e-frontend` con `cypress-io/github-action@v6` (build + preview en `:4173` + Chrome headless). No toca los jobs existentes.
+- TypeScript: `cypress/tsconfig.json` referenciado desde el `tsconfig.json` raíz del frontend para que `tsc -b` también cubra la suite.
+
+---
+
+## ADR-012 — Expansión E2E a flujos de negocio + hardening (suplementa ADR-011)
+
+**Date**: 2026-09-26
+**Status**: Accepted
+
+**Context**: ADR-011 dejó la suite en 3 specs (auth, calendario, portal) sin tocar el core del producto (citas, chat, pagos, WhatsApp). Además, cubrir esos flujos expuso 3 bugs reales de la app y 3 violaciones de accesibilidad.
+
+**Options considered**:
+
+- Añadir `data-testid` a producción para los specs nuevos: descartado — los selectores accesibles (placeholder, aria-label, roles, `type`) son estables y fuerzan UI accesible; tocar 4+ features por ganancia marginal no compensa. Documentado en `cypress/README.md`.
+- `cy.request` para setup sin UI: descartado — sin backend real no aporta nada sobre el seed vía `onBeforeLoad`/`cy.session`, que ya evita el login por UI. Omisión explícita, no deuda silenciosa.
+- Excluir reglas axe que fallaban (`landmark`, `page-has-heading-one`): descartado como salida global — se corrigió el landmark real y se excluyó solo `page-has-heading-one` en calendario (las páginas del dashboard usan `h2` por diseño).
+
+**Decision**: Ampliar a 7 specs / 17 tests (citas, chat, pagos, whatsapp nuevos; axe en login/calendario/portal), `cy.loginAsAdmin()` con `cy.session`, matriz Chrome+Firefox en CI con video y artifacts, y corregir los bugs que los specs expusieron.
+
+**Consequences**:
+
+- Nuevos specs: `citas.cy.ts` (crear + conflicto 409), `chat.cy.ts` (historial IA, envío, fallo conserva texto), `pagos.cy.ts` (pendientes, aprobar, rechazar, error backend), `whatsapp.cy.ts` (estado + desvincular). Fixtures por dominio en `cypress/fixtures/`.
+- Fixes de app incluidos en el cambio (todos verificados por specs): `PagosContainer` capturaba el rechazo sin manejar (unhandled rejection); `useValidarPagoMutation` notificaba por `useNotifications`, estado que ningún componente renderiza → migrado a `sonner` (ya montado en `main.tsx`); landmarks `<main>` en páginas `Login` y `Portal` (el layout Dashboard ya tenía el suyo).
+- Límites que siguen vigentes: red interceptada (sin E2E real contra backend), sin Stripe.js/checkout en el frontend (no existe: la validación es contra backend), sin login con Google ni sockets en vivo. Firefox solo verificado en CI.
+- Doc viva de la suite: `ai-appointment-platform-frontend/cypress/README.md` (mapa, comandos, política de selectores, evidencia, límites).
+
+---
+
+## ADR-013 — E2E real: suite separada contra backend vivo + Postgres (suplementa ADR-011/012)
+
+**Date**: 2026-09-26
+**Status**: Accepted
+
+**Context**: ADR-012 dejó la suite con red interceptada: validaba contratos y errores simulados, pero no probaba que una cita se persistiera en Postgres ni que el engine de disponibilidad rechazara duplicados. Para defender flujos de negocio reales ("crear cita", "crear otra en el mismo horario → error") hacía falta correr Cypress contra el stack completo.
+
+**Options considered**:
+
+- Un solo `specPattern` con todos los specs: descartado — la suite normal debe seguir corriendo sin backend (CI sin Postgres y máquinas sin el stack levantado); mezclarla acoplaría 17 tests rápidos a un servicio más.
+- Seed de datos vía `cy.task` + Prisma: descartado — meter Prisma en el proceso de Cypress duplica el cliente y acopla el frontend al ORM; sembrar por API (register + `PUT /horarios` + `POST /servicios`) además prueba los endpoints reales de provisioning.
+- Docker Compose completo para E2E local: descartado — su mapeo de puertos choca con el Postgres del sistema y no aporta redis; un contenedor dedicado `wavio-e2e-db` en `127.0.0.1:5433` es suficiente y no toca config compartida.
+- `prisma migrate deploy` en DB fresca: descartado — la migración inicial (`20250714`) hace `ALTER TABLE "Cita"` asumiendo tablas baseline creadas por `db push`; en una DB nueva falla (P3009). En DBs nuevas (local E2E y CI) se usa `db push`.
+
+**Decision**: Suite separada: specs en `cypress/e2e/real/`, script propio `pnpm e2e:real`. La selección por suite la hacen los scripts: `pnpm e2e` corre solo los stubs (`--spec cypress/e2e/*.cy.ts`, glob que no cruza subcarpetas) y el config principal **no** usa `excludeSpecPattern` para que `pnpm cy:open` liste todos los specs. Seed de tenant real por corrida (email único con `Date.now()`), login real por formulario con `cy.session`, **sin `cy.intercept`**: `cy.request` solo actúa como "otro admin" que compite por un horario y como verificación de persistencia contra la API. CI: job `e2e-real` con service de Postgres, backend compilado y `vite preview`.
+
+**Consequences**:
+
+- Specs: `crear-cita.cy.ts` (crea cita → verifica en Postgres → resumen visible en el calendario), `conflicto-horario.cy.ts` (el horario ocupado desaparece de la grilla; carrera con `cy.request` → 400 real "no está disponible" → sin duplicado), `ciclo-vida.cy.ts` (marcar no-asistió en una cita pasada y reprogramar a otro horario, con verificación en API) y `portal-publico.cy.ts` (link mágico sin sesión → agenda → cita `PENDIENTE` en Postgres, más token inválido → "Enlace invalido"). 7 tests, matriz chrome+firefox en CI.
+- `portal-publico.cy.ts` destapó el bug `GET /portal/:token/available-slots` → 500: el query llegaba como string y Prisma esperaba número. Fijo con `availableSlotsQuerySchema` + `ZodValidationPipe` (`z.coerce.number()`), el mismo patrón de `horariosQuerySchema` en `citas.controller`.
+- Deuda del portal: `useBookAppointmentMutation` no invalida la query de "Mis Citas" tras agendar (el test recarga la página para verlo); y la generación del link no tiene UI (`GenerateLinkButton` es código muerto), por eso el spec la hace por API.
+- Fecha siempre "mañana": el engine filtra slots pasados solo si la fecha es hoy, lo que haría flaky cualquier horario fijo a ciertas horas. El seed crea horarios 08:00–18:00 los 7 días para independencia del día de semana.
+- Rate limits reales: `/auth/register` y `/auth/login` permiten 5/min por IP → un register por spec por corrida; iterar demasiado seguido localmente puede responder 429 (esperar 1 min).
+- Flakiness local por memoria, no por test: con swap saturado (watch de tsc + vite + Chrome) los specs fallan por timeout de forma aleatoria. Señal: respuestas >1s en el log del backend; solución: reiniciar `pnpm dev` y re-correr.
+- La suite normal (7 specs / 17 tests) sigue verde e independiente: el glob `--spec cypress/e2e/*.cy.ts` de `pnpm e2e` separa ambos mundos (el config principal lista todos los specs para que `cy:open` los muestre juntos).
+- Deuda documentada: el historial de migraciones no es aplicable en una DB fresca (falta baseline). Resolver con `prisma migrate resolve` cuando se toque el esquema.
+- Doc viva: `ai-appointment-platform-frontend/cypress/README.md` (levantar el stack, correr la suite, por qué `db push`).

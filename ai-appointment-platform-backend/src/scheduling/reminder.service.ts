@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { AppointmentRepository } from '../repositories/appointment.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
@@ -49,29 +49,33 @@ export class ReminderService {
           const waCreds = credMap.get(cita.negocioId);
           if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
-          const fechaFormateada = new Date(cita.fecha).toLocaleDateString('es-ES', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          });
+          try {
+            const fechaFormateada = new Date(cita.fecha).toLocaleDateString('es-ES', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            });
 
-          const mensaje =
-            `Hola ${cita.clienteNombre || 'Cliente'}! 👋\n\n` +
-            `📅 *Recordatorio:* Tu cita es mañana.\n\n` +
-            `📋 *Detalles:*\n` +
-            `📅 Fecha: ${fechaFormateada}\n` +
-            `⏰ Hora: ${cita.horario}\n` +
-            `💆‍♀️ Servicio: ${cita.servicio}\n\n` +
-            `¡Te esperamos! Si necesitas reagendar, escríbenos.`;
+            const mensaje =
+              `Hola ${cita.clienteNombre || 'Cliente'}! 👋\n\n` +
+              `📅 *Recordatorio:* Tu cita es mañana.\n\n` +
+              `📋 *Detalles:*\n` +
+              `📅 Fecha: ${fechaFormateada}\n` +
+              `⏰ Hora: ${cita.horario}\n` +
+              `💆‍♀️ Servicio: ${cita.servicio}\n\n` +
+              `¡Te esperamos! Si necesitas reagendar, escríbenos.`;
 
-          await this.eventsService.sendWhatsAppMessage(
-            { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
-            cita.clienteTelefono,
-            mensaje,
-          );
+            await this.eventsService.sendWhatsAppMessage(
+              { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
+              cita.clienteTelefono,
+              mensaje,
+            );
 
-          await this.appointmentRepository.markReminderSent(cita.id, '24h');
-          this.logger.log(`Sent 24h reminder for cita ${cita.id}`);
+            await this.appointmentRepository.markReminderSent(cita.id, '24h');
+            this.logger.log(`Sent 24h reminder for cita ${cita.id}`);
+          } catch (error) {
+            this.logger.error(`Failed to send 24h reminder for cita ${cita.id}`, error);
+          }
         }
       }
     } catch (error) {
@@ -111,22 +115,26 @@ export class ReminderService {
           const waCreds = credMap.get(cita.negocioId);
           if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) continue;
 
-          const mensaje =
-            `Hola ${cita.clienteNombre || 'Cliente'}! 👋\n\n` +
-            `⏰ *Recordatorio:* Tu cita es en 1 hora.\n\n` +
-            `📋 *Detalles:*\n` +
-            `⏰ Hora: ${cita.horario}\n` +
-            `💆‍♀️ Servicio: ${cita.servicio}\n\n` +
-            `¡Te esperamos!`;
+          try {
+            const mensaje =
+              `Hola ${cita.clienteNombre || 'Cliente'}! 👋\n\n` +
+              `⏰ *Recordatorio:* Tu cita es en 1 hora.\n\n` +
+              `📋 *Detalles:*\n` +
+              `⏰ Hora: ${cita.horario}\n` +
+              `💆‍♀️ Servicio: ${cita.servicio}\n\n` +
+              `¡Te esperamos!`;
 
-          await this.eventsService.sendWhatsAppMessage(
-            { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
-            cita.clienteTelefono,
-            mensaje,
-          );
+            await this.eventsService.sendWhatsAppMessage(
+              { waAccessToken: waCreds.waAccessToken, waPhoneNumberId: waCreds.waPhoneNumberId },
+              cita.clienteTelefono,
+              mensaje,
+            );
 
-          await this.appointmentRepository.markReminderSent(cita.id, '1h');
-          this.logger.log(`Sent 1h reminder for cita ${cita.id}`);
+            await this.appointmentRepository.markReminderSent(cita.id, '1h');
+            this.logger.log(`Sent 1h reminder for cita ${cita.id}`);
+          } catch (error) {
+            this.logger.error(`Failed to send 1h reminder for cita ${cita.id}`, error);
+          }
         }
       }
     } catch (error) {

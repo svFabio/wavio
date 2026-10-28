@@ -3,36 +3,52 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().default('3000'),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
-  CORS_ORIGINS: z.string().optional(),
-  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
-  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
-  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
-  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
-  META_WEBHOOK_VERIFY_TOKEN: z.string().min(1, 'META_WEBHOOK_VERIFY_TOKEN is required'),
-  META_API_VERSION: z.string().default('v19.0'),
-  META_WHATSAPP_TOKEN: z.string().optional(),
-  META_PHONE_ID: z.string().optional(),
-  META_APP_SECRET: z.string().optional(),
-  GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_CALENDAR_CLIENT_ID: z.string().optional(),
-  GOOGLE_CALENDAR_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_CALENDAR_REDIRECT_URI: z.string().optional(),
-  BACKEND_URL: z.string().optional(),
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  VAPID_PUBLIC_KEY: z.string().optional(),
-  VAPID_PRIVATE_KEY: z.string().optional(),
-  VAPID_EMAIL: z.string().optional(),
-  REDIS_URL: z.string().url().optional(),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-  LOG_FILE: z.string().optional(),
-});
+export const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    PORT: z.string().default('3000'),
+    DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+    JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
+    CORS_ORIGINS: z.string().optional(),
+    GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+    GEMINI_MODEL: z.string().default('gemini-1.5-flash'),
+    CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+    CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+    CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
+    META_WEBHOOK_VERIFY_TOKEN: z.string().min(1, 'META_WEBHOOK_VERIFY_TOKEN is required'),
+    META_API_VERSION: z.string().default('v19.0'),
+    META_WHATSAPP_TOKEN: z.string().optional(),
+    META_PHONE_ID: z.string().optional(),
+    META_APP_SECRET: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CALENDAR_CLIENT_ID: z.string().optional(),
+    GOOGLE_CALENDAR_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CALENDAR_REDIRECT_URI: z.string().optional(),
+    BACKEND_URL: z.string().optional(),
+    FRONTEND_URL: z.string().optional(),
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    VAPID_PUBLIC_KEY: z.string().optional(),
+    VAPID_PRIVATE_KEY: z.string().optional(),
+    VAPID_EMAIL: z.string().optional(),
+    REDIS_URL: z.string().url().optional(),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+    LOG_FILE: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.NODE_ENV === 'production' &&
+      (!data.META_APP_SECRET || data.META_APP_SECRET.trim() === '')
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'META_APP_SECRET is required in production for WhatsApp webhook signature verification',
+        path: ['META_APP_SECRET'],
+      });
+    }
+  });
 
 const _env = envSchema.safeParse(process.env);
 

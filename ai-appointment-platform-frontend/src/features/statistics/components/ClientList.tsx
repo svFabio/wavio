@@ -1,4 +1,5 @@
 import { Users, AlertTriangle } from 'lucide-react';
+import { GenerateLinkButton } from '../../portal/components/GenerateLinkButton';
 import type { Cliente } from '../../../types';
 
 interface ClientListProps {
@@ -6,19 +7,19 @@ interface ClientListProps {
   allClientes?: Cliente[];
 }
 
-const getMedal = (index: number) => {
+const getMedal = (index: number): string => {
   if (index === 0) return '\u{1F947}';
   if (index === 1) return '\u{1F948}';
   if (index === 2) return '\u{1F949}';
   return `${index + 1}.`;
 };
 
-const findClienteNoShow = (telefono: string, allClientes?: Cliente[]) => {
+const findClienteNoShow = (telefono: string, allClientes?: Cliente[]): Cliente | null => {
   if (!allClientes) return null;
   return allClientes.find((c) => c.telefono === telefono) ?? null;
 };
 
-export const ClientList = ({ clientes, allClientes }: ClientListProps) => {
+export const ClientList = ({ clientes, allClientes }: ClientListProps): React.ReactElement => {
   return (
     <div className="card-modern p-5 md:p-6">
       <h2 className="text-lg font-bold text-txt mb-4 flex items-center gap-2">
@@ -50,6 +51,11 @@ export const ClientList = ({ clientes, allClientes }: ClientListProps) => {
                   <p className="text-xs text-txt-muted truncate">{cliente.telefono}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {noShowData && (
+                    <div className="hidden sm:block">
+                      <GenerateLinkButton clienteId={noShowData.id} />
+                    </div>
+                  )}
                   {noShowData && noShowData.noShowCount > 0 && (
                     <span className="text-xs font-medium text-warning bg-warning-light/20 px-2 py-0.5 rounded-full">
                       {noShowData.noShowCount} no-show{noShowData.noShowCount > 1 ? 's' : ''}

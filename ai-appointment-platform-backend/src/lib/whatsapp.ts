@@ -158,3 +158,91 @@ export const enviarImagen = async (
     throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
   }
 };
+
+export const descargarMediaWhatsApp = async (
+  credentials: WaCredentials,
+  mediaId: string,
+): Promise<{ base64: string; mimeType: string }> => {
+  if (!credentials.waAccessToken) {
+    throw new WhatsAppError('WhatsApp no configurado');
+  }
+
+  const META_API_VERSION = env.META_API_VERSION;
+  const safeMediaId = encodeURIComponent(mediaId);
+
+  try {
+    const metaResponse = await fetch(
+      `https://graph.facebook.com/${META_API_VERSION}/${safeMediaId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${credentials.waAccessToken}`,
+        },
+      },
+    );
+
+    if (!metaResponse.ok) {
+      throw new ExternalServiceError(
+        `Meta API media URL request failed with HTTP ${metaResponse.status}`,
+        'WHATSAPP_ERROR',
+        502,
+      );
+    }
+
+    const metaData = (await metaResponse.json()) as { url?: string; mime_type?: string };
+    const mediaUrl = metaData.url;
+    const mimeType = metaData.mime_type || 'image/jpeg';
+
+    if (!mediaUrl) {
+      throw new ExternalServiceError('Meta API no devolvió URL de media', 'WHATSAPP_ERROR', 502);
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(mediaUrl);
+    } catch {
+      throw new ExternalServiceError('URL de media inválida', 'WHATSAPP_ERROR', 502);
+    }
+
+    const isAllowedHost =
+      parsedUrl.protocol === 'https:' &&
+      (parsedUrl.hostname === 'lookaside.fbsbx.com' ||
+        parsedUrl.hostname === 'graph.facebook.com' ||
+        parsedUrl.hostname.endsWith('.fbcdn.net') ||
+        parsedUrl.hostname.endsWith('.facebook.com') ||
+        parsedUrl.hostname.endsWith('.whatsapp.net'));
+
+    if (!isAllowedHost) {
+      throw new ExternalServiceError(
+        'URL de descarga de WhatsApp no permitida por política de seguridad',
+        'WHATSAPP_ERROR',
+        502,
+      );
+    }
+
+    const fileResponse = await fetch(parsedUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${credentials.waAccessToken}`,
+      },
+    });
+
+    if (!fileResponse.ok) {
+      throw new ExternalServiceError(
+        `Meta API media download failed with HTTP ${fileResponse.status}`,
+        'WHATSAPP_ERROR',
+        502,
+      );
+    }
+
+    const arrayBuffer = await fileResponse.arrayBuffer();
+    const base64Data = Buffer.from(arrayBuffer).toString('base64');
+    const base64 = `data:${mimeType};base64,${base64Data}`;
+
+    return { base64, mimeType };
+  } catch (err) {
+    if (err instanceof WhatsAppError || err instanceof ExternalServiceError) {
+      throw err;
+    }
+    logger.error({ err, mediaId }, '[MetaGraph] Exception descargando media');
+    throw new ExternalServiceError(String(err), 'WHATSAPP_ERROR', 502);
+  }
+};

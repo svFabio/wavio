@@ -28,6 +28,7 @@ describe('CalendarRepository', () => {
         googleCalendarRefreshToken: negocio.googleCalendarRefreshToken,
         googleCalendarId: negocio.googleCalendarId,
         isGoogleCalendarConnected: negocio.isGoogleCalendarConnected,
+        configuracion: { timezone: 'America/La_Paz' },
       });
 
       const result = await repo.getCalendarCredentials(1);
@@ -39,10 +40,12 @@ describe('CalendarRepository', () => {
           googleCalendarRefreshToken: true,
           googleCalendarId: true,
           isGoogleCalendarConnected: true,
+          configuracion: { select: { timezone: true } },
         },
       });
       expect(result).not.toBeNull();
       expect(result!.googleCalendarAccessToken).toBe('access_token');
+      expect(result!.timezone).toBe('America/La_Paz');
     });
 
     it('should return null when negocio not found', async () => {

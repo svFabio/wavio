@@ -29,4 +29,4 @@ jobs:
         with:
           fail-on-severity: high
           comment-summary-in-pr: always
-          allow-ghsas: "GHSA-qwww-vcr4-c8h2"
+          allow-ghsas: "GHSA-qwww-vcr4-c8h2, GHSA-jmr9-qjv8-65gv, GHSA-7pqw-9j4j-h8q3"

@@ -5,7 +5,8 @@ import { NegocioService } from '../negocio/negocio.service';
 import { ServiciosService } from '../servicios/servicios.service';
 import { CitasService } from '../citas/citas.service';
 import { procesarMensajeConIA, ContextoConversacion } from '../chat/ai-engine';
-import { enviarMensaje, enviarImagen } from '../lib/whatsapp';
+import { enviarMensaje, enviarImagen, descargarMediaWhatsApp } from '../lib/whatsapp';
+import { uploadBase64Image } from '../lib/cloudinary';
 import { RedisService } from '../lib/redis/redis.service';
 import { cached } from '../lib/redis/cache-helpers';
 import type { Servicio, Negocio, Configuracion } from '../domain/types';
@@ -97,10 +98,23 @@ export class WebhookService {
           for (const message of messages) {
             try {
               const from = message.from as string;
+              const messageType = message.type as string;
 
-              if (message.type !== 'text') continue;
-              const textBody = (message.text as Record<string, unknown>)?.body as string;
+              if (messageType !== 'text' && messageType !== 'image') continue;
+
               const waMessageId = message.id as string;
+              let textBody = '';
+              let mediaId: string | undefined;
+
+              if (messageType === 'text') {
+                textBody = (message.text as Record<string, unknown>)?.body as string;
+              } else if (messageType === 'image') {
+                const imgData = message.image as Record<string, unknown> | undefined;
+                mediaId = imgData?.id as string | undefined;
+                if (!mediaId) continue;
+                const caption = (imgData?.caption as string) || '';
+                textBody = caption || '[Comprobante de pago]';
+              }
 
               if (!phoneNumberId || !from || !textBody) continue;
 
@@ -135,14 +149,22 @@ export class WebhookService {
                 throw error;
               }
 
-              logger.info({ negocio: negocio.nombre, from }, '[Webhook] Mensaje recibido');
+              logger.info(
+                { negocio: negocio.nombre, from, messageType },
+                '[Webhook] Mensaje recibido',
+              );
 
-              const isSurveyResponse = /^[1-5]$/.test(textBody.trim());
-              if (isSurveyResponse) {
+              if (messageType === 'image' && mediaId) {
+                await this.procesarComprobantePago(negocio, from, mediaId);
+                continue;
+              }
+
+              const rating = this.parsearRespuestaEncuesta(textBody);
+              if (rating !== null) {
                 const updated = await this.citasService.updateLastAppointmentRating(
                   negocio.id,
                   from,
-                  parseInt(textBody.trim(), 10),
+                  rating,
                 );
                 if (updated) {
                   await enviarMensaje(
@@ -210,12 +232,28 @@ export class WebhookService {
               }
 
               const ejecutarHerramienta = async (nombre: string, args: Record<string, unknown>) => {
+                const serviciosActivos = (cachedData?.servicios ?? []).filter(
+                  (s) => s.activo !== false,
+                );
+                const resolverServicioId = (): number | undefined => {
+                  if (typeof args.servicio_id === 'number') {
+                    return args.servicio_id;
+                  }
+                  if (typeof args.servicio_id === 'string' && !isNaN(Number(args.servicio_id))) {
+                    return Number(args.servicio_id);
+                  }
+                  if (contexto.datos.servicio) {
+                    const matched = serviciosActivos.find(
+                      (s) => s.nombre.toLowerCase() === contexto.datos.servicio!.toLowerCase(),
+                    );
+                    if (matched) return matched.id;
+                  }
+                  return serviciosActivos[0]?.id;
+                };
+
                 if (nombre === 'consultar_disponibilidad') {
                   const fecha = String(args.fecha ?? '');
-                  const servicioId =
-                    typeof args.servicio_id === 'number'
-                      ? args.servicio_id
-                      : cachedData!.servicios[0]?.id;
+                  const servicioId = resolverServicioId();
                   if (!servicioId) return [];
                   const slots = await this.citasService.getSlotDisponibles({
                     negocioId: negocio.id,
@@ -229,12 +267,23 @@ export class WebhookService {
                   const [fecha, hora] = fechaHora.includes('T')
                     ? fechaHora.split('T')
                     : [fechaHora, ''];
+                  const servicioId = resolverServicioId();
+                  const matchedServicio = servicioId
+                    ? serviciosActivos.find((s) => s.id === servicioId)
+                    : undefined;
+                  const monto =
+                    typeof args.monto === 'number'
+                      ? args.monto
+                      : typeof args.precio === 'number'
+                        ? args.precio
+                        : (matchedServicio?.precio ?? 0);
                   const cita = await this.citasService.crearCitaAdmin(negocio.id, {
                     clienteNombre: String(args.cliente_nombre ?? ''),
                     clienteTelefono: String(args.cliente_telefono ?? ''),
                     fecha,
                     horario: hora.slice(0, 5),
-                    monto: 0,
+                    servicioId,
+                    monto,
                     estado: 'VALIDACION_PENDIENTE',
                     origen: 'whatsapp',
                   });
@@ -313,8 +362,33 @@ export class WebhookService {
     logger.info({ eventType: event.type, eventId: event.id }, '[Stripe] Event received');
 
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const metadata = session.metadata || {};
+        const citaId = metadata.citaId ? Number(metadata.citaId) : undefined;
+        const negocioId = metadata.negocioId ? Number(metadata.negocioId) : undefined;
+        const paymentIntentId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id;
+
+        logger.info(
+          { sessionId: session.id, citaId, negocioId, paymentIntentId },
+          '[Stripe] Checkout session completed',
+        );
+
+        if (citaId && negocioId) {
+          await this.citasService.confirmarPagoStripe(citaId, negocioId, paymentIntentId);
+        }
+        break;
+      }
+
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const metadata = paymentIntent.metadata || {};
+        const citaId = metadata.citaId ? Number(metadata.citaId) : undefined;
+        const negocioId = metadata.negocioId ? Number(metadata.negocioId) : undefined;
+
         logger.info(
           {
             paymentIntentId: paymentIntent.id,
@@ -322,9 +396,15 @@ export class WebhookService {
             currency: paymentIntent.currency,
             customerId: paymentIntent.customer,
             metadata: paymentIntent.metadata,
+            citaId,
+            negocioId,
           },
           '[Stripe] Payment succeeded',
         );
+
+        if (citaId && negocioId) {
+          await this.citasService.confirmarPagoStripe(citaId, negocioId, paymentIntent.id);
+        }
         break;
       }
 
@@ -390,13 +470,21 @@ export class WebhookService {
 
       if (fechaStr && horario && nombre) {
         try {
+          const matchedServicio = contexto.datos.servicio
+            ? cached.servicios.find(
+                (s) => s.nombre.toLowerCase() === String(contexto.datos.servicio).toLowerCase(),
+              )
+            : cached.servicios[0];
+          const servicioId = matchedServicio?.id;
+          const monto = matchedServicio?.precio ?? 0;
+
           const nuevaCita = await this.citasService.crearCitaAdmin(negocio.id, {
             clienteNombre: nombre,
             clienteTelefono: from,
             fecha: fechaStr,
             horario,
-            servicioId: undefined,
-            monto: 0,
+            servicioId,
+            monto,
             estado: 'VALIDACION_PENDIENTE',
             origen: 'whatsapp',
           });
@@ -516,5 +604,79 @@ export class WebhookService {
       return fecha;
     }
     return undefined;
+  }
+
+  async procesarComprobantePago(negocio: Negocio, from: string, mediaId: string): Promise<void> {
+    const waCreds = {
+      waAccessToken: negocio.waAccessToken ?? '',
+      waPhoneNumberId: negocio.waPhoneNumberId ?? '',
+    };
+
+    try {
+      logger.info(
+        { negocioId: negocio.id, from, mediaId },
+        '[Webhook] Descargando comprobante de WhatsApp',
+      );
+      const media = await descargarMediaWhatsApp(waCreds, mediaId);
+
+      logger.info({ negocioId: negocio.id, from }, '[Webhook] Subiendo comprobante a Cloudinary');
+      const comprobanteUrl = await uploadBase64Image(
+        media.base64,
+        `wavio/comprobantes/${negocio.id}`,
+      );
+
+      logger.info(
+        { negocioId: negocio.id, from, comprobanteUrl },
+        '[Webhook] Asociando comprobante a cita pendiente',
+      );
+      const citaActualizada = await this.citasService.asociarComprobante(
+        negocio.id,
+        from,
+        comprobanteUrl,
+      );
+
+      if (citaActualizada) {
+        const config = await this.negocioService.getConfiguracion(negocio.id);
+        const mensaje =
+          config.mensajeConfirmacion ||
+          '¡Comprobante recibido! Tu cita está siendo revisada por el equipo. Te confirmaremos a la brevedad.';
+        await enviarMensaje(waCreds, from, mensaje);
+      } else {
+        await enviarMensaje(
+          waCreds,
+          from,
+          'Recibimos tu comprobante, pero no encontramos una cita pendiente asociada a tu número. Por favor contáctanos para asistirte.',
+        );
+      }
+    } catch (err) {
+      logger.error({ err, from, mediaId }, '[Webhook] Error procesando comprobante de pago');
+      await enviarMensaje(
+        waCreds,
+        from,
+        'Hubo un problema al procesar tu comprobante. Por favor intenta enviarlo nuevamente.',
+      );
+    }
+  }
+
+  parsearRespuestaEncuesta(texto: string): number | null {
+    if (!texto || typeof texto !== 'string') return null;
+    const trimmed = texto.trim();
+
+    // 1. Estrellas Unicode (ej: ⭐⭐⭐⭐⭐, ⭐) con soporte para modificadores / selector de variación
+    const starMatches = trimmed.match(/⭐/gu);
+    if (starMatches && trimmed.replace(/⭐|\uFE0F|\s/gu, '') === '') {
+      const count = starMatches.length;
+      if (count >= 1 && count <= 5) {
+        return count;
+      }
+    }
+
+    // 2. Número 1 a 5 (ej: "5", "5 estrellas", "5 ⭐")
+    const numMatch = trimmed.match(/^([1-5])(?:\s*(?:estrellas?|⭐\uFE0F?))?$/i);
+    if (numMatch) {
+      return parseInt(numMatch[1], 10);
+    }
+
+    return null;
   }
 }

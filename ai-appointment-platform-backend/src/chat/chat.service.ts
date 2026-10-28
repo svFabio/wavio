@@ -4,7 +4,7 @@ import { SesionChatRepository } from '../repositories/sesionChat.repository';
 import { NegocioService } from '../negocio/negocio.service';
 import { EventsService } from '../events/events.service';
 import { enviarMensaje, resolverTelefonoReal } from '../lib/whatsapp';
-import { ValidationError, AppError } from '../domain/errors';
+import { ValidationError, WhatsAppError } from '../domain/errors';
 import { MensajeChat } from '../domain/types';
 import { createLogger } from '../lib/logger';
 
@@ -71,7 +71,7 @@ export class ChatService {
 
     const waCreds = await this.negocioService.findByIdForInternal(negocioId);
     if (!waCreds?.waAccessToken || !waCreds.waPhoneNumberId) {
-      throw new AppError('WhatsApp no conectado', 502, 'WHATSAPP_ERROR');
+      throw new WhatsAppError('WhatsApp no conectado');
     }
 
     const resultado = await enviarMensaje(
@@ -80,7 +80,7 @@ export class ChatService {
       texto.trim(),
     );
 
-    await this.chatRepository.createMensaje({
+    await this.createMensaje({
       remoteJid: jid,
       contenido: texto.trim(),
       direccion: 'SALIENTE',
@@ -103,7 +103,8 @@ export class ChatService {
     try {
       this.eventsService.emitConversacionEliminada(negocioId, { remoteJid: jid });
     } catch (e: unknown) {
-      logger.warn({ err: e }, 'Socket error on deleteConversacion');
+      const errorMsg = e instanceof Error ? e.message : 'Unknown socket error';
+      logger.warn({ errorMsg }, 'Socket error on deleteConversacion');
     }
 
     return { success: true, eliminados: count };
@@ -125,7 +126,8 @@ export class ChatService {
         mensaje,
       });
     } catch (e: unknown) {
-      logger.warn({ err: e }, 'Socket error on emitNuevoMensaje');
+      const errorMsg = e instanceof Error ? e.message : 'Unknown socket error';
+      logger.warn({ errorMsg }, 'Socket error on emitNuevoMensaje');
     }
 
     return mensaje;

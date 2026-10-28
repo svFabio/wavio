@@ -23,7 +23,7 @@ const sha256 = (value: string): string => crypto.createHash('sha256').update(val
 // Token fijo determinista: 32 bytes de 0xaa → 64 caracteres 'a'
 const FIXED_TOKEN = 'aa'.repeat(32);
 const FIXED_TOKEN_HASH = sha256(FIXED_TOKEN);
-const FALLBACK_URL = `http://localhost:3000/api/v1/invitaciones/aceptar/${FIXED_TOKEN}`;
+const FALLBACK_URL = `http://localhost:5173/invitaciones/aceptar/${FIXED_TOKEN}`;
 
 describe('InvitacionesService', () => {
   let service: InvitacionesService;
@@ -57,6 +57,7 @@ describe('InvitacionesService', () => {
 
   afterEach(() => {
     randomBytesSpy.mockRestore();
+    delete process.env.FRONTEND_URL;
     delete process.env.BACKEND_URL;
   });
 
@@ -106,9 +107,9 @@ describe('InvitacionesService', () => {
       expect(createCall.tokenHash).not.toBe(FIXED_TOKEN);
     });
 
-    it('should build the URL from env.BACKEND_URL when set', async () => {
+    it('should build the URL from env.FRONTEND_URL when set', async () => {
       vi.resetModules();
-      process.env.BACKEND_URL = 'https://api.example.com';
+      process.env.FRONTEND_URL = 'https://app.example.com';
       const { InvitacionesService: ReloadedService } = await import('./invitaciones.service');
       const reloadedService = new ReloadedService(mockRepo as unknown as InvitacionesRepository);
 
@@ -124,7 +125,7 @@ describe('InvitacionesService', () => {
         2,
       );
 
-      expect(result.url).toBe(`https://api.example.com/api/v1/invitaciones/aceptar/${FIXED_TOKEN}`);
+      expect(result.url).toBe(`https://app.example.com/invitaciones/aceptar/${FIXED_TOKEN}`);
     });
 
     it('should throw ConflictError when the email already has an active membership', async () => {

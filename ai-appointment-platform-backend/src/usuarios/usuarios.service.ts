@@ -1,13 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { UsuariosRepository } from './usuarios.repository';
 import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '../domain/errors';
 import { Rol } from '../domain/types';
 import { BCRYPT_SALT_ROUNDS } from '../config';
+import { RedisService } from '../lib/redis/redis.service';
+import { invalidateTenantMemberCache } from '../lib/cache/tenant-cache';
 import bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly usuariosRepository: UsuariosRepository) {}
+  constructor(
+    private readonly usuariosRepository: UsuariosRepository,
+    @Optional() private readonly redisService?: RedisService,
+  ) {}
 
   async getAllUsers(
     negocioId: number,
@@ -135,6 +140,8 @@ export class UsuariosService {
         }
       }
       updateData.rol = rol as Rol;
+      await this.usuariosRepository.updateMembershipRole(userId, negocioId, rol);
+      await invalidateTenantMemberCache(userId, negocioId, this.redisService);
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -174,6 +181,17 @@ export class UsuariosService {
       }
     }
 
-    await this.usuariosRepository.delete(userId);
+    const futureCitasCount = await this.usuariosRepository.countFutureCitasByStaff(
+      negocioId,
+      userId,
+    );
+    if (futureCitasCount > 0) {
+      throw new ConflictError(
+        'El usuario tiene citas futuras asignadas. Reasígnalas antes de eliminarlo.',
+      );
+    }
+
+    await this.usuariosRepository.deleteMembership(negocioId, userId);
+    await invalidateTenantMemberCache(userId, negocioId, this.redisService);
   }
 }

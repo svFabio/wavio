@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Cita } from '../domain/types';
+import { ConflictError } from '../domain/errors';
+import { normalizePhoneE164 } from '../common/utils/phone.util';
 
 type CitaCountWhere = {
   estado?: string | { not: string } | { notIn: string[] };
@@ -107,18 +109,33 @@ export class CitasRepository {
     horario: string,
     data: Omit<Prisma.CitaUncheckedCreateInput, 'negocioId' | 'fecha' | 'horario'>,
   ): Promise<Cita | null> {
-    return this.prisma.$transaction(async (tx) => {
-      const occupied = await tx.cita.findFirst({
-        where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' } },
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const occupied = await tx.cita.findFirst({
+          where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' } },
+        });
+        if (occupied) {
+          return null;
+        }
+        const cita = await tx.cita.create({
+          data: {
+            ...data,
+            negocioId,
+            fecha,
+            horario,
+            clienteTelefono: data.clienteTelefono
+              ? normalizePhoneE164(data.clienteTelefono)
+              : data.clienteTelefono,
+          },
+        });
+        return { ...cita, monto: Number(cita.monto) };
       });
-      if (occupied) {
-        return null;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictError('Ese horario ya fue reservado por otro cliente');
       }
-      const cita = await tx.cita.create({
-        data: { ...data, negocioId, fecha, horario },
-      });
-      return { ...cita, monto: Number(cita.monto) };
-    });
+      throw error;
+    }
   }
 
   async update(
@@ -135,14 +152,21 @@ export class CitasRepository {
     fecha: Date,
     horario: string,
   ): Promise<Cita | null> {
-    return this.prisma.$transaction(async (tx) => {
-      const occupied = await tx.cita.findFirst({
-        where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' }, NOT: { id } },
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const occupied = await tx.cita.findFirst({
+          where: { negocioId, fecha, horario, estado: { not: 'CANCELADA' }, NOT: { id } },
+        });
+        if (occupied) return null;
+        const updated = await tx.cita.update({ where: { id }, data: { fecha, horario } });
+        return { ...updated, monto: Number(updated.monto) };
       });
-      if (occupied) return null;
-      const updated = await tx.cita.update({ where: { id }, data: { fecha, horario } });
-      return { ...updated, monto: Number(updated.monto) };
-    });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictError('Ese horario ya fue reservado por otro cliente');
+      }
+      throw error;
+    }
   }
 
   async getSumaIngresosHoy(negocioId: number, inicio: Date, fin: Date): Promise<number> {
@@ -212,5 +236,33 @@ export class CitasRepository {
       data: { rating },
     });
     return true;
+  }
+
+  async confirmarPagoStripe(citaId: number, negocioId: number): Promise<number> {
+    const result = await this.prisma.cita.updateMany({
+      where: {
+        id: citaId,
+        negocioId,
+        estadoPago: { not: 'PAGADO' },
+      },
+      data: {
+        estadoPago: 'PAGADO',
+        estado: 'CONFIRMADA',
+      },
+    });
+    return result.count;
+  }
+
+  async findUltimaCitaPendiente(negocioId: number, clienteTelefono: string): Promise<Cita | null> {
+    const cleanPhone = clienteTelefono.replace('+', '');
+    const cita = await this.prisma.cita.findFirst({
+      where: {
+        negocioId,
+        clienteTelefono: { in: [clienteTelefono, cleanPhone, `+${cleanPhone}`] },
+        estado: { in: ['PENDIENTE', 'VALIDACION_PENDIENTE'] },
+      },
+      orderBy: { creadoEn: 'desc' },
+    });
+    return cita ? { ...cita, monto: Number(cita.monto) } : null;
   }
 }

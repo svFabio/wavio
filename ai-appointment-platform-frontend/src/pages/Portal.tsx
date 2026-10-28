@@ -1,7 +1,11 @@
 import { PortalContainer } from '../features/portal/containers/PortalContainer.container';
 
 const Portal = () => {
-  return <PortalContainer />;
+  return (
+    <main>
+      <PortalContainer />
+    </main>
+  );
 };
 
 export default Portal;

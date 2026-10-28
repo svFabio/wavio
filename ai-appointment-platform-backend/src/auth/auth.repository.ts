@@ -214,4 +214,16 @@ export class AuthRepository {
       data: { password },
     });
   }
+
+  async findMembership(usuarioId: number, negocioId: number): Promise<{ rol: string } | null> {
+    return this.prisma.usuarioNegocio.findUnique({
+      where: {
+        usuarioId_negocioId: {
+          usuarioId,
+          negocioId,
+        },
+      },
+      select: { rol: true },
+    });
+  }
 }

@@ -5,7 +5,9 @@ import {
   UnauthorizedError,
   ConflictError,
   NotFoundError,
+  ForbiddenError,
   GoogleEmailNotVerifiedError,
+  AppError,
 } from '../domain/errors';
 import { JWT_EXPIRES_IN } from '../config';
 vi.hoisted(() => {
@@ -72,6 +74,7 @@ describe('AuthService', () => {
       findUsuarioNegocioMembership: vi.fn(),
       findUsuarioByIdWithPassword: vi.fn(),
       updatePassword: vi.fn(),
+      findMembership: vi.fn(),
     };
 
     service = new AuthService(mockAuthRepository as unknown as AuthRepository);
@@ -960,11 +963,35 @@ describe('AuthService', () => {
   /* ─── resetPassword ──────────────────────────────────────────────── */
 
   describe('resetPassword', () => {
-    it('should always return ok without generating anything (no email channel yet)', async () => {
-      const result = await service.resetPassword('anyone@test.com');
-
-      expect(result).toEqual({ ok: true });
+    it('should throw AppError 501 NOT_IMPLEMENTED without querying database', async () => {
+      await expect(service.resetPassword('anyone@test.com')).rejects.toThrow(AppError);
+      try {
+        await service.resetPassword('anyone@test.com');
+      } catch (err) {
+        expect(err).toBeInstanceOf(AppError);
+        expect((err as AppError).statusCode).toBe(501);
+        expect((err as AppError).code).toBe('NOT_IMPLEMENTED');
+      }
       expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
+    });
+  });
+
+  /* ─── verifyTenantMembership ─────────────────────────────────────── */
+
+  describe('verifyTenantMembership', () => {
+    it('should return membership role when found', async () => {
+      mockAuthRepository.findMembership.mockResolvedValue({ rol: 'ADMIN' });
+
+      const rol = await service.verifyTenantMembership(1, 2);
+
+      expect(rol).toBe('ADMIN');
+      expect(mockAuthRepository.findMembership).toHaveBeenCalledWith(1, 2);
+    });
+
+    it('should throw ForbiddenError when membership does not exist', async () => {
+      mockAuthRepository.findMembership.mockResolvedValue(null);
+
+      await expect(service.verifyTenantMembership(1, 99)).rejects.toThrow(ForbiddenError);
     });
   });
 });

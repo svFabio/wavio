@@ -33,4 +33,44 @@ export class PushService {
   async unsubscribe(endpoint: string): Promise<boolean> {
     return this.pushRepository.unsubscribe(endpoint);
   }
+
+  async sendNotification(
+    negocioId: number,
+    payload: { title: string; body: string; url?: string },
+  ): Promise<void> {
+    if (!this.vapidConfigured) {
+      this.logger.debug('VAPID not configured, skipping push notification');
+      return;
+    }
+
+    const subscriptions = await this.pushRepository.findByNegocioId(negocioId);
+    if (!subscriptions || subscriptions.length === 0) return;
+
+    const notificationPayload = JSON.stringify(payload);
+
+    await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        try {
+          await webPush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+            },
+            notificationPayload,
+          );
+        } catch (error: unknown) {
+          const statusCode = (error as { statusCode?: number })?.statusCode;
+          if (statusCode === 410 || statusCode === 404) {
+            this.logger.log(`Removing expired subscription: ${sub.endpoint}`);
+            await this.pushRepository.unsubscribe(sub.endpoint);
+          } else {
+            this.logger.warn(`Failed to send push notification to ${sub.endpoint}: ${error}`);
+          }
+        }
+      }),
+    );
+  }
 }

@@ -1,8 +1,12 @@
 import { z } from 'zod';
+import { normalizePhoneE164 } from '../../common/utils/phone.util';
 
 export const createClienteSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
-  telefono: z.string().min(1, 'El telefono es requerido'),
+  telefono: z
+    .string()
+    .min(1, 'El telefono es requerido')
+    .transform((val) => normalizePhoneE164(val)),
   email: z.string().email('Email invalido').optional(),
   notas: z.string().optional(),
 });

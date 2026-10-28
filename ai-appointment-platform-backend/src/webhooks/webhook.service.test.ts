@@ -3,15 +3,28 @@ import { WebhookService, parsearFechaRelativa, formatearFechaEnZona } from './we
 import type { Negocio, Servicio, Configuracion } from '../domain/types';
 import type { RedisService } from '../lib/redis/redis.service';
 
-const { mockEnviarMensaje, mockEnviarImagen, mockProcesarMensajeConIA } = vi.hoisted(() => ({
+const {
+  mockEnviarMensaje,
+  mockEnviarImagen,
+  mockDescargarMediaWhatsApp,
+  mockUploadBase64Image,
+  mockProcesarMensajeConIA,
+} = vi.hoisted(() => ({
   mockEnviarMensaje: vi.fn(),
   mockEnviarImagen: vi.fn(),
+  mockDescargarMediaWhatsApp: vi.fn(),
+  mockUploadBase64Image: vi.fn(),
   mockProcesarMensajeConIA: vi.fn(),
 }));
 
 vi.mock('../lib/whatsapp', () => ({
   enviarMensaje: mockEnviarMensaje,
   enviarImagen: mockEnviarImagen,
+  descargarMediaWhatsApp: mockDescargarMediaWhatsApp,
+}));
+
+vi.mock('../lib/cloudinary', () => ({
+  uploadBase64Image: mockUploadBase64Image,
 }));
 
 vi.mock('../chat/ai-engine', () => ({
@@ -35,6 +48,8 @@ describe('WebhookService', () => {
     updateLastAppointmentRating: ReturnType<typeof vi.fn>;
     getSlotDisponibles: ReturnType<typeof vi.fn>;
     crearCitaAdmin: ReturnType<typeof vi.fn>;
+    confirmarPagoStripe: ReturnType<typeof vi.fn>;
+    asociarComprobante: ReturnType<typeof vi.fn>;
   };
   let mockRedisService: RedisService;
 
@@ -121,6 +136,8 @@ describe('WebhookService', () => {
       updateLastAppointmentRating: vi.fn(),
       getSlotDisponibles: vi.fn(),
       crearCitaAdmin: vi.fn(),
+      confirmarPagoStripe: vi.fn().mockResolvedValue(true),
+      asociarComprobante: vi.fn(),
     };
     mockRedisService = {
       isAvailable: false,
@@ -300,6 +317,128 @@ describe('WebhookService', () => {
     });
   });
 
+  describe('processWhatsAppPayload — image voucher / comprobante', () => {
+    it('should download media, upload to Cloudinary, associate to cita and confirm', async () => {
+      mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
+      mockNegocioService.getConfiguracion.mockResolvedValue({
+        ...mockConfig,
+        mensajeConfirmacion: '¡Comprobante verificado con éxito!',
+      });
+      mockDescargarMediaWhatsApp.mockResolvedValue({
+        base64: 'data:image/jpeg;base64,samplebase64',
+        mimeType: 'image/jpeg',
+      });
+      mockUploadBase64Image.mockResolvedValue('https://res.cloudinary.com/test/image.jpg');
+      mockCitasService.asociarComprobante.mockResolvedValue({
+        id: 10,
+        estado: 'VALIDACION_PENDIENTE',
+        comprobanteUrl: 'https://res.cloudinary.com/test/image.jpg',
+      });
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.img.1',
+            type: 'image',
+            image: {
+              id: 'media-12345',
+              mime_type: 'image/jpeg',
+              caption: 'Aquí está mi comprobante',
+            },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockChatService.createMensaje).toHaveBeenCalledWith({
+        remoteJid: '+521234567890',
+        contenido: 'Aquí está mi comprobante',
+        direccion: 'ENTRANTE',
+        waMessageId: 'wamid.img.1',
+        estadoEntrega: 'entregado',
+        negocioId: 1,
+      });
+      expect(mockDescargarMediaWhatsApp).toHaveBeenCalledWith(
+        { waAccessToken: 'wa-token', waPhoneNumberId: '123456' },
+        'media-12345',
+      );
+      expect(mockUploadBase64Image).toHaveBeenCalledWith(
+        'data:image/jpeg;base64,samplebase64',
+        'wavio/comprobantes/1',
+      );
+      expect(mockCitasService.asociarComprobante).toHaveBeenCalledWith(
+        1,
+        '+521234567890',
+        'https://res.cloudinary.com/test/image.jpg',
+      );
+      expect(mockEnviarMensaje).toHaveBeenCalledWith(
+        { waAccessToken: 'wa-token', waPhoneNumberId: '123456' },
+        '+521234567890',
+        '¡Comprobante verificado con éxito!',
+      );
+    });
+
+    it('should notify client when no pending cita is found for voucher', async () => {
+      mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
+      mockDescargarMediaWhatsApp.mockResolvedValue({
+        base64: 'data:image/jpeg;base64,samplebase64',
+        mimeType: 'image/jpeg',
+      });
+      mockUploadBase64Image.mockResolvedValue('https://res.cloudinary.com/test/image.jpg');
+      mockCitasService.asociarComprobante.mockResolvedValue(null);
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.img.2',
+            type: 'image',
+            image: { id: 'media-999' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockCitasService.asociarComprobante).toHaveBeenCalledWith(
+        1,
+        '+521234567890',
+        'https://res.cloudinary.com/test/image.jpg',
+      );
+      expect(mockEnviarMensaje).toHaveBeenCalledWith(
+        { waAccessToken: 'wa-token', waPhoneNumberId: '123456' },
+        '+521234567890',
+        expect.stringContaining('no encontramos una cita pendiente'),
+      );
+    });
+
+    it('should catch error during voucher processing and notify client politely', async () => {
+      mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
+      mockDescargarMediaWhatsApp.mockRejectedValue(new Error('WhatsApp Graph API Error'));
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.img.3',
+            type: 'image',
+            image: { id: 'media-err' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockEnviarMensaje).toHaveBeenCalledWith(
+        { waAccessToken: 'wa-token', waPhoneNumberId: '123456' },
+        '+521234567890',
+        expect.stringContaining('Hubo un problema al procesar tu comprobante'),
+      );
+    });
+  });
+
   describe('processWhatsAppPayload — survey response', () => {
     it('should process a valid survey rating (1-5)', async () => {
       mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
@@ -337,6 +476,78 @@ describe('WebhookService', () => {
         expect.stringContaining('Gracias'),
       );
       expect(mockServiciosService.getAll).not.toHaveBeenCalled();
+    });
+
+    it('should process Unicode stars rating (⭐⭐⭐⭐⭐ -> 5)', async () => {
+      mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
+      mockCitasService.updateLastAppointmentRating.mockResolvedValue(true);
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.stars.1',
+            type: 'text',
+            text: { body: '⭐⭐⭐⭐⭐' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockCitasService.updateLastAppointmentRating).toHaveBeenCalledWith(
+        1,
+        '+521234567890',
+        5,
+      );
+    });
+
+    it('should process Unicode stars rating (⭐⭐⭐ -> 3)', async () => {
+      mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
+      mockCitasService.updateLastAppointmentRating.mockResolvedValue(true);
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.stars.2',
+            type: 'text',
+            text: { body: '⭐⭐⭐' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockCitasService.updateLastAppointmentRating).toHaveBeenCalledWith(
+        1,
+        '+521234567890',
+        3,
+      );
+    });
+
+    it('should process text rating "4 estrellas" and "5 ⭐"', async () => {
+      mockNegocioService.findByWaPhoneNumberIdForInternal.mockResolvedValue(mockNegocio);
+      mockCitasService.updateLastAppointmentRating.mockResolvedValue(true);
+
+      const body = buildPayload({
+        messages: [
+          {
+            from: '+521234567890',
+            id: 'wamid.text.1',
+            type: 'text',
+            text: { body: '4 estrellas' },
+          },
+        ],
+      });
+
+      await service.processWhatsAppPayload(body);
+
+      expect(mockCitasService.updateLastAppointmentRating).toHaveBeenCalledWith(
+        1,
+        '+521234567890',
+        4,
+      );
     });
 
     it('should fall through to AI processing when survey rating has no matching cita', async () => {
@@ -559,6 +770,43 @@ describe('WebhookService', () => {
         fecha: '2026-08-05',
       });
       expect(slots).toEqual(['09:00', '10:00']);
+
+      mockCitasService.crearCitaAdmin.mockResolvedValue({ id: 99 });
+      const agendarResult = (await ejecutarHerramienta('agendar_cita', {
+        fecha_hora: '2026-08-05T10:00:00',
+        cliente_nombre: 'Carlos Perez',
+        cliente_telefono: '+59170099999',
+      })) as { ok: boolean; citaId: number };
+
+      expect(agendarResult).toEqual({ ok: true, citaId: 99 });
+      expect(mockCitasService.crearCitaAdmin).toHaveBeenCalledWith(1, {
+        clienteNombre: 'Carlos Perez',
+        clienteTelefono: '+59170099999',
+        fecha: '2026-08-05',
+        horario: '10:00',
+        servicioId: 1,
+        monto: 250,
+        estado: 'VALIDACION_PENDIENTE',
+        origen: 'whatsapp',
+      });
+
+      await ejecutarHerramienta('agendar_cita', {
+        fecha_hora: '2026-08-05T11:00:00',
+        cliente_nombre: 'Ana Lopez',
+        cliente_telefono: '+59170088888',
+        servicio_id: 2,
+      });
+
+      expect(mockCitasService.crearCitaAdmin).toHaveBeenCalledWith(1, {
+        clienteNombre: 'Ana Lopez',
+        clienteTelefono: '+59170088888',
+        fecha: '2026-08-05',
+        horario: '11:00',
+        servicioId: 2,
+        monto: 0,
+        estado: 'VALIDACION_PENDIENTE',
+        origen: 'whatsapp',
+      });
     });
 
     it('should continue processing remaining messages when one fails', async () => {
@@ -668,8 +916,8 @@ describe('WebhookService', () => {
         clienteTelefono: '+521234567890',
         fecha: '2026-08-01',
         horario: '10:00',
-        servicioId: undefined,
-        monto: 0,
+        servicioId: 1,
+        monto: 250,
         estado: 'VALIDACION_PENDIENTE',
         origen: 'whatsapp',
       });
@@ -787,7 +1035,45 @@ describe('WebhookService', () => {
   });
 
   describe('processStripeEvent', () => {
-    it('should handle payment_intent.succeeded', async () => {
+    it('should fulfill appointment payment when payment_intent.succeeded has citaId and negocioId in metadata', async () => {
+      const event = {
+        id: 'evt_1',
+        type: 'payment_intent.succeeded',
+        data: {
+          object: {
+            id: 'pi_123',
+            amount: 5000,
+            currency: 'usd',
+            customer: 'cus_1',
+            metadata: { citaId: '42', negocioId: '1' },
+          },
+        },
+      };
+
+      await service.processStripeEvent(event as never);
+
+      expect(mockCitasService.confirmarPagoStripe).toHaveBeenCalledWith(42, 1, 'pi_123');
+    });
+
+    it('should fulfill appointment payment when checkout.session.completed has citaId and negocioId in metadata', async () => {
+      const event = {
+        id: 'evt_checkout_1',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_123',
+            payment_intent: 'pi_checkout_999',
+            metadata: { citaId: '55', negocioId: '2' },
+          },
+        },
+      };
+
+      await service.processStripeEvent(event as never);
+
+      expect(mockCitasService.confirmarPagoStripe).toHaveBeenCalledWith(55, 2, 'pi_checkout_999');
+    });
+
+    it('should handle payment_intent.succeeded without metadata gracefully', async () => {
       const event = {
         id: 'evt_1',
         type: 'payment_intent.succeeded',
@@ -797,12 +1083,13 @@ describe('WebhookService', () => {
             amount: 5000,
             currency: 'usd',
             customer: 'cus_1',
-            metadata: { negocioId: '1' },
+            metadata: {},
           },
         },
       };
 
       await expect(service.processStripeEvent(event as never)).resolves.not.toThrow();
+      expect(mockCitasService.confirmarPagoStripe).not.toHaveBeenCalled();
     });
 
     it('should handle invoice.payment_succeeded', async () => {

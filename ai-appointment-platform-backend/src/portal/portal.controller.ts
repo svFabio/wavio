@@ -17,7 +17,7 @@ import { TenantGuard } from '../common/guards/tenant.guard';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import type { Cita } from '../domain/types';
-import { bookAppointmentSchema } from './dto/portal.dto';
+import { availableSlotsQuerySchema, bookAppointmentSchema } from './dto/portal.dto';
 
 @Controller('api/v1/portal')
 export class PortalController {
@@ -60,7 +60,8 @@ export class PortalController {
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   async getAvailableSlots(
     @Param('token') token: string,
-    @Query() query: { fecha: string; servicioId?: number },
+    @Query(new ZodValidationPipe(availableSlotsQuerySchema))
+    query: { fecha: string; servicioId?: number },
   ): Promise<string[]> {
     return this.portalService.getHorariosDisponibles(token, query.fecha, query.servicioId);
   }

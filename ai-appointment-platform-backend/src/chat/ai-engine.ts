@@ -4,15 +4,16 @@ import { z } from 'zod';
 import { env } from '../config/env';
 import type { ChatFlowStep } from '../domain/types';
 import { createLogger } from '../lib/logger';
+import { ExternalServiceError } from '../domain/errors';
 
 const logger = createLogger('ai-engine');
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const model = genAI.getGenerativeModel({ model: env.GEMINI_MODEL });
 
 function getModel(apiKey?: string) {
   if (apiKey && apiKey.trim()) {
     return new GoogleGenerativeAI(apiKey.trim()).getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: env.GEMINI_MODEL,
     });
   }
   return model;
@@ -137,7 +138,11 @@ export const evaluarIntencion = async (mensaje: string): Promise<string> => {
     return response;
   } catch (error) {
     logger.error({ error }, 'Error evaluando intencion');
-    return 'OTRO';
+    throw new ExternalServiceError(
+      error instanceof Error ? error.message : String(error),
+      'GEMINI_ERROR',
+      502,
+    );
   }
 };
 
@@ -219,7 +224,53 @@ export const procesarMensajeConIA = async (
           ],
           tools: herramientasCita,
         });
-        texto = followUp.response.text();
+
+        const followUpText = followUp.response.text().trim();
+        const tieneAgendar = functionCalls.some((c) => c.name === 'agendar_cita');
+        let intencion: ResultadoIA['intencion'] = tieneAgendar ? 'AGENDAR' : 'CONSULTAR';
+        let respuestaSugerida = followUpText;
+
+        // Si la respuesta incluye un JSON válido de fallback, extraer el mensaje sin fallar
+        if (followUpText.startsWith('{') && followUpText.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(followUpText);
+            if (parsed.intencion) intencion = parsed.intencion;
+            if (typeof parsed.respuestaSugerida === 'string') {
+              respuestaSugerida = parsed.respuestaSugerida;
+            }
+          } catch {
+            // Mantener texto natural
+          }
+        }
+
+        const primerCall = functionCalls[0];
+        const args = (primerCall?.args ?? {}) as Record<string, unknown>;
+        const fechaHora = typeof args.fecha_hora === 'string' ? args.fecha_hora : undefined;
+        let fecha = typeof args.fecha === 'string' ? args.fecha : undefined;
+        let hora: string | undefined;
+        if (fechaHora) {
+          const parts = fechaHora.split('T');
+          fecha = parts[0];
+          hora = parts[1]?.slice(0, 5);
+        }
+        const nombre = typeof args.cliente_nombre === 'string' ? args.cliente_nombre : undefined;
+
+        logger.info(
+          { intencion, tools: functionCalls.map((c) => c.name) },
+          'Gemini ejecuto herramientas con exito',
+        );
+
+        return {
+          intencion,
+          entidades: {
+            fecha,
+            hora,
+            nombre,
+          },
+          sentimiento: 'positivo',
+          confianza: 1.0,
+          respuestaSugerida,
+        };
       } else {
         texto = result.response.text();
       }
@@ -260,28 +311,11 @@ export const procesarMensajeConIA = async (
     return validation.data;
   } catch (error) {
     logger.error({ error }, 'ERROR IA');
-
-    const intencion = detectarIntencionSimple(mensaje);
-    const tieneFecha = contieneInformacionFecha(mensaje);
-    const tieneHora = contieneInformacionHora(mensaje);
-
-    let respuestaRespaldo = '';
-    if (intencion === 'AGENDAR') respuestaRespaldo = 'Entendido, quieres agendar. Para que fecha?';
-    else if (intencion === 'CONSULTAR') respuestaRespaldo = 'Revisando tu agenda...';
-    else
-      respuestaRespaldo =
-        'Disculpa, tuve un problema de conexion con mi cerebro. Podrias decirme para que dia buscas cita?';
-
-    return {
-      intencion: intencion,
-      entidades: {
-        fecha: tieneFecha ? mensaje : undefined,
-        hora: tieneHora ? mensaje : undefined,
-      },
-      sentimiento: 'neutral',
-      confianza: 0.5,
-      respuestaSugerida: respuestaRespaldo,
-    };
+    throw new ExternalServiceError(
+      error instanceof Error ? error.message : String(error),
+      'GEMINI_ERROR',
+      502,
+    );
   }
 };
 
@@ -380,7 +414,11 @@ Responde SOLO con el texto del mensaje, sin comillas ni formato adicional.
     return result.response.text().trim();
   } catch (error) {
     logger.error({ error }, 'Error generando respuesta');
-    return 'Disculpa, podrias repetir eso?';
+    throw new ExternalServiceError(
+      error instanceof Error ? error.message : String(error),
+      'GEMINI_ERROR',
+      502,
+    );
   }
 };
 
@@ -410,7 +448,7 @@ export const contieneInformacionFecha = (mensaje: string): boolean => {
   const textoLower = mensaje.toLowerCase();
 
   const patronesFecha = [
-    /\d{1,2}[\/-]\d{1,2}/,
+    /\d{1,2}[/-]\d{1,2}/,
     /manana|hoy|pasado manana/,
     /lunes|martes|miercoles|jueves|viernes|sabado|domingo/,
     /esta semana|proxima semana|siguiente semana/,
