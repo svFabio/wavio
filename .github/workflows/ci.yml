@@ -396,17 +396,35 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm run build
+
+      - name: Start frontend preview
+        run: nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort > /tmp/vite-preview.log 2>&1 &
+
+      - name: Wait for frontend preview
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4173 > /dev/null; then
+              echo "Frontend preview ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Frontend preview failed to start:"
+          cat /tmp/vite-preview.log
+          exit 1
+
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
           working-directory: ai-appointment-platform-frontend
-          build: pnpm run build
-          start: pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort
-          wait-on: "http://127.0.0.1:4173"
-          wait-on-timeout: 120
           browser: ${{ matrix.browser }}
           spec: "cypress/e2e/*.cy.ts"
           config: baseUrl=http://127.0.0.1:4173,video=true
+
+      - name: Frontend preview log
+        if: failure()
+        run: cat /tmp/vite-preview.log
 
       - name: Upload screenshots
         if: failure()
@@ -513,17 +531,37 @@ jobs:
       - run: pnpm install --frozen-lockfile
         working-directory: ai-appointment-platform-frontend
 
+      - run: pnpm run build
+        working-directory: ai-appointment-platform-frontend
+
+      - name: Start frontend preview
+        run: nohup pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort > /tmp/vite-preview.log 2>&1 &
+        working-directory: ai-appointment-platform-frontend
+
+      - name: Wait for frontend preview
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4173 > /dev/null; then
+              echo "Frontend preview ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Frontend preview failed to start:"
+          cat /tmp/vite-preview.log
+          exit 1
+
       - name: Cypress run (backend real)
         uses: cypress-io/github-action@v6
         with:
           working-directory: ai-appointment-platform-frontend
-          build: pnpm run build
-          start: pnpm exec vite preview --host 127.0.0.1 --port 4173 --strictPort
-          wait-on: "http://127.0.0.1:4173"
-          wait-on-timeout: 120
           browser: ${{ matrix.browser }}
           config-file: cypress.config.real.mjs
           config: baseUrl=http://127.0.0.1:4173,video=true
+
+      - name: Frontend preview log
+        if: failure()
+        run: cat /tmp/vite-preview.log
 
       - name: Backend log
         if: failure()

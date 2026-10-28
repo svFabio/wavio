@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 RUN corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy config files first (layer cache)
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* .pnpmfile.cjs* ./
 COPY prisma ./prisma/
 
 # Install ALL dependencies (including devDependencies for build)
