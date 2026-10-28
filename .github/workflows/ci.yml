@@ -422,3 +422,124 @@ jobs:
           name: cypress-videos-${{ matrix.browser }}
           path: ai-appointment-platform-frontend/cypress/videos
           if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # E2E real — Cypress contra stack completo vivo: Postgres + Nest + vite preview
+  # (ver ADR-013). Specs en cypress/e2e/real/: sin cy.intercept; crean un tenant
+  # real por corrida y verifican persistencia contra la API.
+  # ---------------------------------------------------------------------------
+  e2e-real:
+    name: E2E real — Full stack (Cypress, ${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: wavio_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/wavio_e2e
+      # El schema de env exige que estas claves existan; los flujos E2E no las
+      # usan, así que llevan valores dummy de CI (no son credenciales reales).
+      JWT_SECRET: ci-e2e-real-jwt-secret
+      GEMINI_API_KEY: dummy-gemini-key
+      CLOUDINARY_CLOUD_NAME: dummy
+      CLOUDINARY_API_KEY: dummy
+      CLOUDINARY_API_SECRET: dummy
+      META_WEBHOOK_VERIFY_TOKEN: dummy
+      GOOGLE_CLIENT_ID: dummy-e2e-client-id
+      VITE_GOOGLE_CLIENT_ID: dummy-e2e-client-id
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: |
+            ai-appointment-platform-backend/pnpm-lock.yaml
+            ai-appointment-platform-frontend/pnpm-lock.yaml
+
+      # --- Backend -----------------------------------------------------------
+      - run: pnpm install --frozen-lockfile
+        working-directory: ai-appointment-platform-backend
+
+      - run: npx prisma generate
+        working-directory: ai-appointment-platform-backend
+
+      # db push y no migrate deploy: la primera migración asume tablas
+      # baseline creadas previamente (ver ADR-013).
+      - run: npx prisma db push --skip-generate
+        working-directory: ai-appointment-platform-backend
+
+      - run: pnpm run build
+        working-directory: ai-appointment-platform-backend
+
+      - name: Start backend
+        run: nohup node dist/src/main.js > /tmp/backend-e2e.log 2>&1 &
+        working-directory: ai-appointment-platform-backend
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/v1/health > /dev/null; then
+              echo "Backend healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend no respondió:"
+          cat /tmp/backend-e2e.log
+          exit 1
+
+      # --- Frontend + Cypress ------------------------------------------------
+      - run: pnpm install --frozen-lockfile
+        working-directory: ai-appointment-platform-frontend
+
+      - name: Cypress run (backend real)
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ai-appointment-platform-frontend
+          build: pnpm run build
+          start: pnpm exec vite preview --port 4173 --strictPort
+          wait-on: "http://localhost:4173"
+          wait-on-timeout: 120
+          browser: ${{ matrix.browser }}
+          config-file: cypress.config.real.mjs
+          config: baseUrl=http://localhost:4173,video=true
+
+      - name: Backend log
+        if: failure()
+        run: cat /tmp/backend-e2e.log
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-real-screenshots-${{ matrix.browser }}
+          path: ai-appointment-platform-frontend/cypress/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-real-videos-${{ matrix.browser }}
+          path: ai-appointment-platform-frontend/cypress/videos
+          if-no-files-found: ignore

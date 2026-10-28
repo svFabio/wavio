@@ -1,4 +1,5 @@
 import './commands';
+import './realCommands';
 import 'cypress-axe';
 
 // Los scripts de Google Identity Services pueden fallar en CI (bloqueados

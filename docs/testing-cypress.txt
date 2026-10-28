@@ -1,0 +1,198 @@
+5. ESTRUCTURA DE UN TEST
+
+Todo test en Cypress sigue la misma estructura anidada: un bloque describe que agrupa los casos de una misma funcionalidad, uno o varios bloques it que representan un caso de prueba individual, y hooks (before, beforeEach) que preparan el estado previo a cada ejecución.
+
+    describe('Citas — crear cita con servidor', () => {
+      before(() => { /* una sola vez, antes de todos los tests */ });
+      beforeEach(() => { /* antes de cada test */ });
+
+      it('crea una cita desde el calendario y queda persistida', () => {
+        // ...
+      });
+    });
+
+5.1. Anatomía: describe, it y hooks
+
+- describe: título de la suite. Agrupa tests relacionados y puede anidarse.
+- it: un test = una afirmación sobre el sistema. Si falla, debe decir exactamente qué comportamiento se rompió.
+- before: se ejecuta una vez al inicio de la suite; ideal para datos costosos (crear el negocio de prueba).
+- beforeEach: se ejecuta antes de cada test; ideal para el login, que cada test arranque autenticado.
+
+5.2. Patrón AAA (Arrange-Act-Assert)
+
+Cada test se organiza en tres fases:
+
+- Arrange (preparar): sembrar datos y sesión — seedE2ETenant(), loginReal().
+- Act (actuar): reproducir lo que haría el usuario — cy.visit(), type(), click().
+- Assert (verificar): comprobar el resultado — should(), expect() y verificación directa contra la API.
+
+Ejemplo real del proyecto (crear-cita):
+
+    it('crea una cita desde el calendario', () => {
+      // Arrange: login en beforeEach, formulario abierto
+      cy.visit('/dashboard/calendario');
+      cy.contains('button', 'Nueva Cita').click();
+
+      // Act: llenar y guardar
+      cy.get('input[placeholder="Ej: Juan Perez"]').type('Ana Real');
+      cy.contains('button', '09:00').click();
+      cy.contains('button', 'Crear Cita').click();
+
+      // Assert: la UI la muestra y la base de datos la guardó
+      cy.contains('1 cita').should('be.visible');
+      cy.request('/api/v1/citas?fecha=...').its('body.data').should('have.lengthOf', 1);
+    });
+
+5.3. Flujo de ejecución: cola de comandos y reintentos
+
+Los comandos cy.* no se ejecutan en el momento en que se escriben: se encolan. Cypress los procesa en orden, esperando a que cada uno resuelva antes de pasar al siguiente. Esto explica por qué el código es asíncrono aunque no lleve await explícito, y por qué se usa .then() para trabajar con valores de comandos anteriores.
+
+Las aserciones tienen retry-ability: un should() no falla al instante, reintenta automáticamente hasta el timeout. Si la aplicación tarda 400 ms en renderizar, el test espera en lugar de fallar. Además, el proyecto está configurado con retries: { runMode: 1 }, es decir, en CI cada test tiene un segundo intento antes de marcarse como fallido.
+
+<IMAGEN DE: diagrama del ciclo de ejecución de Cypress (cola de comandos → aplicación bajo prueba → servidor) — CÓMO OBTENERLA: no es screenshot, hay que dibujarlo. 1) Abrir draw.io o PowerPoint. 2) Tres cajas en fila: "Cola de comandos cy.*", "Aplicación bajo prueba (navegador)", "Servidor (:3000)". 3) Flechas: Cypress encola → ejecuta en la app → la app llama al servidor → Cypress evalúa la aserción. 4) Exportar como PNG>
+
+6. COMANDOS
+
+6.1. Comandos esenciales
+
+Los comandos más usados en el proyecto:
+
+- cy.visit(): navega a una ruta de la aplicación.
+- cy.get(): localiza un elemento por selector CSS o atributo.
+- cy.contains(): localiza por texto visible — el preferido cuando se testea como habla el usuario (cy.contains('button', 'Crear Cita')).
+- cy.click() / cy.type() / cy.select(): acciones del usuario.
+- cy.should(): aserción con reintento automático.
+- cy.request(): llamada HTTP directa al backend, sin pasar por la interfaz.
+- cy.intercept(): intercepta peticiones (uso exclusivo de la suite stub).
+- cy.reload(): recarga la página.
+
+6.2. Comandos personalizados
+
+Cuando una secuencia se repite, se extrae a un comando propio. En el proyecto viven en cypress/support/realCommands.ts:
+
+    // Sembrar un negocio de prueba completo en la base de datos real
+    cy.seedE2ETenant().then((tenant) => { ... });
+
+    // Iniciar sesión contra el backend vivo
+    cy.loginReal(tenant.email, tenant.password);
+
+    // Crear una cita por la API (el "otro admin" que compite por un horario)
+    cy.crearCitaViaApi(tenant, { fecha, horario, clienteNombre });
+
+Estos comandos encapsulan URL base, headers de autenticación y construcción de payloads: si la API cambia, se toca un solo archivo. Es el primer nivel de reutilización de código.
+
+<IMAGEN DE: captura del archivo support/realCommands.ts con los comandos personalizados — CÓMO OBTENERLA: 1) Abrir en VS Code el archivo ai-appointment-platform-frontend/cypress/support/realCommands.ts. 2) Contraer los métodos auxiliares (clic en los números de línea) hasta que se vean solo las funciones exportadas seedE2ETenant, loginReal y crearCitaViaApi. 3) Screenshot de la ventana (Win+Shift+S o Cmd+Shift+4)>
+
+7. ASERCIONES (VALIDACIÓN DE RESULTADOS)
+
+7.1. should / expect y retry-ability
+
+Cypress usa Chai. Dos estilos conviven:
+
+- Aserción sobre elemento: cy.get('[role="dialog"]').should('be.visible').
+- Aserción de valor: expect(cita.estado).to.eq('NO_ASISTIO').
+
+Los negativos son igual de importantes: .should('not.exist') verifica que algo desapareció (un modal cerrado, un horario ocupado que ya no se ofrece). Todas las aserciones sobre elementos reintantan hasta el timeout; las expect() sobre valores obtenidos con .then() o cy.request() evalúan una única vez.
+
+7.2. Verificar por UI vs verificar por API
+
+Verificar por UI confirma lo que el usuario ve (el resumen muestra "1 cita"). Verificar por API confirma el estado real de los datos, independientemente de la interfaz:
+
+    cy.request({ method: 'GET', url: `${apiUrl}/citas?fecha=${fecha}`, headers })
+      .then((res) => {
+        expect(res.body.data[0]).to.include({ clienteNombre: 'Ana Real', estado: 'PENDIENTE' });
+      });
+
+La suite real combina ambas: la UI para el flujo visible, la API para el estado persistido en la base de datos. Una UI puede mostrar datos cacheados; la base de datos no miente.
+
+<IMAGEN DE: Command Log de Cypress mostrando una aserción pasando paso a paso — CÓMO OBTENERLA (stack levantado: Postgres, backend :3000, vite :5173): 1) cd ai-appointment-platform-frontend && pnpm cy:open. 2) En "Search specs" escribir real → abrir editar-cita.cy.ts. 3) Esperar a que quede en verde con 2 passing. 4) Screenshot del panel izquierdo (Command Log) donde se ven los cy.log narrados y las aserciones con palomita. Alternativa headless: pnpm e2e:real y capturar la salida de la terminal>
+
+8. BUENAS PRÁCTICAS DE SELECTORES
+
+8.1. data-cy vs cy.contains vs selectores CSS
+
+Orden de preferencia recomendado (teoría, según las mejores prácticas de Cypress):
+
+1. data-cy (atributo dedicado al test): estable frente a cambios de estilos o framework CSS.
+2. Texto visible con cy.contains(): lenguaje del usuario; el test sobrevive rediseños, pero cambia si cambia el copy.
+3. Roles y atributos accesibles ([role="dialog"], aria-label): estables y además validan accesibilidad.
+4. Selectores CSS por clase: solo como último recurso.
+
+Realidad de este proyecto: la suite E2E NO usa el nivel 1 — no existe ni un solo data-cy en el código. Se aplican exclusivamente los niveles 2 y 3, escribiendo el test como el usuario usa la aplicación:
+
+    cy.contains('button', 'Nueva Cita').click();
+    cy.get('[role="dialog"][aria-label="Detalles de la cita"]');
+
+Es una decisión deliberada y documentada en el repositorio: los selectores accesibles (placeholder, aria-label, roles, type) son estables, hablan el lenguaje del negocio y obligan a que la interfaz resulte accesible; añadir atributos de prueba tocaría varias features de dominio por una ganancia marginal. Si algún texto se vuelve frágil por cambios de copy, se revisa ese caso concreto antes de introducir data-cy (mejora futura, ver Conclusiones).
+
+8.2. Selectores frágiles: qué evitar
+
+- Clases generadas por el framework: .MuiButton-root, .css-1x2h3k4 — cambian con cada build.
+- Índices posicionales: .eq(2), nth-child — se rompen si se inserta un elemento encima.
+- XPaths absolutos: /html/body/div[3]/button — inmantenibles.
+- Esperar con wait() fijo: cy.wait(2000) esconde problemas de sincronización; usar siempre aserciones con reintento.
+
+<IMAGEN DE: comparación entre un selector frágil (.MuiButton-root:nth-child(2)) y su versión estable — CÓMO OBTENERLA: no es screenshot, hay que componerla. 1) Abrir draw.io o PowerPoint, dos cajas lado a lado. 2) Izquierda: "FRÁGIL" con el código .get('.MuiButton-root:nth-child(2)').click() en rojo. 3) Derecha: "ESTABLE" con cy.contains('button', 'Nueva Cita').click() en verde (selector real del proyecto). 4) Exportar PNG>
+
+9. PRUEBAS DE API Y REUTILIZACIÓN DE CÓDIGO EN CYPRESS
+
+9.1. cy.request para seed y verificación
+
+cy.request habla con el backend directamente, sin pasar por la interfaz. En el proyecto cumple dos funciones:
+
+- Preparar datos (seed): crear el negocio de prueba, el cliente o la cita del "otro admin" antes de que el test abra la UI.
+- Verificar resultados: comprobar en la base de datos que la cita quedó creada, marcada como NO_ASISTIO o reprogramada a las 14:00.
+
+En la suite real no hay cy.intercept: las peticiones van al backend vivo en el puerto 3000. La única excepción conceptual es que los cy.request de seed tampoco se interceptan, porque representan a otros usuarios reales del sistema (decisión documentada en el ADR-013 del proyecto).
+
+9.2. Helpers, fixtures y comandos compartidos
+
+La reutilización se organiza en tres niveles:
+
+- Módulo de helpers: realCommands.ts centraliza apiUrl(), apiHeaders(), seedE2ETenant(), loginReal() y crearCitaViaApi(). Los cuatro specs reales importan este mismo archivo.
+- Comandos personalizados: exponen esos helpers como cy.seedE2ETenant(), etc.
+- Fixtures: datos estáticos en cypress/fixtures/ (la suite stub los usa para respuestas simuladas). La suite real genera datos dinámicos con timestamp (e2e-1695...@wavio.test) para que cada ejecución sea aislada.
+
+Regla práctica: si una secuencia aparece en dos o más tests, se extrae a una función o comando compartido.
+
+<IMAGEN DE: pestaña Network del navegador mostrando un cy.request GET /api/v1/citas con respuesta 200 — CÓMO OBTENERLA (stack levantado): 1) cd ai-appointment-platform-frontend && pnpm cy:open → abrir un spec real (crear-cita.cy.ts) y abrir DevTools antes (F12) con la pestaña Network visible. 2) Esperar a que el test corra: en Network aparecerán peticiones fetch/XHR. 3) Filtrar con el botón Fetch/XHR y hacer clic en GET /api/v1/citas. 4) Screenshot mostrando la fila con 200 y la pestaña Response/Preview. Si la GUI no deja acomodar ventanas, correr la app en Chrome normal (localhost:5173) + F12 y disparar las peticiones navegando al calendario>
+
+10. PRUEBAS APLICADAS EN EL PROYECTO
+
+El proyecto mantiene dos suites E2E complementarias:
+
+10.1. Suite stub (17 tests) y suite real (7 tests)
+
+- Suite stub (pnpm e2e): 7 specs y 17 tests. Usa cy.intercept para simular las respuestas del backend; corre sin servidor ni base de datos, en segundos. Cubre login, calendario, citas, chat, pagos, portal y WhatsApp. Su ventaja: velocidad y aislamiento; su límite: no valida la lógica real del servidor.
+
+- Suite real (pnpm e2e:real): 4 specs y 7 tests contra el backend vivo (Postgres + Nest en el puerto 3000) sin interceptación de respuestas. Duración aproximada de 43 segundos. Su ventaja: valida el sistema completo de verdad; su límite: requiere el stack levantado y es más sensible a lentitud del entorno.
+
+Ambas corren en CI y en local; la primera como red rápida, la segunda como prueba de fuego.
+
+10.2. Cobertura por spec
+
+- crear-cita.cy.ts (1 test): creación completa con persistencia verificada en base de datos.
+- conflicto-horario.cy.ts (2 tests): un horario ocupado deja de ofrecerse en la UI; y si dos administradores compiten por la misma hora, el servidor responde 400 sin duplicar la cita.
+- editar-cita.cy.ts (2 tests): marcar una cita pasada como no asistió y reprogramar una cita a otro horario, verificando ambos cambios en la base de datos.
+- portal-publico.cy.ts (2 tests): un cliente agenda desde su enlace mágico sin sesión y la solicitud queda PENDIENTE; un token inválido muestra "Enlace inválido".
+
+<IMAGEN DE: salida de Cypress "All specs passed" con 4 specs y 7 tests en verde — CÓMO OBTENERLA (stack levantado): 1) cd ai-appointment-platform-frontend && pnpm e2e:real. 2) Esperar ~45 segundos a que termine (Run Finished). 3) Screenshot de la terminal mostrando la tabla final con los 4 specs en ✔ y "All specs passed! 7 7". 4) Si la terminal queda con scroll, capturar desde "(Run Finished)" hasta la última fila>
+
+11. CONCLUSIONES
+
+Cypress permite testear la aplicación tal como la usa la persona real: clics, formularios y respuestas del servidor, todo en el mismo navegador. La estructura describe/it/hooks más el patrón AAA mantiene los tests legibles; los comandos personalizados y el módulo de helpers eliminan la duplicación; y las aserciones con reintento automático evitan fallos por tiempos de respuesta.
+
+La estrategia de dos suites es la decisión de mayor valor del trabajo: la suite stub da velocidad y confianza en cada guardado, mientras que la suite real —sin mocks— valida de verdad la lógica del negocio, la persistencia en PostgreSQL y los casos de carrera entre usuarios. Ninguna sustituye a la otra.
+
+Como limitaciones quedan registradas la dependencia de un stack levantado para la suite real (sensible a la lentitud del entorno, mitigada con reintentos y datos únicos por intento) y la oportunidad futura de migrar selectores a atributos data-cy dedicados y de incorporar pruebas de componente con Cypress Component Testing.
+
+12. BIBLIOGRAFÍA
+
+- Cypress. Documentation. https://docs.cypress.io
+- Cypress. Introduction to Cypress. https://docs.cypress.io/guides/core-concepts/introduction-to-cypress
+- Cypress. Retry-ability. https://docs.cypress.io/guides/core-concepts/retry-ability
+- Cypress. Best Practices. https://docs.cypress.io/guides/references/best-practices
+- Cypress. API: cy.request(). https://docs.cypress.io/api/commands/request
+- Chai. Guía de estilo expect. https://www.chaijs.com/guide/styles/
+- Cypress. Real World App (ejemplo oficial de arquitectura de tests). https://github.com/cypress-realworld-app
+- Wavio. ADR-013: estrategia de pruebas E2E (suite stub vs suite real). docs/decisions.md del repositorio.

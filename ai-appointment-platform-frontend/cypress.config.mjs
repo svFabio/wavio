@@ -2,6 +2,10 @@ import { defineConfig } from 'cypress';
 
 // E2E suite — ver ADR-011. Los specs usan cy.intercept contra **/api/v1/*,
 // por lo que no requieren backend real: basta con `vite dev` o `vite preview`.
+// Los specs con backend real viven en cypress/e2e/real/ y se seleccionan por
+// script: `pnpm e2e` corre solo los stubs (glob cypress/e2e/*.cy.ts, que no
+// cruza subcarpetas) y `pnpm e2e:real` los reales (ver ADR-013). Sin
+// excludeSpecPattern para que `pnpm cy:open` muestre TODOS los specs.
 //
 // Nota: el archivo es .mjs y no .ts porque el loader TS de Cypress no resuelve
 // el tsconfig solution-style del proyecto y compila la config como CJS,

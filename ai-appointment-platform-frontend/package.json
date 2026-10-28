@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
-    "e2e": "cypress run",
+    "e2e": "cypress run --spec 'cypress/e2e/*.cy.ts'",
+    "e2e:real": "cypress run --config-file cypress.config.real.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
