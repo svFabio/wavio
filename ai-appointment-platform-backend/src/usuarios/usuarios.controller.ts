@@ -10,8 +10,10 @@ import {
   UsePipes,
   ParseIntPipe,
   Req,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { PaginationInterceptor } from '../common/interceptors/pagination.interceptor';
 import { UsuariosService } from './usuarios.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -34,6 +36,7 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Get('/')
+  @UseInterceptors(PaginationInterceptor)
   async getAll(@TenantId() negocioId: number, @Req() req: Request): Promise<GetAllUsuariosResult> {
     const pagination = (req as { pagination?: { page: number; limit: number } }).pagination;
     const page = pagination?.page ?? 1;

@@ -1,18 +1,20 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { TenantGuard } from './tenant.guard';
+import type { AuthService } from '../../auth/auth.service';
 
 describe('TenantGuard', () => {
   let guard: TenantGuard;
+  let mockAuthService: {
+    verifyTenantMembership: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
-    guard = new TenantGuard();
+    mockAuthService = {
+      verifyTenantMembership: vi.fn(),
+    };
+    guard = new TenantGuard(mockAuthService as unknown as AuthService);
   });
-
-  const negocios = [
-    { negocioId: 1, rol: 'ADMIN' },
-    { negocioId: 2, rol: 'STAFF' },
-  ];
 
   const createContext = (usuario: unknown, headers: Record<string, string> = {}) => {
     const request: Record<string, unknown> = { usuario, headers };
@@ -22,110 +24,56 @@ describe('TenantGuard', () => {
     return { context, request };
   };
 
-  it('should return false when no user', () => {
+  it('should return false when no user', async () => {
     const { context } = createContext(undefined);
 
-    expect(guard.canActivate(context)).toBe(false);
+    const result = await guard.canActivate(context);
+    expect(result).toBe(false);
   });
 
-  it('should throw BadRequestException when x-negocio-id header is missing', () => {
-    const { context } = createContext({ id: 1, email: 'test@test.com', negocios });
+  it('should throw BadRequestException when x-negocio-id header is missing', async () => {
+    const { context } = createContext({ id: 1, email: 'test@test.com' });
 
-    expect(() => guard.canActivate(context)).toThrow(BadRequestException);
+    await expect(guard.canActivate(context)).rejects.toThrow(BadRequestException);
+    await expect(guard.canActivate(context)).rejects.toThrow('x-negocio-id header is required');
   });
 
-  it('should throw BadRequestException with correct message when header is missing', () => {
-    const { context } = createContext({ id: 1, email: 'test@test.com', negocios });
-
-    expect(() => guard.canActivate(context)).toThrow('x-negocio-id header is required');
-  });
-
-  it('should throw BadRequestException when x-negocio-id is not a number', () => {
+  it('should throw BadRequestException when x-negocio-id is not a number', async () => {
     const { context } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': 'abc' },
+      { id: 1, email: 'test@test.com' },
+      { 'x-negocio-id': 'invalid' },
     );
 
-    expect(() => guard.canActivate(context)).toThrow(BadRequestException);
+    await expect(guard.canActivate(context)).rejects.toThrow(BadRequestException);
+    await expect(guard.canActivate(context)).rejects.toThrow('x-negocio-id must be a number');
   });
 
-  it('should throw BadRequestException with correct message when not a number', () => {
-    const { context } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': 'abc' },
-    );
-
-    expect(() => guard.canActivate(context)).toThrow('x-negocio-id must be a number');
-  });
-
-  it('should throw ForbiddenException when negocio is not in memberships', () => {
-    const { context } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': '10' },
-    );
-
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-  });
-
-  it('should throw ForbiddenException with correct message when negocio not in memberships', () => {
-    const { context } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': '10' },
-    );
-
-    expect(() => guard.canActivate(context)).toThrow('You do not have access to this business');
-  });
-
-  it('should return true when accessing first membership negocio', () => {
-    const { context } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': '1' },
-    );
-
-    expect(guard.canActivate(context)).toBe(true);
-  });
-
-  it('should return true when accessing second membership negocio', () => {
-    const { context } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': '2' },
-    );
-
-    expect(guard.canActivate(context)).toBe(true);
-  });
-
-  it('should set request.negocioId when valid', () => {
+  it('should verify membership via AuthService and set tenant info on request', async () => {
     const { context, request } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
+      { id: 1, email: 'test@test.com' },
       { 'x-negocio-id': '2' },
     );
+    mockAuthService.verifyTenantMembership.mockResolvedValueOnce('ADMIN');
 
-    guard.canActivate(context);
+    const result = await guard.canActivate(context);
 
+    expect(result).toBe(true);
+    expect(mockAuthService.verifyTenantMembership).toHaveBeenCalledWith(1, 2);
     expect(request.negocioId).toBe(2);
+    expect((request.usuario as Record<string, unknown>).rol).toBe('ADMIN');
+    expect((request.usuario as Record<string, unknown>).negocioId).toBe(2);
   });
 
-  it('should set request.usuario.rol to the active membership rol', () => {
-    const { context, request } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': '2' },
+  it('should throw ForbiddenException when AuthService throws', async () => {
+    const { context } = createContext(
+      { id: 99, email: 'rogue@test.com' },
+      { 'x-negocio-id': '10' },
+    );
+    mockAuthService.verifyTenantMembership.mockRejectedValue(
+      new Error('No tienes acceso a este negocio'),
     );
 
-    guard.canActivate(context);
-
-    const usuario = request.usuario as Record<string, unknown>;
-    expect(usuario.rol).toBe('STAFF');
-  });
-
-  it('should set request.usuario.negocioId to the active negocio', () => {
-    const { context, request } = createContext(
-      { id: 1, email: 'test@test.com', negocios },
-      { 'x-negocio-id': '1' },
-    );
-
-    guard.canActivate(context);
-
-    const usuario = request.usuario as Record<string, unknown>;
-    expect(usuario.negocioId).toBe(1);
+    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(context)).rejects.toThrow('No tienes acceso a este negocio');
   });
 });

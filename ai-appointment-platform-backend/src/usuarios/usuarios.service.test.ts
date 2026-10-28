@@ -16,6 +16,9 @@ describe('UsuariosService', () => {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
+    deleteMembership: ReturnType<typeof vi.fn>;
+    countFutureCitasByStaff: ReturnType<typeof vi.fn>;
+    updateMembershipRole: ReturnType<typeof vi.fn>;
     countAdminsByNegocio: ReturnType<typeof vi.fn>;
   };
 
@@ -52,6 +55,9 @@ describe('UsuariosService', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      deleteMembership: vi.fn().mockResolvedValue(undefined),
+      countFutureCitasByStaff: vi.fn().mockResolvedValue(0),
+      updateMembershipRole: vi.fn().mockResolvedValue(undefined),
       countAdminsByNegocio: vi.fn(),
     };
     service = new UsuariosService(mockRepo as unknown as UsuariosRepository);
@@ -396,6 +402,7 @@ describe('UsuariosService', () => {
 
       expect(result).toEqual(updated);
       expect(mockRepo.update).toHaveBeenCalledWith(2, { rol: 'STAFF' });
+      expect(mockRepo.updateMembershipRole).toHaveBeenCalledWith(2, 1, 'STAFF');
     });
   });
 
@@ -410,26 +417,39 @@ describe('UsuariosService', () => {
       await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(NotFoundError);
     });
 
-    it('should delete user', async () => {
+    it('should throw ConflictError when user has future assigned appointments', async () => {
       mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
+      mockRepo.countFutureCitasByStaff.mockResolvedValue(2);
+
+      await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(ConflictError);
+      await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(
+        'El usuario tiene citas futuras asignadas. Reasígnalas antes de eliminarlo.',
+      );
+      expect(mockRepo.deleteMembership).not.toHaveBeenCalled();
+    });
+
+    it('should delete user membership when no future appointments exist', async () => {
+      mockRepo.findByIdAndNegocioId.mockResolvedValue(staffTarget);
+      mockRepo.countFutureCitasByStaff.mockResolvedValue(0);
 
       await service.deleteUser(1, 2, 1, 'OWNER');
 
-      expect(mockRepo.delete).toHaveBeenCalledWith(2);
+      expect(mockRepo.countFutureCitasByStaff).toHaveBeenCalledWith(1, 2);
+      expect(mockRepo.deleteMembership).toHaveBeenCalledWith(1, 2);
     });
 
     it('should throw ForbiddenError when trying to delete an OWNER', async () => {
       mockRepo.findByIdAndNegocioId.mockResolvedValue(ownerTarget);
 
       await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(ForbiddenError);
-      expect(mockRepo.delete).not.toHaveBeenCalled();
+      expect(mockRepo.deleteMembership).not.toHaveBeenCalled();
     });
 
     it('should throw ForbiddenError when ADMIN tries to delete an ADMIN', async () => {
       mockRepo.findByIdAndNegocioId.mockResolvedValue(adminTarget);
 
       await expect(service.deleteUser(1, 2, 1, 'ADMIN')).rejects.toThrow(ForbiddenError);
-      expect(mockRepo.delete).not.toHaveBeenCalled();
+      expect(mockRepo.deleteMembership).not.toHaveBeenCalled();
     });
 
     it('should throw ForbiddenError when deleting the last admin', async () => {
@@ -438,7 +458,7 @@ describe('UsuariosService', () => {
 
       await expect(service.deleteUser(1, 2, 1, 'OWNER')).rejects.toThrow(ForbiddenError);
       expect(mockRepo.countAdminsByNegocio).toHaveBeenCalledWith(1);
-      expect(mockRepo.delete).not.toHaveBeenCalled();
+      expect(mockRepo.deleteMembership).not.toHaveBeenCalled();
     });
 
     it('should allow OWNER to delete an ADMIN when there are more admins', async () => {
@@ -447,7 +467,7 @@ describe('UsuariosService', () => {
 
       await service.deleteUser(1, 2, 1, 'OWNER');
 
-      expect(mockRepo.delete).toHaveBeenCalledWith(2);
+      expect(mockRepo.deleteMembership).toHaveBeenCalledWith(1, 2);
     });
   });
 });

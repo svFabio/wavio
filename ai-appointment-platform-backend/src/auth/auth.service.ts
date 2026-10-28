@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -8,11 +8,14 @@ import {
   UnauthorizedError,
   ConflictError,
   NotFoundError,
+  ForbiddenError,
   GoogleEmailNotVerifiedError,
   AppError,
 } from '../domain/errors';
 import { AuthRepository } from './auth.repository';
 import { uploadBase64Image } from '../lib/cloudinary';
+import { RedisService } from '../lib/redis/redis.service';
+import { getTenantMemberCacheKey, tenantMemberMemoryCache } from '../lib/cache/tenant-cache';
 
 type NegocioSafe = {
   id: number;
@@ -41,8 +44,50 @@ type UsuarioSafe = {
 export class AuthService {
   private readonly googleClient: OAuth2Client;
 
-  constructor(private readonly authRepository: AuthRepository) {
+  constructor(
+    private readonly authRepository: AuthRepository,
+    @Optional() private readonly redisService?: RedisService,
+  ) {
     this.googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+  }
+
+  async verifyTenantMembership(userId: number, negocioId: number): Promise<string> {
+    const cacheKey = getTenantMemberCacheKey(userId, negocioId);
+
+    if (this.redisService?.isAvailable) {
+      try {
+        const cached = await this.redisService.get<{ rol: string }>(cacheKey);
+        if (cached?.rol) {
+          return cached.rol;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    const memoryHit = tenantMemberMemoryCache.get(cacheKey);
+    if (memoryHit && memoryHit.expiresAt > Date.now()) {
+      return memoryHit.rol;
+    }
+
+    const membership = await this.authRepository.findMembership(userId, negocioId);
+    if (!membership) {
+      throw new ForbiddenError('No tienes acceso a este negocio');
+    }
+
+    if (this.redisService?.isAvailable) {
+      try {
+        await this.redisService.set(cacheKey, { rol: membership.rol }, 60);
+      } catch {
+        // Ignored
+      }
+    }
+    tenantMemberMemoryCache.set(cacheKey, {
+      rol: membership.rol,
+      expiresAt: Date.now() + 60 * 1000,
+    });
+
+    return membership.rol;
   }
 
   private signToken(

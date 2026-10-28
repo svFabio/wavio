@@ -5,6 +5,7 @@ import {
   UnauthorizedError,
   ConflictError,
   NotFoundError,
+  ForbiddenError,
   GoogleEmailNotVerifiedError,
   AppError,
 } from '../domain/errors';
@@ -73,6 +74,7 @@ describe('AuthService', () => {
       findUsuarioNegocioMembership: vi.fn(),
       findUsuarioByIdWithPassword: vi.fn(),
       updatePassword: vi.fn(),
+      findMembership: vi.fn(),
     };
 
     service = new AuthService(mockAuthRepository as unknown as AuthRepository);
@@ -971,6 +973,25 @@ describe('AuthService', () => {
         expect((err as AppError).code).toBe('NOT_IMPLEMENTED');
       }
       expect(mockAuthRepository.updatePassword).not.toHaveBeenCalled();
+    });
+  });
+
+  /* ─── verifyTenantMembership ─────────────────────────────────────── */
+
+  describe('verifyTenantMembership', () => {
+    it('should return membership role when found', async () => {
+      mockAuthRepository.findMembership.mockResolvedValue({ rol: 'ADMIN' });
+
+      const rol = await service.verifyTenantMembership(1, 2);
+
+      expect(rol).toBe('ADMIN');
+      expect(mockAuthRepository.findMembership).toHaveBeenCalledWith(1, 2);
+    });
+
+    it('should throw ForbiddenError when membership does not exist', async () => {
+      mockAuthRepository.findMembership.mockResolvedValue(null);
+
+      await expect(service.verifyTenantMembership(1, 99)).rejects.toThrow(ForbiddenError);
     });
   });
 });
