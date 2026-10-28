@@ -17,7 +17,7 @@ importers:
   .:
     dependencies:
       '@react-oauth/google':
-        specifier: ^0.13.4
+        specifier: ^0.13.5
         version: 0.13.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/react-query':
         specifier: ^5.90.21
