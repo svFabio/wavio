@@ -46,6 +46,21 @@ describe('useHorariosDisponiblesQuery', () => {
     expect(result.current.isFetching).toBe(false);
   });
 
+  it('does not fetch when fecha is empty even if enabled', async () => {
+    let called = false;
+    server.use(
+      http.get(`${BASE}/citas/horarios-disponibles`, () => {
+        called = true;
+        return HttpResponse.json({ horarios: [] });
+      }),
+    );
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useHorariosDisponiblesQuery('', true), { wrapper });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(called).toBe(false);
+    expect(result.current.isFetching).toBe(false);
+  });
+
   it('returns empty array when horarios is missing', async () => {
     server.use(http.get(`${BASE}/citas/horarios-disponibles`, () => HttpResponse.json({})));
     const { wrapper } = createWrapper();

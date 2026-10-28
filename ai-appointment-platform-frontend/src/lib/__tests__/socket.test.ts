@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getSocket, connectSocket, disconnectSocket } from '../socket';
+import { getSocket, connectSocket, disconnectSocket, switchSocketNegocio } from '../socket';
 import { auth } from '../auth';
 import { io } from 'socket.io-client';
 
 vi.mock('socket.io-client', () => {
-  const mSocket = {
-    connect: vi.fn(),
-    disconnect: vi.fn(),
+  const mSocket: Record<string, unknown> = {
     connected: false,
     auth: {},
   };
+  mSocket.disconnect = vi.fn(() => mSocket);
+  mSocket.connect = vi.fn(() => mSocket);
   return { io: vi.fn(() => mSocket) };
 });
 
@@ -50,5 +50,19 @@ describe('socket manager', () => {
     const socket = getSocket();
     disconnectSocket();
     expect(socket.disconnect).toHaveBeenCalled();
+  });
+
+  it('switches negocio, updates socket.auth and forces reconnection', () => {
+    vi.mocked(auth.getToken).mockReturnValue('token-456');
+
+    switchSocketNegocio(5);
+
+    const socket = getSocket();
+    expect(socket.auth).toEqual({
+      token: 'token-456',
+      negocioId: 5,
+    });
+    expect(socket.disconnect).toHaveBeenCalled();
+    expect(socket.connect).toHaveBeenCalled();
   });
 });
