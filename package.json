@@ -7,7 +7,7 @@
     "prepare": "husky",
     "lint": "pnpm -r run lint",
     "format": "pnpm -r run format",
-    "typecheck": "pnpm -r run typecheck",
+    "typecheck": "NODE_OPTIONS=--max-old-space-size=4096 pnpm -r run typecheck",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "test:coverage": "pnpm -r run test:coverage",

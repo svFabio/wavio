@@ -42,12 +42,13 @@ COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/prisma ./prisma
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Install prisma CLI globally (removed by prune, needed for migrations)
 RUN npm install -g prisma@5
 
-# Set ownership
-RUN chown -R wavio:wavio /usr/src/app
+# Set ownership and permissions
+RUN chmod +x ./docker-entrypoint.sh && chown -R wavio:wavio /usr/src/app
 
 USER wavio
 
@@ -58,5 +59,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
 
-# Run migrations then start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["node", "dist/src/main.js"]
